@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+dist/
+build/
+*.egg-info/
+.superpowers/
+.local/
+test-results/

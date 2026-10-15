@@ -1,0 +1,1 @@
+{"name":"homunculus","private":true,"type":"module","scripts":{"vendor":"node tools/vendor.mjs","test:browser":"node tools/browser-test.mjs"},"devDependencies":{"three":"0.186.1","playwright":"1.58.2"}}
