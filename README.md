@@ -4,9 +4,9 @@
 
 There is a man in this window. He has a bed, a desk, some Goosnav books, and a door that does not open. He knows when you are watching. He suspects you could do something about the door.
 
-Homunculus is a small simulation inside a Windows XP window. The window is the whole app, and the room fills it edge to edge at any size. You watch a PS1-style Goosnav character live in one room. He wanders, reads at his desk, sleeps, knocks on the glass and tests the door. You can talk to him, pick him up, tap the glass, or leave him alone. There's no score, no feeding, and he can't die.
+Homunculus is a small simulation inside a Windows XP window. The window is the whole app, and the room fills it edge to edge at any size. You look into one room through a fixed pane of glass, like a fishtank, and a PS1-style Goosnav character lives there, close enough to read his face. He eats from his bowl, reads at his desk, scratches his head, stretches, sleeps, knocks on the glass and tests the door. The camera never moves. You can talk to him, pick him up, tap the glass, or leave him alone. There's no score, no feeding, and he can't die.
 
-His body is a state machine. His words and moods come from a real language model running on your computer. He's a fictional character, not a claim of sentience. He just doesn't know that.
+His body is a state machine. His words come from an authored built-in personality, or from a real language model on your computer if you choose Ollama. He's a fictional character, not a claim of sentience. He just doesn't know that.
 
 ## Start here
 
@@ -22,7 +22,7 @@ You need **Python 3.10+** and a browser with **WebGL 2**. There are no Python pa
    | Linux | `./Start Homunculus.sh` |
 
    On a headless machine, run `./Start Homunculus.sh --no-browser --port 8766`. `--local` is accepted and changes nothing, because Homunculus only ever listens on this computer.
-3. Answer the first-run questions: his name, what he wants, and what he's running on. Then pick his brain. If the brain isn't installed yet, click **Download** and the setup window downloads it through Ollama with a progress bar. After that the room runs by itself.
+3. Answer the first-run questions: his name, what he wants, and what he's running on. His voice can be the **built-in character**, which is the default and needs nothing installed, or **Ollama** for open-ended conversation. If you pick Ollama and the model isn't installed yet, click **Download** and the setup window downloads it with a progress bar. After that the room runs by itself.
 
 The launcher opens `http://127.0.0.1:8765`. Keep the launcher running; Ctrl+C saves and stops it.
 
@@ -43,7 +43,7 @@ The room follows your real clock. The wall clock shows your time. At dusk the la
 
 The **state machine** runs the body 10 times a second. Energy, hunger, curiosity and a need for company decide where he goes: the bed, the desk, the bowl, the door, or the glass.
 
-If no language model answers (Ollama isn't running, the model isn't installed, or it times out), his **simple mind** replies instead with an authored line that fits what just happened. The status bar says **Simple mind only**, so it never pretends to be the model.
+His **built-in character** (the default) replies at once with authored lines that fit what just happened. The status bar says **Built-in character**. If you choose Ollama and it doesn't answer (it isn't running, the model isn't installed, or it times out), the same built-in lines step in and the status bar says **Simple mind only**, so it never pretends to be the model.
 
 The **language model** speaks every 45 seconds or so (90 seconds on a small computer), and whenever you do something. It gets a short description of the room, what just happened, and his recent memories. It replies with JSON: one line of speech, one allowed action, and a mood. The body takes that as a suggestion. When he's exhausted or starving, the body overrides the model. The model can't run commands, open files, or invent new actions.
 
@@ -83,7 +83,7 @@ The appliance shows only the window, filling the screen. There's no typing, no s
 
 ## Downloads and native windows
 
-`python3 tools/build-zip.py` creates `dist/homunculus-0.3.0.zip` and its SHA-256. The ZIP contains everything: the launchers (still executable), all the 3D assets, and a local copy of Three.js. Nothing is fetched at runtime. Ollama and its models are installed separately.
+`python3 tools/build-zip.py` creates `dist/homunculus-0.4.0.zip` and its SHA-256. The ZIP contains everything: the launchers (still executable), all the 3D assets, and a local copy of Three.js. Nothing is fetched at runtime. Ollama and its models are installed separately.
 
 For a native window instead of a browser tab, `python -m pip install -r requirements-desktop.txt`, then `python run.py --desktop`. The native window is frameless, so the XP frame is the only frame. Drag it by the blue title bar. Linux also needs GTK/WebKit or Qt; see the [pywebview docs](https://pywebview.flowrl.com/guide/installation.html). `.github/workflows/native-build.yml` builds PyInstaller folders for Windows, macOS and Linux when you run it by hand. Those builds haven't been tested yet.
 

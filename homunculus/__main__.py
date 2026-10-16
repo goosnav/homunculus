@@ -21,9 +21,14 @@ def main():
     parser.add_argument('--listen', action='store_true', help='Hear the microphone offline (needs Vosk; see tools/setup-ears.py)')
     parser.add_argument('--ears-model', type=Path, help='Vosk model folder (default: DATA_DIR/vosk-model)')
     args = parser.parse_args()
+    if getattr(sys, 'frozen', False) and not args.no_browser and not args.kiosk:
+        args.desktop = True
     if not 0 <= args.port <= 65535:
         parser.error('Port must be between 0 and 65535.')
-    runtime = Runtime(args.data_dir, kiosk=args.kiosk, host_speech=not args.browser_speech)
+    try:
+        runtime = Runtime(args.data_dir, kiosk=args.kiosk, host_speech=not args.browser_speech)
+    except OSError as exc:
+        parser.exit(1, f'Cannot read habitat at {args.data_dir}: {exc}. Check folder permissions or use --data-dir PATH.\n')
     try:
         server = make_server(runtime, args.port)
     except OSError as exc:

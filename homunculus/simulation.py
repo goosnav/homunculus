@@ -10,7 +10,7 @@ DESCRIPTIONS = {'wander': 'making the rounds', 'rest': 'lying down',
                 'watch': 'watching the other side', 'escape': 'testing the door', 'eat': 'taking a small break',
                 'knock': 'knocking on the glass', 'pace': 'pacing'}
 FACING = {'rest': 0., 'read': math.pi, 'inspect': math.pi / 2, 'watch': 0., 'escape': math.pi,
-          'eat': math.pi, 'knock': 0.}
+          'eat': 0., 'knock': 0.}  # Eating faces the glass, so you can see it.
 
 
 # The shared project: thirteen things to find out about this room and the person outside it. Finding them
@@ -37,7 +37,10 @@ KEEPSAKE = 'Made: a drawing of the watcher, pinned to the wall, so I remember wh
 
 
 def number(value, default=0):
-    return float(value) if type(value) in (int, float) and math.isfinite(value) else default
+    try:
+        return float(value) if type(value) in (int, float) and math.isfinite(value) else default
+    except OverflowError:
+        return default
 
 
 def duration(seconds):
@@ -56,7 +59,7 @@ class Simulation:
         self.age = max(0, number(saved.get('age')))
         self.position = [0., .75]
         p = saved.get('position')
-        if isinstance(p, list) and len(p) == 2 and all(type(x) in (int, float) and math.isfinite(x) for x in p):
+        if isinstance(p, list) and len(p) == 2 and all(number(x, None) is not None for x in p):
             self.position = list(nearest(*p))
         old_needs = saved.get('needs', {})
         old_needs = old_needs if isinstance(old_needs, dict) else {}
@@ -78,7 +81,7 @@ class Simulation:
         self.feeling = saved.get('feeling') if saved.get('feeling') in FEELINGS else 'curious'
         old_journal = saved.get('journal') if isinstance(saved.get('journal'), list) else []
         self.journal = [{'key': j['key'], 'when': number(j.get('when'))} for j in old_journal
-                        if isinstance(j, dict) and j.get('key') in DISCOVERIES]
+                        if isinstance(j, dict) and isinstance(j.get('key'), str) and j['key'] in DISCOVERIES]
         self.journal = list({j['key']: j for j in reversed(self.journal)}.values())[::-1]  # No duplicates.
         self.keepsake = len(self.journal) == len(DISCOVERIES)
         self.notices = []  # Things he found on his own, waiting to be remarked on.
@@ -115,6 +118,16 @@ class Simulation:
             self.notices.append(KEEPSAKE)
             self.remember(KEEPSAKE[len('Made: '):], salient=False)
         return True
+
+    def say(self, text, source='story', feeling=None):
+        if feeling in FEELINGS:
+            self.feeling = feeling
+        text = text.strip()[:280]
+        self.utterance = {'id': self.utterance['id'] + 1, 'text': text,
+                          'source': source, 'feeling': self.feeling}
+        self.dialogue.append({'role': 'assistant', 'content': text})
+        self.dialogue = self.dialogue[-12:]
+        self.remember(f'I said: {text}', salient=False)
 
     def choose(self, action):
         if action not in ACTIONS:
@@ -219,7 +232,7 @@ class Simulation:
     def interact(self, kind, payload):
         if kind == 'move':
             coords = [payload.get('x'), payload.get('z')]
-            if any(type(v) not in (int, float) or not math.isfinite(v) for v in coords):
+            if any(number(v, None) is None for v in coords):
                 raise ValueError('Position must contain finite numbers.')
             self.position = list(nearest(*coords))
             self.path, self.walking, self.seated = [], False, False
@@ -263,12 +276,7 @@ class Simulation:
         if thought.get('feeling') in FEELINGS:
             self.feeling = thought['feeling']
         if isinstance(say, str) and say.strip():
-            text = say.strip()[:280]
-            self.utterance = {'id': self.utterance['id'] + 1, 'text': text, 'source': 'llm',
-                              'feeling': self.feeling}
-            self.dialogue.append({'role': 'assistant', 'content': text})
-            self.dialogue = self.dialogue[-12:]
-            self.remember(f'I said: {text}', salient=False)
+            self.say(say, source=thought.get('source', 'llm'))
         if (self.needs['energy'] >= 15 and self.needs['hunger'] <= 85 and self.age >= self.held_until
                 and action in ACTIONS and action != self.activity):
             self.choose(action)

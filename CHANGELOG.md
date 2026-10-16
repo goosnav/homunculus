@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.0 — 2026-10-16: through the glass
+
+**A window, not a video game**
+- **Static, front-on camera.** You look straight into his room through the glass, from a little above his eye line, like a fishtank. He takes up about a third of the view, instead of being a small figure in an isometric room. The camera never moves. It widens only when a narrow window needs it, so his whole box stays visible at any window shape. A right-hand wall was added so the room still has no visible edges.
+- **He's alive in there.** He eats from his bowl (reaches in, brings food to his mouth, chews), reads a small red book at the desk and turns its pages, prods the booster pack and then stands with a hand on his chin, pushes on the door and knocks on it, and paces with his hands behind his back. When idle he fidgets: he scratches his head, stretches, shrugs and looks around. The bowl moved so he faces you while he eats.
+- **The built-in personality is the default.** The first-run window offers the built-in character (no downloads) or Ollama (open-ended conversation). Older saves that already used Ollama keep it.
+
+**Hardening (carried over from the unfinished upgrade pass)**
+- Saves:
+  - reading a save is strict: size and nesting limits, and `NaN` or `Infinity` is rejected
+  - a save that can't be read for permission reasons is never overwritten
+  - an oversized save keeps the last good file
+- Model downloads have to finish with Ollama's success message, progress is clamped, and a failed download can be retried.
+- The model list is validated.
+- A reply to a queued message sees exactly the world as it was before that message.
+- The page reconnects after the launcher restarts.
+- Menus work with the keyboard. With the room focused, arrow keys move him, Enter taps the glass, and Escape cancels a drag. Cancelled drags put him back.
+- The packaged app opens its own native window by default.
+- CI runs the tests on Linux (Python 3.10 and 3.12), Windows and macOS, runs the room's JavaScript tests, and builds the source ZIP.
+
+**Removed**
+- The button-driven "paper star" project from the unfinished pass. It made the window feel like a game UI. The journal and the drawing he pins on the wall remain the quiet, passive progression.
+
 ## 0.3.0 — 2026-10-15: the playable upgrade
 
 This release acts on the runtime, player-experience and security audit that was started before it.

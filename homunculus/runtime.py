@@ -1,20 +1,20 @@
 """Owns lifecycle, canonical state, background inference, and atomic saves."""
 import json
-import math
 import queue
 import threading
 import time
 from dataclasses import asdict
+from http.client import HTTPException
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from .brain import SILENCE, OllamaBrain
 from .config import Settings
 from .script import ScriptedMind
-from .simulation import Simulation
+from .simulation import Simulation, number
 from .speech import Speaker
 from .storage import Store
 
-MIND = ('name', 'goal', 'model', 'endpoint')  # Changing these invalidates pending thoughts.
+MIND = ('name', 'goal', 'model', 'endpoint', 'brain_mode')  # Changing these invalidates pending thoughts.
 PRESENCE_TIMEOUT = 6  # Seconds without a visible poll before he decides nobody is watching.
 
 
@@ -31,20 +31,24 @@ class Runtime:
         self.store = Store(directory)
         saved = self.store.load()
         try:
-            self.settings = Settings().update(saved.get('settings', {}))
+            previous_settings = saved.get('settings', {})
+            if isinstance(previous_settings, dict) and previous_settings.get('configured') is True and 'brain_mode' not in previous_settings:
+                previous_settings = previous_settings | {'brain_mode': 'ollama'}
+            self.settings = Settings().update(previous_settings)
         except (ValueError, TypeError):
             self.settings = Settings()
             self.store.warning = 'Saved settings were invalid; using defaults.'
         self.sim = Simulation(saved=saved.get('simulation'))
         # Absence is measured from the last time somebody actually watched, not the last autosave.
-        last_wall = saved.get('last_seen_at', saved.get('saved_at'))
-        finite = type(last_wall) in (int, float) and math.isfinite(last_wall)
-        self.away_on_boot = min(365 * 86400., max(0., time.time() - last_wall)) if finite else 0.
-        self.last_seen_wall = last_wall if finite else time.time()
+        last_wall = number(saved.get('last_seen_at', saved.get('saved_at')), None)
+        self.away_on_boot = min(365 * 86400., max(0., time.time() - last_wall)) if last_wall is not None else 0.
+        self.last_seen_wall = last_wall if last_wall is not None else time.time()
         self.kiosk = kiosk
         if kiosk:
             self.settings = self.settings.update({'profile': 'tiny', 'configured': True})
         self.brain = brain or OllamaBrain()
+        if brain is not None:
+            self.settings = self.settings.update({'brain_mode': 'ollama'})
         self.script = ScriptedMind()  # His simple mind, for whenever the language model cannot answer.
         self.speaker = Speaker(enabled=self.settings.tts and host_speech)
         if not host_speech:
@@ -53,7 +57,7 @@ class Runtime:
         self.stopped = threading.Event()
         self.generation = 0
         self.busy = False
-        self.status = 'waiting'
+        self.status = 'builtin' if self.settings.brain_mode == 'builtin' else 'waiting'
         self.error = ''
         self.last_latency = None
         self.last_seen = 0.
@@ -63,6 +67,7 @@ class Runtime:
         self.heard = {'id': 0, 'text': ''}
         self.next_thought = time.monotonic() + 4
         self.threads = []
+        self.last_spoken_id = 0
 
     def start(self):
         for target, name in ((self._tick, 'body'), (self._think, 'brain')):
@@ -85,8 +90,9 @@ class Runtime:
             try:
                 self.store.save({'settings': asdict(self.settings), 'simulation': self.sim.snapshot(),
                                  'saved_at': time.time(), 'last_seen_at': self.last_seen_wall})
-            except OSError as exc:
-                self.store.warning = f'Could not save habitat: {exc.strerror or "storage unavailable"}'
+            except (OSError, ValueError) as exc:
+                detail = getattr(exc, 'strerror', None) or str(exc) or 'storage unavailable'
+                self.store.warning = f'Could not save habitat: {detail}'
 
     def seen(self, visible):
         """Called by every renderer poll. A visible window means somebody is (probably) watching."""
@@ -102,15 +108,10 @@ class Runtime:
             mind_changed = any(getattr(settings, k) != getattr(self.settings, k) for k in MIND)
             self.settings = settings
             if mind_changed:
-                self.generation += 1  # Discard thoughts generated under an old personality/model.
-                while True:
-                    try:
-                        self.jobs.get_nowait()
-                    except queue.Empty:
-                        break
+                self._discard_thoughts()
                 self.next_thought = time.monotonic() + 1
                 self.error = ''
-                self.status = 'waiting'
+                self.status = 'builtin' if settings.brain_mode == 'builtin' else 'waiting'
             self.speaker.set_enabled(settings.tts)
             self.save()
 
@@ -127,12 +128,22 @@ class Runtime:
 
     def _interact(self, kind, payload):
         with self.lock:
-            if kind == 'message' and self.jobs.full():
+            if kind == 'message' and self.settings.brain_mode == 'ollama' and self.jobs.full():
                 raise OverflowError('Give him a moment to catch up.')
+            # Capture the world before a message. Later queued input must not leak
+            # into either conversation history, memories, or the current event.
+            state = self.sim.snapshot() | {'clock': clock(), 'dialogue_before_trigger': True} if kind == 'message' else None
             self.sim.interact(kind, payload)
+            self._speak_latest()
+            trigger = f'The watcher says: {payload["text"].strip()}' if kind == 'message' else self.sim.event
+            if self.settings.brain_mode == 'builtin':
+                self._say(self.script.think(self.settings, state or self.sim.snapshot(), trigger), 'script')
+                self.status, self.error = 'builtin', ''
+                self.last_trigger = self.sim.event
+                self.next_thought = time.monotonic() + self.settings.thought_interval
+                return
             if kind == 'message':
-                # Remember where this message sits, so its reply never sees messages sent after it.
-                self.jobs.put_nowait((self.generation, f'The watcher says: {payload["text"].strip()}', self.sim.said))
+                self.jobs.put_nowait((self.generation, trigger, state))
                 self.last_trigger = self.sim.event
             elif kind in ('tap', 'move', 'close', 'release') and not self.busy and self.jobs.empty():
                 self.jobs.put_nowait((self.generation, self.sim.event, None))
@@ -140,6 +151,14 @@ class Runtime:
             else:
                 return
             self.next_thought = time.monotonic() + self.settings.thought_interval
+
+    def _discard_thoughts(self):
+        self.generation += 1
+        while True:
+            try:
+                self.jobs.get_nowait()
+            except queue.Empty:
+                break
 
     def _tick(self):
         previous, last_save = time.monotonic(), time.monotonic()
@@ -155,7 +174,12 @@ class Runtime:
                     self.away_on_boot = 0.
                     if self.sim.event != self.last_trigger:
                         self.next_thought = min(self.next_thought, now + 1.5)  # Greet a returning watcher.
+                previous_utterance = self.sim.utterance['id']
                 self.sim.tick(now - previous)
+                if self.sim.utterance['id'] != previous_utterance:
+                    self._speak_latest()
+                    self.last_trigger = self.sim.event
+                    self.next_thought = max(self.next_thought, now + 20)
                 if self.settings.configured and now >= self.next_thought and not self.busy and self.jobs.empty():
                     trigger = (self.sim.event if self.sim.event != self.last_trigger
                                else self.sim.notices.pop(0) if self.sim.notices else SILENCE)
@@ -171,7 +195,7 @@ class Runtime:
     def _think(self):
         while not self.stopped.is_set():
             try:
-                generation, trigger, said = self.jobs.get(timeout=.25)
+                generation, trigger, captured_state = self.jobs.get(timeout=.25)
             except queue.Empty:
                 continue
             with self.lock:
@@ -180,16 +204,15 @@ class Runtime:
                 self.busy = True
                 self.status = 'thinking'
                 settings = self.settings
-                state = self.sim.snapshot() | {'clock': clock()}
-                if said is not None:  # Only the conversation up to (not including) this message.
-                    state['dialogue'] = [m for m in state['dialogue'] if m.get('n', 0) < said]
+                state = captured_state if captured_state is not None else self.sim.snapshot() | {'clock': clock()}
             started = time.monotonic()
             try:
-                thought = self.brain.think(settings, state, trigger)
+                builtin = settings.brain_mode == 'builtin'
+                thought = (self.script if builtin else self.brain).think(settings, state, trigger)
                 with self.lock:
                     if generation == self.generation and not self.stopped.is_set():
-                        self._say(thought, 'llm')
-                        self.status, self.error = 'connected', ''
+                        self._say(thought, 'script' if builtin else 'llm')
+                        self.status, self.error = ('builtin' if builtin else 'connected'), ''
                         self.last_latency = round(time.monotonic() - started, 2)
             except HTTPError as exc:
                 self._failure(generation, f'His full mind is not installed yet ({settings.model}). Download it in File → Properties.'
@@ -209,10 +232,16 @@ class Runtime:
                     self.busy = False
 
     def _say(self, thought, source):
-        self.sim.apply_thought(thought)
-        self.sim.utterance['source'] = source
-        if self.settings.tts:
-            self.speaker.say(thought['say'])
+        self.sim.apply_thought(dict(thought, source=source))
+        self._speak_latest()
+
+    def _speak_latest(self):
+        utterance = self.sim.utterance
+        if utterance['id'] <= self.last_spoken_id:
+            return
+        self.last_spoken_id = utterance['id']
+        if self.settings.tts and utterance['text']:
+            self.speaker.say(utterance['text'])
 
     def _failure(self, generation, message, state, trigger):
         """No language model: say so in the status bar, and let the simple mind answer so he is never mute."""
@@ -226,10 +255,15 @@ class Runtime:
     def installed_models(self):
         try:
             with urlopen(self.settings.endpoint + '/api/tags', timeout=3) as response:
-                data = json.loads(response.read(1_000_000))
-            return {'reachable': True, 'models': sorted(m['name'] for m in data.get('models', [])
+                raw = response.read(1_000_001)
+            if len(raw) > 1_000_000:
+                raise ValueError('Model list is too large.')
+            data = json.loads(raw)
+            if not isinstance(data, dict) or not isinstance(data.get('models'), list):
+                raise ValueError('Invalid model list.')
+            return {'reachable': True, 'models': sorted(m['name'] for m in data['models']
                                                          if isinstance(m, dict) and isinstance(m.get('name'), str))}
-        except (OSError, ValueError, AttributeError):
+        except (OSError, ValueError, TypeError, HTTPException, RecursionError):
             return {'reachable': False, 'models': []}
 
     def pull(self, model):
@@ -247,24 +281,37 @@ class Runtime:
         request = Request(endpoint + '/api/pull', data=json.dumps({'model': model, 'stream': True}).encode(),
                           headers={'Content-Type': 'application/json'}, method='POST')
         try:
+            success = False
             with urlopen(request, timeout=60) as response:
-                for line in response:
+                while True:
+                    line = response.readline(65537)
+                    if not line:
+                        break
+                    if len(line) > 65536:
+                        raise ValueError('Download response is too large.')
                     if self.stopped.is_set():
-                        return
+                        raise ValueError('Download stopped.')
                     event = json.loads(line)
+                    if not isinstance(event, dict):
+                        raise ValueError('Invalid download response.')
                     if event.get('error'):
                         raise ValueError(str(event['error'])[:200])
                     with self.lock:
                         total, done = event.get('total'), event.get('completed')
                         if type(total) is int and type(done) is int and total > 0:
-                            self.download['progress'] = round(done / total, 3)
+                            self.download['progress'] = round(min(total, max(0, done)) / total, 3)
                         self.download['detail'] = str(event.get('status', ''))[:80]
+                    if event.get('status') == 'success':
+                        success = True
+                        break
+            if not success:
+                raise ValueError('Download ended before Ollama confirmed installation. Try again.')
             with self.lock:
                 self.download.update(status='done', progress=1., detail='Installed')
                 if self.settings.model == model:
                     self.status, self.error = 'waiting', ''
                     self.next_thought = time.monotonic() + 1
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, TypeError, HTTPException, RecursionError) as exc:
             with self.lock:
                 self.download.update(status='failed', detail=str(exc)[:200] or 'Download failed. Is Ollama running?')
 

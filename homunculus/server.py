@@ -12,7 +12,7 @@ WEB = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent)) / '
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = 'Homunculus/0.3'
+    server_version = 'Homunculus/0.4'
 
     def log_message(self, *args):
         pass

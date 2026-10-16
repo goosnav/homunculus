@@ -16,6 +16,7 @@ class Settings:
     name: str = 'Hugh'
     goal: str = GOAL
     model: str = 'qwen2.5:0.5b'
+    brain_mode: str = 'builtin'
     endpoint: str = 'http://127.0.0.1:11434'
     profile: str = 'desktop'
     tts: bool = True
@@ -51,6 +52,8 @@ class Settings:
             values[key] = v.strip()
         if values['profile'] not in ('desktop', 'tiny'):
             raise ValueError('Unknown machine profile.')
+        if values['brain_mode'] not in ('builtin', 'ollama'):
+            raise ValueError('Choose the built-in mind or Ollama.')
         for key in ('tts', 'subtitles', 'configured'):
             if type(values[key]) is not bool:
                 raise ValueError(f'{key} must be true or false.')

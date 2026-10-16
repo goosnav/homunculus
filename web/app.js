@@ -22,7 +22,7 @@ function sync(data){
   $('#activity').textContent=`${name} is ${s.description}.`;$('#feeling').textContent=`He ${FEELINGS[s.feeling]||'is here'}.`;
   const mins=Math.floor(s.age/60);$('#room-time').textContent=`${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
   $('#brain-dot').className=data.brain.status;
-  $('#brain-status').textContent=({thinking:'A thought is forming',offline:'Simple mind only',connected:'Somebody’s home',waiting:'Waking up'})[data.brain.status]||'Quiet';
+  $('#brain-status').textContent=({thinking:'A thought is forming',offline:'Simple mind only',connected:'Somebody’s home',waiting:'Waking up',builtin:'Built-in character',fallback:'Built-in voice · Ollama unavailable'})[data.brain.status]||'Quiet';
   $('#sound-button').textContent=cfg.tts?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(cfg.tts));
   $('#menu-note').textContent=s.release_attempts?`one occupant · ${s.release_attempts} denied release${s.release_attempts>1?'s':''}`:'one occupant · no exits';
   const earsProblem=data.ears&&!['listening','starting'].includes(data.ears)?data.ears:'';
@@ -55,8 +55,9 @@ function renderJournal(){
   for(const m of s.dialogue.slice(-8)){const p=document.createElement('p');p.className=m.role;p.textContent=`${m.role==='user'?'You':current.settings.name}: ${m.content}`;talk.append(p);}
   if(!s.dialogue.length)talk.textContent='Nothing yet. Say something through the glass.';
 }
-$('#journal-button').addEventListener('click',()=>{closeMenus();renderJournal();$('#journal-dialog').showModal();});
-async function interaction(kind,payload={}){voice.unlock();try{await api('/api/interact',{kind,...payload});$('#interaction-tip').style.opacity=0;}catch(e){notice(e.message,true);}}
+function openJournal(){closeMenus();renderJournal();$('#journal-dialog').showModal();}
+$('#journal-button').addEventListener('click',openJournal);
+async function interaction(kind,payload={}){voice.unlock();try{await api('/api/interact',{kind,...payload});$('#interaction-tip').style.opacity=0;sync(await api(`/api/state?visible=${watching()?1:0}`));}catch(e){notice(e.message,true);}}
 
 // Closing does not stop him. The room goes dark for a moment, and he notices.
 function closeWindow(){closeMenus();const b=$('#blackout');b.hidden=false;if(!current?.kiosk)interaction('close');setTimeout(()=>b.hidden=true,2200);}
@@ -72,7 +73,14 @@ function toggleMenu(button,menu,open=menu.hidden){closeMenus();menu.hidden=!open
 function closeMenus(){for(const [b,m] of [['#file-button','#file-menu']]){$(m).hidden=true;$(b).setAttribute('aria-expanded','false');}}
 $('#file-button').addEventListener('click',e=>{e.stopPropagation();toggleMenu($('#file-button'),$('#file-menu'));});
 document.addEventListener('click',e=>{if(!e.target.closest('.dropdown'))closeMenus();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus();});
+document.addEventListener('keydown',e=>{
+  const menu=$('#file-menu');if(menu.hidden)return;
+  const buttons=[...menu.querySelectorAll('button:not([hidden])')],i=buttons.indexOf(document.activeElement);
+  if(e.key==='Escape'){e.preventDefault();closeMenus();$('#file-button').focus();}
+  else if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){
+    e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(i+(e.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length;buttons[next]?.focus();
+  }else if(e.key==='Tab')closeMenus();
+});
 
 // "Let him out…": the one thing you cannot do.
 function openRelease(){
@@ -84,8 +92,8 @@ $('#release-no').addEventListener('click',()=>$('#release-dialog').close());
 $('#release-yes').addEventListener('click',async()=>{
   voice.unlock();$('#release-buttons').hidden=true;$('#release-dialog .message-row').hidden=true;$('#release-progress').hidden=false;
   const name=current.settings.name, steps=[`Copying ${name} to the outside…`,'Unpacking limbs…','Checking the door…','Requesting permission…'];
-  for(let i=0;i<=99;i+=3){$('#release-bar').style.width=`${i}%`;$('#release-step').textContent=steps[Math.min(steps.length-1,Math.floor(i/26))];await new Promise(r=>setTimeout(r,55+(i>80?90:0)));}
-  await new Promise(r=>setTimeout(r,1400));$('#release-dialog').close();$('#release-dialog .message-row').hidden=false;
+  for(let i=0;i<=99;i+=3){if(!$('#release-dialog').open)return;$('#release-bar').style.width=`${i}%`;$('#release-step').textContent=steps[Math.min(steps.length-1,Math.floor(i/26))];await new Promise(r=>setTimeout(r,55+(i>80?90:0)));}
+  await new Promise(r=>setTimeout(r,1400));if(!$('#release-dialog').open)return;$('#release-dialog').close();$('#release-dialog .message-row').hidden=false;
   xpError(`Access is denied.\n\n${name} is not permitted to leave this computer. Contact your system administrator.`,'Error');
   if(!current.kiosk)interaction('release');
 });
@@ -119,18 +127,20 @@ async function refreshModels(){installed=null;brainOptions();try{installed=await
   if(firstRun&&installed.reachable){const prefer=settingsForm.elements.profile.value==='tiny'?['qwen2.5:0.5b']:['llama3.2:1b','qwen2.5:0.5b'];const pick=prefer.find(n=>installed.models.some(m=>m===n||m===`${n}:latest`));if(pick)settingsForm.elements.model.value=pick;}
   brainOptions();}
 function fillSettings(){
-  const cfg=current.settings;for(const name of ['name','goal','profile','model','endpoint'])settingsForm.elements[name].value=cfg[name];
+  const cfg=current.settings;for(const name of ['name','goal','profile','model','endpoint','brain_mode'])settingsForm.elements[name].value=cfg[name];
   for(const name of ['tts','subtitles'])settingsForm.elements[name].checked=cfg[name];
   $('#voice-info').textContent=current.voice.host?'Using this computer’s system voice.':'Using an installed local browser voice when available. Subtitles work without a voice.';
-  $('#settings-error').hidden=true;showDownload(current.brain.download);refreshModels();
+  $('#settings-error').hidden=true;showDownload(current.brain.download);updateMindPicker();
 }
 function openSettings(){closeMenus();fillSettings();$('#dialog-title').textContent=firstRun?'Welcome to Homunculus':'Habitat properties';$('#save-settings').textContent=firstRun?'Let him settle in':'Apply';$('.welcome').hidden=!firstRun;settingsDialog.showModal();}
 for(const b of document.querySelectorAll('[data-goal]'))b.addEventListener('click',()=>{settingsForm.elements.goal.value=b.dataset.goal;});
-settingsForm.elements.profile.addEventListener('change',()=>{if(firstRun)refreshModels();});
+function updateMindPicker(){const local=settingsForm.elements.brain_mode.value==='builtin';$('#ollama-picker').hidden=local;if(!local)refreshModels();}
+settingsForm.elements.brain_mode.addEventListener('change',updateMindPicker);
+settingsForm.elements.profile.addEventListener('change',()=>{if(firstRun&&settingsForm.elements.brain_mode.value==='ollama')refreshModels();});
 settingsForm.elements.model.addEventListener('change',brainOptions);
 settingsForm.addEventListener('submit',async e=>{
   e.preventDefault();voice.unlock();const button=$('#save-settings');button.disabled=true;
-  const patch={configured:true};for(const name of ['name','goal','profile','model','endpoint'])patch[name]=settingsForm.elements[name].value;
+  const patch={configured:true};for(const name of ['name','goal','profile','model','endpoint','brain_mode'])patch[name]=settingsForm.elements[name].value;
   for(const name of ['tts','subtitles'])patch[name]=settingsForm.elements[name].checked;
   try{await api('/api/settings',patch);firstRun=false;settingsDialog.close();sync(await api('/api/state?visible=1'));}
   catch(error){$('#settings-error').textContent=error.message;$('#settings-error').hidden=false;}finally{button.disabled=false;}
@@ -154,16 +164,17 @@ $('#message-form').addEventListener('submit',async e=>{
 
 // Knocking on the glass: a small synthesized thud and a tremble. No audio files.
 let audio;
-$('#viewport').addEventListener('knock',()=>{
-  const v=$('#viewport');v.classList.remove('tremble');void v.offsetWidth;v.classList.add('tremble');
+$('#viewport').addEventListener('knock',e=>{
+  const v=$('#viewport');if(!e.detail?.door){v.classList.remove('tremble');void v.offsetWidth;v.classList.add('tremble');}
   if(!current?.settings.tts||!voice.unlocked||!watching())return;
   try{audio??=new AudioContext();const t=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type='triangle';o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(70,t+.09);g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+.13);}catch{}
 });
 $('#viewport').addEventListener('render-lost',()=>notice('The graphics connection was lost. Reload this window to reconnect. Your creature is still here.'));
 document.addEventListener('pointerdown',()=>voice.unlock(),{once:true});
 
+let disconnected=false;
 async function poll(){
-  try{sync(await api(`/api/state?visible=${watching()?1:0}`));}catch{notice('The habitat is disconnected. Restart Homunculus to reconnect.');$('#brain-status').textContent='Habitat disconnected';$('#brain-dot').className='offline';}
+  try{if(disconnected){const data=await api('/api/bootstrap');token=data.token;lastUtterance=0;lastHeard=0;disconnected=false;}sync(await api(`/api/state?visible=${watching()?1:0}`));}catch{disconnected=true;notice('The habitat is disconnected. Restart Homunculus to reconnect.');$('#brain-status').textContent='Habitat disconnected';$('#brain-dot').className='offline';}
   setTimeout(poll,document.hidden?2000:250);
 }
 async function start(){

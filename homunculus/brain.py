@@ -123,7 +123,7 @@ def build_messages(settings, state, trigger, rng=random):
                      {'role': 'assistant', 'content': json.dumps({'say': said, 'action': action, 'feeling': feeling})}]
     said = trigger.startswith('The watcher says:')
     history = state['dialogue'][-5:]
-    if said and history and history[-1]['role'] == 'user':
+    if said and not state.get('dialogue_before_trigger') and history and history[-1]['role'] == 'user':
         history = history[:-1]  # The new message is the final turn; do not send it twice.
     for m in history[-4:]:
         messages.append({'role': 'user', 'content': m['content']} if m['role'] == 'user' else

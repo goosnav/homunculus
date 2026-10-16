@@ -1,0 +1,50 @@
+name: Test and build source download
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            python: '3.10'
+          - os: ubuntu-24.04
+            python: '3.12'
+          - os: windows-latest
+            python: '3.12'
+          - os: macos-latest
+            python: '3.12'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check browser JavaScript syntax
+        shell: bash
+        run: |
+          for file in web/*.js; do node --check "$file"; done
+      - name: Test the room's camera and controls
+        shell: bash
+        run: |
+          npm ci --ignore-scripts
+          node --test tests/room.test.mjs
+      - name: Test game, saves and extracted source download
+        run: python -m unittest discover -s tests -v
+      - name: Upload source ZIP and checksum
+        if: matrix.os == 'ubuntu-24.04' && matrix.python == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Homunculus-source
+          path: |
+            dist/homunculus-*.zip
+            dist/homunculus-*.zip.sha256
+          if-no-files-found: error

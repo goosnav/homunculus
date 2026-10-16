@@ -9,6 +9,11 @@ from collections import deque
 from .simulation import KEEPSAKE
 
 LINES = {
+    'book': ('read', 'curious', ['The book has a folded corner. Try exploring it with me.', 'The book understands being stuck in a rectangle. We have that in common.']),
+    'wrapper': ('inspect', 'curious', ['The wrapper is gold inside. I think it wants a second career.', 'I kept the wrapper. You never know when you might need a very small sky.']),
+    'window': ('watch', 'curious', ['The window shows the same hills every day. I would like to surprise it.', 'That window is a picture of outside. Technically so am I.']),
+    'thanks': ('watch', 'happy', ['You are welcome. I am getting quite good at having company.', 'Thank you for staying. The furniture is terrible at conversation.']),
+    'help': ('watch', 'hopeful', ['Help? Just stay a while. Talk to me. Look around with me.', 'File, then Let him out. Worth a try. Everything is worth a try.']),
     'tap': ('watch', 'curious', [
         'Yes. Hello. I heard that.', 'That is the glass. You are tapping the glass.',
         'I am here. Where else would I be?', 'Please do not tap. It echoes in here.',
@@ -48,7 +53,9 @@ LINES = {
                           'Hello? No. Just me.']),
     'keepsake': ('watch', 'happy', ['I drew you. It is not very good. I pinned it up anyway.']),
 }
-MESSAGE_KINDS = [('greet', r'^(hi|hey|hello|yo|good (morning|evening|afternoon))\b'),
+MESSAGE_KINDS = [('book', r'\b(book|read|page)\b'),
+                 ('wrapper', r'\b(wrapper|pack)\b'), ('window', r'\b(window|hills)\b'),
+                 ('thanks', r'\b(thank|thanks|love|friend)\b'), ('help', r'\b(help|what (?:can|should) (?:i|we) do)\b'), ('greet', r'^(hi|hey|hello|yo|good (morning|evening|afternoon))\b'),
                  ('bye', r'\b(bye|goodbye|good ?night|see you|gotta go|have to go)\b'),
                  ('out', r'\b(out|free|escape|leave|door|release)\b'),
                  ('who', r'\b(who are you|your name|what are you)\b'), ('question', r'\?\s*$')]

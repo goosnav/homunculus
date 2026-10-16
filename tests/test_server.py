@@ -23,6 +23,7 @@ class ServerTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.runtime = Runtime(Path(self.directory.name), host_speech=False)
+        self.runtime.settings = self.runtime.settings.update({'brain_mode': 'ollama'})  # These tests exercise the model path.
         self.server = make_server(self.runtime, port=0)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -56,7 +57,8 @@ class ServerTests(unittest.TestCase):
     def test_kiosk_still_hears_the_microphone(self):
         self.runtime.kiosk = True
         self.runtime.hear('hello in there')
-        self.assertEqual(self.runtime.sim.dialogue[-1]['content'], 'hello in there')
+        self.assertIn({'role': 'user', 'content': 'hello in there'},
+                      [{'role': m['role'], 'content': m['content']} for m in self.runtime.sim.dialogue])
         self.assertEqual(self.request('/api/pull', {'model': 'qwen2.5:0.5b'})[0], 403)
 
     def test_visible_polls_mean_he_is_watched(self):

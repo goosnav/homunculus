@@ -68,6 +68,16 @@ Run with Ollama on this CPU:
 - **Ollama pointed at a dead address:** your message is echoed at once. He replies "Oh. Hello. Nobody ever says hello." and the status reads "Simple mind only". Pages appear in the journal, and a notice announces each one.
 - **Completed journal:** a save with all 13 pages restores the drawing on the left wall.
 
+## 0.4 checks
+
+- **Python:** 70 tests pass. **JavaScript:** 7 room tests pass (`node --test tests/room.test.mjs`).
+  - The camera stays fixed at 360×720, 800×600 and 2560×720, and every corner of his box stays visible.
+  - In landscape windows he fills at least 27% of the frame height.
+- **Screenshots at 1100×820, 1500×650 and 560×860:** front-on view, no visible room edges.
+- **Forced poses:** eating (hand to mouth, facing the glass), reading the book at the desk, inspecting (hand to chin), knocking on the door.
+- **30 seconds of live play in built-in mode:** he walks to the desk, sits and reads, and makes remarks. No console errors.
+- **Ollama mode with `llama3.2:1b`:** a typed message got a model reply in 7.4 s.
+
 ## Not verified
 
 - The frameless native window (`--desktop`). Windows and macOS launchers, voices and PyInstaller builds. The CI workflow exists but hasn't been run.

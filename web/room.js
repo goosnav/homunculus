@@ -16,17 +16,18 @@ const damp=THREE.MathUtils.damp, clamp=THREE.MathUtils.clamp;
 function angleTo(from,to){return Math.atan2(Math.sin(to-from),Math.cos(to-from));}
 // Seat transforms: feet planted at the seat point; the body pivots at the feet.
 const LIE={y:.76,tilt:-Math.PI/2}, SIT={y:-.26};
-// Smallest half-extent of the view that still shows every corner of his invisible box. The view grows to fill
-// whatever shape the window is; the room runs past every edge, so there is never anything to cut off.
-const VIEW={w:4.3,h:3.225};
+// A fixed view through the glass, like looking into a fishtank: front-on, a little above his eye line, close
+// enough that he is the subject. The camera never moves. The vertical field of view widens only as far as a
+// narrow window needs to keep his whole box (BOX) in sight; the room runs past every edge, so nothing is cut off.
+export const EYE=new THREE.Vector3(0,2.15,6.4), LOOK=new THREE.Vector3(0,1.05,0), BASE_FOV=42;
+export const BOX={x:2.8,front:1.3};
+export const BOX_HALF_ANGLE=Math.atan((BOX.x+.35)/(EYE.z-BOX.front));
 
 export class Room {
   constructor(container, settings, onInteraction){
     this.container=container;this.settings=settings;this.onInteraction=onInteraction;
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0x263d37);
-    this.camera=new THREE.OrthographicCamera(-VIEW.w,VIEW.w,VIEW.h,-VIEW.h,.1,80);
-    this.camera.position.set(7.5,6.5,12);this.camera.lookAt(-.1,1.1,-.15);
-    this.cameraYaw=Math.atan2(this.camera.position.x,this.camera.position.z);
+    this.camera=new THREE.PerspectiveCamera(BASE_FOV,4/3,.1,90);this.camera.position.copy(EYE);this.camera.lookAt(LOOK);
     this.renderer=new THREE.WebGLRenderer({antialias:false,alpha:false,powerPreference:'low-power'});
     this.renderer.setPixelRatio(1);this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.toneMapping=THREE.NoToneMapping;
@@ -51,8 +52,8 @@ export class Room {
     const r=this.container.getBoundingClientRect(), aspect=r.width>0&&r.height>0?r.width/r.height:4/3;
     const h=this.settings.render_size[1], w=Math.max(1,Math.round(h*aspect));  // Low-res pixels, any shape.
     this.renderer.setSize(w,h,false);
-    const c=this.camera;if(aspect>=VIEW.w/VIEW.h){c.top=VIEW.h;c.right=VIEW.h*aspect;}else{c.right=VIEW.w;c.top=VIEW.w/aspect;}
-    c.left=-c.right;c.bottom=-c.top;c.updateProjectionMatrix();
+    const c=this.camera;c.aspect=aspect;
+    c.fov=Math.max(BASE_FOV,2*Math.atan(Math.tan(BOX_HALF_ANGLE)/aspect)*180/Math.PI);c.updateProjectionMatrix();
   }
   box(size,position,color){const o=new THREE.Mesh(new THREE.BoxGeometry(...size),mat(color));o.position.set(...position);this.scene.add(o);return o;}
   plane(size,position,texture){const o=new THREE.Mesh(new THREE.PlaneGeometry(...size),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));o.position.set(...position);this.scene.add(o);return o;}
@@ -70,6 +71,7 @@ export class Room {
     floor.rotation.x=-Math.PI/2;floor.position.set(-3.5+FAR/2,0,-2.5+FAR/2);this.scene.add(floor);
     this.box([FAR,FAR,.16],[-3.5+FAR/2,FAR/2-.01,-2.5],palette.wall);
     this.box([.16,FAR,FAR],[-3.5,FAR/2-.01,-2.5+FAR/2],palette.side);
+    this.box([.16,FAR,FAR],[3.5,FAR/2-.01,-2.5+FAR/2],palette.side);this.box([.12,.12,FAR],[3.38,.06,-2.5+FAR/2],palette.edge);
     this.box([FAR,.12,.12],[-3.5+FAR/2,.06,-2.38],palette.edge);
     this.box([.12,.12,FAR],[-3.38,.06,-2.5+FAR/2],palette.edge);
     // A door with a deliberately unhelpful little plaque.
@@ -112,7 +114,7 @@ export class Room {
     this.box([.64,.65,.6],[-2.44,.32,-1.6],0x7c8062);
     const pot=new THREE.Mesh(new THREE.CylinderGeometry(.19,.14,.29,7),mat(0x9a6b47));pot.position.set(-2.44,.82,-1.6);this.scene.add(pot);
     for(let i=0;i<5;i++){const leaf=new THREE.Mesh(new THREE.ConeGeometry(.14,.48,4),mat(i%2?0x647853:0x7c8a5a));leaf.position.set(-2.44+Math.sin(i*2.3)*.1,1.09+Math.cos(i)*.06,-1.6+Math.cos(i*2.3)*.1);leaf.rotation.z=Math.sin(i*2)*.5;this.scene.add(leaf);}
-    const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.21,.14,.12,10),mat(0xb9b594));bowl.position.set(-1.5,.07,-1.5);this.scene.add(bowl);
+    const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.21,.14,.12,10),mat(0xb9b594));bowl.position.set(-1.0,.07,-1.0);this.scene.add(bowl);
     const note=canvasTexture(128,128,(c)=>{c.fillStyle='#d8d0a9';c.fillRect(0,0,128,128);c.textAlign='center';c.fillStyle='#66715a';c.font='12px monospace';['PLEASE','REMAIN','INSIDE'].forEach((s,i)=>c.fillText(s,64,42+i*19));});
     this.plane([.63,.63],[2.35,2.3,-2.39],note);
     // The wall clock keeps the watcher's time. He has noticed.
@@ -151,13 +153,18 @@ export class Room {
     this.model=resident;this.body.add(resident);
     resident.traverse(o=>{if(o.isBone){this.bones[o.name.replaceAll('.','')]=o;this.rest[o.name.replaceAll('.','')]={q:o.quaternion.clone(),p:o.position.clone()};}});
     this.headBone=this.bones.head;
+    // A small book that only exists while he reads at the desk.
+    if(this.bones.handR){this.book=new THREE.Mesh(new THREE.BoxGeometry(.2,.035,.27),mat(0x8b3b2e));this.book.position.set(.06,.1,.02);this.book.visible=false;this.bones.handR.add(this.book);}
     // Blender faces -Y; glTF conversion maps that to +Z, toward the glass.
     const items=[['book',[1.64,1.025,-1.3],2.1,.24],['pack',[2.17,1.03,-1.4],1.65,-.3],['zine',[-2.33,.694,.51],1.8,.2],['card',[1.88,1.035,-1.04],2.1,.45]];
     await Promise.all(items.map(async([file,p,s,y])=>{const item=await load(file);item.position.set(...p);item.scale.setScalar(s);item.rotation.y=y;this.scene.add(item);}));
     this.container.dataset.loaded='true';
     return this;
   }
-  update(state,extra={}){this.state=state;Object.assign(this,extra);this.keepsake.visible=!!state.keepsake;}
+  update(state,extra={}){
+    if(!this.state)this.resident.position.set(state.position[0],0,state.position[1]);
+    this.state=state;Object.assign(this,extra);this.keepsake.visible=!!state.keepsake;
+  }
   pose(name,x=0,y=0,z=0){name=name.replaceAll('.','');const bone=this.bones[name],rest=this.rest[name];if(!bone)return;bone.quaternion.copy(rest.q).multiply(_q.setFromEuler(_e.set(x,y,z)));}
   animate(t,dt){
     if(!this.state||!this.model)return;
@@ -184,10 +191,44 @@ export class Room {
       this.pose(`forearm.${side}`,speaking&&!lying?.35:0);
       if(lying)this.pose(`foot.${side}`,.9);
     }
-    if(sitting||(!moving&&!this.dragging&&['read','inspect','escape'].includes(s.activity))){
-      this.pose('upper_arm.R',.65,0,-.1);this.pose('forearm.R',.55+Math.sin(t*3)*.07);
-      if(s.activity==='read'){this.pose('upper_arm.L',.55);this.pose('forearm.L',.65);}
+    // Little lives: each activity has its own loop, and idle moments get fidgets. All procedural, no clips.
+    const x={chest:0,head:0,tilt:0,jaw:0,look:null}, settled=!moving&&!this.dragging&&!lying&&!s.walking;
+    const cycle=period=>(t%period)/period;
+    if(sitting){  // Reading at the desk: book in both hands, a page turned now and then.
+      this.pose('upper_arm.R',.75,0,-.15);this.pose('forearm.R',.9);this.pose('upper_arm.L',.75,0,.15);this.pose('forearm.L',.9);
+      const turn=cycle(5.5);if(turn>.8)this.pose('upper_arm.L',.95,0,.15+Math.sin((turn-.8)*5*Math.PI)*.5);
+      x.head=.3;
+    }else if(settled&&s.activity==='eat'){  // Reach into the bowl, food to mouth, chew.
+      const e=cycle(4.2);
+      if(e<.35){x.chest=.45*Math.sin(e/.35*Math.PI);this.pose('upper_arm.R',.9,0,-.1);this.pose('forearm.R',.15);}
+      else if(e<.55){this.pose('upper_arm.R',.85,0,-.2);this.pose('forearm.R',2.0);x.head=-.05;}
+      else{this.pose('upper_arm.R',.2*(1-(e-.55)/.45),0,-.05);this.pose('forearm.R',.4);x.jaw=-Math.abs(Math.sin(t*9))*.12;x.head=.05;}
+    }else if(settled&&s.activity==='inspect'){  // Prod the booster pack, then stand back and think about it.
+      const i=cycle(6);
+      if(i<.5){this.pose('upper_arm.R',.85,0,-.1);this.pose('forearm.R',.45+Math.sin(t*6)*.08);x.head=.2;x.tilt=.18;}
+      else{this.pose('upper_arm.R',.35,0,-.25);this.pose('forearm.R',2.2);this.pose('upper_arm.L',.25,0,.2);this.pose('forearm.L',1.3);x.tilt=-.15;}
+    }else if(settled&&s.activity==='escape'){  // Push the door; when that fails, knock on it.
+      const d=cycle(5);
+      if(d<.45){this.pose('upper_arm.R',1.35,0,-.1);this.pose('upper_arm.L',1.35,0,.1);this.pose('forearm.R',.2);this.pose('forearm.L',.2);x.chest=.12+Math.sin(t*8)*.03;}
+      else{const k=Math.sin(t*11);this.pose('upper_arm.R',1.2,0,-.1);this.pose('forearm.R',.95-Math.max(0,k)*.45);
+        if(k>.95&&!this.doorKnocked){this.doorKnocked=true;this.container.dispatchEvent(new CustomEvent('knock',{detail:{door:true}}));}
+        if(k<0)this.doorKnocked=false;}
+    }else if(s.activity==='pace'&&!this.dragging){  // Hands behind his back.
+      for(const [side,sign]of [['L',1],['R',-1]]){this.pose(`upper_arm.${side}`,-.45,0,sign*.15);this.pose(`forearm.${side}`,1.1);}
+      x.head=.12;
+    }else if(settled&&['watch','wander'].includes(s.activity)&&!speaking){
+      if(!this.fidget||t>this.fidget.until+this.fidget.rest){  // Something small every few seconds.
+        const kinds=['scratch','stretch','look','shrug','look'];
+        this.fidget={kind:kinds[Math.floor(Math.random()*kinds.length)],start:t,until:t+2.4,rest:4+Math.random()*7};
+      }
+      const g=this.fidget, p=(t-g.start)/(g.until-g.start);
+      if(p>=0&&p<=1){const ease=Math.sin(p*Math.PI);
+        if(g.kind==='scratch'){this.pose('upper_arm.R',2.3*ease,0,-.3*ease);this.pose('forearm.R',1.9*ease+Math.sin(t*14)*.12*ease);x.tilt=.12*ease;}
+        else if(g.kind==='stretch'){this.pose('upper_arm.R',2.9*ease,0,-.15*ease);this.pose('upper_arm.L',2.9*ease,0,.15*ease);x.chest=-.15*ease;x.head=-.2*ease;}
+        else if(g.kind==='shrug'){this.pose('upper_arm.R',.2*ease,0,-.35*ease);this.pose('upper_arm.L',.2*ease,0,.35*ease);this.pose('forearm.R',1*ease);this.pose('forearm.L',1*ease);x.tilt=.1*ease;}
+        else if(g.kind==='look')x.look=Math.sin(p*Math.PI*2)*.9;}
     }
+    if(this.book)this.book.visible=sitting;
     if(knocking){
       this.knockPhase+=dt*5.5;const k=Math.sin(this.knockPhase*Math.PI*2);
       this.pose('upper_arm.R',1.3,0,-.15);this.pose('forearm.R',.9-Math.max(0,k)*.45);
@@ -197,11 +238,12 @@ export class Room {
     // Head: breathing, mood, and the uncanny part: he looks at you.
     const sad=f==='sad'?.28:0, afraid=f==='afraid'?Math.sin(t*31)*.012:0;
     const attending=!lying&&!sitting&&!moving&&(this.listening||knocking||s.activity==='watch'||(speaking&&this.watching));
-    const look=attending?clamp(angleTo(this.resident.rotation.y,this.cameraYaw),-1.1,1.1):Math.sin(t*.43)*.06;
+    const toCamera=Math.atan2(EYE.x-this.resident.position.x,EYE.z-this.resident.position.z);
+    const look=attending&&x.look===null?clamp(angleTo(this.resident.rotation.y,toCamera),-1.1,1.1):x.look??Math.sin(t*.43)*.06;
     this.headYaw=damp(this.headYaw||0,look,4,dt);
-    this.pose('chest',lying?0:Math.sin(t*1.6)*.012+sad*.3,0,0);
-    this.pose('head',lying?-.15:(speaking?Math.sin(t*4)*.045:Math.sin(t*.7)*.025)+sad+(this.listening?-.08:0)+afraid,this.headYaw,f==='curious'&&attending?Math.sin(t*.9)*.12:0);
-    this.pose('jaw',speaking?-Math.abs(Math.sin(t*13))*.18:0);
+    this.pose('chest',lying?0:Math.sin(t*1.6)*.012+sad*.3+x.chest,0,0);
+    this.pose('head',lying?-.15:(speaking?Math.sin(t*4)*.045:Math.sin(t*.7)*.025)+sad+(this.listening?-.08:0)+afraid+x.head,this.headYaw,(f==='curious'&&attending?Math.sin(t*.9)*.12:0)+x.tilt);
+    this.pose('jaw',speaking?-Math.abs(Math.sin(t*13))*.18:x.jaw);
     this.shadow.visible=!lying&&!sitting;
     this.shadow.position.x=this.resident.position.x;this.shadow.position.z=this.resident.position.z;
     this.shadow.material.opacity=this.dragging?.12:.23;
@@ -227,20 +269,47 @@ export class Room {
   ray(event){const r=this.renderer.domElement.getBoundingClientRect();this.pointer.set((event.clientX-r.left)/r.width*2-1,-(event.clientY-r.top)/r.height*2+1);this.raycaster.setFromCamera(this.pointer,this.camera);}
   bindPointer(){
     const canvas=this.renderer.domElement;
+    const finish=cancel=>{
+      const down=this.down;if(!down)return;
+      if(cancel&&this.dragging)this.resident.position.copy(down.position);
+      this.down=null;this.dragging=false;
+      if(canvas.hasPointerCapture(down.id))canvas.releasePointerCapture(down.id);
+    };
     canvas.addEventListener('pointerdown',e=>{
-      if(this.settings.kiosk||!this.model)return;
+      if(this.settings.kiosk||!this.model||e.button!==0||e.isPrimary===false||this.down)return;
+      e.preventDefault();this.container.focus({preventScroll:true});
       this.ray(e);const hits=this.raycaster.intersectObject(this.resident,true);
-      this.down={x:e.clientX,y:e.clientY,grab:hits.length>0};
-      if(hits.length)canvas.setPointerCapture(e.pointerId);
+      const ground=this.raycaster.ray.intersectPlane(this.ground,new THREE.Vector3());
+      this.down={id:e.pointerId,x:e.clientX,y:e.clientY,grab:hits.length>0,ground,position:this.resident.position.clone()};
+      canvas.setPointerCapture(e.pointerId);
     });
     canvas.addEventListener('pointermove',e=>{
+      if(!this.down||this.down.id!==e.pointerId)return;
       // A click on him is a hello, not an abduction: only a real drag picks him up.
-      if(this.down?.grab&&!this.dragging&&Math.hypot(e.clientX-this.down.x,e.clientY-this.down.y)>6){this.dragging=true;this.body.rotation.x=0;}
-      if(!this.dragging)return;this.ray(e);const hit=new THREE.Vector3();if(this.raycaster.ray.intersectPlane(this.ground,hit)){this.resident.position.x=clamp(hit.x,-3,3);this.resident.position.z=clamp(hit.z,-1.75,2.25);}});
-    const end=e=>{if(!this.down)return;const dragged=this.dragging;this.dragging=false;if(dragged)this.onInteraction('move',{x:this.resident.position.x,z:this.resident.position.z});else if(Math.hypot(e.clientX-this.down.x,e.clientY-this.down.y)<8)this.onInteraction('tap',{});this.down=null;};
-    canvas.addEventListener('pointerup',end);
-    canvas.addEventListener('pointercancel',()=>{this.down=null;this.dragging=false;});
+      if(this.down.grab&&this.down.ground&&!this.dragging&&Math.hypot(e.clientX-this.down.x,e.clientY-this.down.y)>6){this.dragging=true;this.body.rotation.x=0;}
+      if(!this.dragging)return;
+      this.ray(e);const hit=this.raycaster.ray.intersectPlane(this.ground,new THREE.Vector3());
+      if(hit){this.resident.position.x=clamp(this.down.position.x+hit.x-this.down.ground.x,-BOX.x,BOX.x);this.resident.position.z=clamp(this.down.position.z+hit.z-this.down.ground.z,-1.75,BOX.front);}
+    });
+    canvas.addEventListener('pointerup',e=>{
+      if(!this.down||this.down.id!==e.pointerId)return;
+      const dragged=this.dragging,tap=Math.hypot(e.clientX-this.down.x,e.clientY-this.down.y)<8;
+      finish(false);
+      if(dragged)this.onInteraction('move',{x:this.resident.position.x,z:this.resident.position.z});
+      else if(tap)this.onInteraction('tap',{});
+    });
+    for(const type of ['pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{if(this.down?.id===e.pointerId)finish(true);});
     canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();cancelAnimationFrame(this.raf);this.container.dispatchEvent(new CustomEvent('render-lost'));});
-    this.container.addEventListener('keydown',e=>{if(e.key==='Enter'&&!this.settings.kiosk){e.preventDefault();this.onInteraction('tap',{});}});
+    this.container.addEventListener('keydown',e=>{
+      if(this.settings.kiosk||!this.model||e.altKey||e.ctrlKey||e.metaKey)return;
+      if(e.key==='Escape'&&this.down){e.preventDefault();finish(true);return;}
+      if(this.down)return;
+      if(e.key==='Enter'){e.preventDefault();if(!e.repeat)this.onInteraction('tap',{});return;}
+      const direction={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+      if(!direction)return;
+      e.preventDefault();if(e.repeat)return;
+      const [right,forward]=direction,step=.4;  // The view is front-on: screen directions are room directions.
+      this.onInteraction('move',{x:clamp(this.resident.position.x+step*right,-BOX.x,BOX.x),z:clamp(this.resident.position.z+step*forward,-1.75,BOX.front)});
+    });
   }
 }

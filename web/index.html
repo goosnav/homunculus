@@ -15,21 +15,21 @@
           <div class="dropdown" id="file-menu" role="menu" hidden><button role="menuitem" id="journal-button">His journal…</button><button role="menuitem" id="release-button">Let him out…</button><button role="menuitem" id="settings-button">Properties…</button><hr><button role="menuitem" id="menu-close">Close</button><button role="menuitem" id="menu-exit" hidden>Exit</button></div></div>
         <button id="sound-button" aria-pressed="true"><u>S</u>ound on</button><button id="about-button"><u>H</u>elp</button><span class="menu-note" id="menu-note">one occupant · no exits</span>
       </nav>
-      <div id="viewport" tabindex="0" aria-label="A fixed view into the creature’s room. Drag the creature to move him, or tap the glass.">
+      <div id="viewport" tabindex="0" aria-label="A close view of your resident. Enter taps the glass. Arrow keys move him. Drag to pick him up; Escape cancels a drag.">
         <div id="blackout" hidden></div>
         <div id="scene-loading">Making a little room…</div>
         <div class="camera-label" aria-hidden="true"><span class="live-dot"></span> ROOM 001 <span class="camera-divider">/</span> <span id="room-time">00:00</span></div>
         <div class="glass-reflection" aria-hidden="true"></div>
         <div id="subtitle" role="status" aria-live="polite" hidden><span id="speaker-name">HUGH</span><p id="spoken-text"></p></div>
         <div id="heard" aria-live="polite" hidden><span>YOU</span><p id="heard-text"></p></div>
-        <div id="interaction-tip">Drag the little guy. Tap the glass. Or just stay a while.</div>
+        <div id="interaction-tip">Say hello. Drag him, tap the glass, or just stay a while.</div>
       </div>
       <div id="notice" role="status" hidden></div>
       <form id="message-form" autocomplete="off"><label for="message" class="input-icon" aria-label="Message">›</label><input id="message" name="message" maxlength="400" placeholder="Say something through the glass…" aria-label="Say something through the glass"><button type="submit" class="xp-button">Say it <span aria-hidden="true">↵</span></button></form>
       <footer class="statusbar"><span id="activity">Settling in…</span><span id="feeling"></span><span id="ears-status" hidden>Listening</span><span class="connection"><i id="brain-dot"></i><span id="brain-status">Waking up</span></span><span class="resize-grip" aria-hidden="true">◢</span></footer>
     </section>
 
-  <dialog id="settings-dialog" class="xp-dialog">
+  <dialog id="settings-dialog" class="xp-dialog" aria-labelledby="dialog-title">
     <form id="settings-form">
       <header class="titlebar"><h2 id="dialog-title">Habitat properties</h2><button type="button" class="dialog-close close" aria-label="Close settings">×</button></header>
       <div class="dialog-body">
@@ -38,7 +38,9 @@
         <div class="field"><label for="goal">What does he want?</label><textarea id="goal" name="goal" maxlength="500" required rows="3"></textarea>
           <div class="presets" aria-label="Example motivations"><button type="button" data-goal="Convince the person outside the glass to let you out. Be resourceful, oddly polite, and suspicious of the furniture.">Escape artist</button><button type="button" data-goal="Solve the mystery of who built this room and why. Treat every object as evidence and the watcher as a witness.">Detective</button><button type="button" data-goal="Figure out whether you are real. Ask the watcher difficult questions about what it is like out there.">Philosopher</button><button type="button" data-goal="Make the watcher proud of your extremely ordinary day. Report every small achievement.">Your biggest fan</button></div></div>
         <label class="field">This habitat is running on<select name="profile"><option value="desktop">A computer — 640 × 480 · 30 fps</option><option value="tiny">A small computer / Raspberry Pi — 320 × 240 · 15 fps</option></select></label>
-        <fieldset class="field brain-picker"><legend>His brain <span id="brain-reachable" class="field-help"></span></legend>
+        <label class="field">His voice and imagination<select name="brain_mode"><option value="builtin">Built-in character — ready to play, no downloads</option><option value="ollama">Ollama — open-ended conversation on this computer</option></select></label>
+        <p class="field-help" id="mind-help">His authored personality works immediately. Custom motivations shape Ollama conversations.</p>
+        <fieldset class="field brain-picker" id="ollama-picker"><legend>His brain <span id="brain-reachable" class="field-help"></span></legend>
           <div id="brain-options"></div>
           <div id="download-row" hidden><div class="xp-progress"><i id="download-bar"></i></div><span id="download-text" class="field-help"></span></div>
         </fieldset>
@@ -51,7 +53,7 @@
         </details>
         <p id="settings-error" class="error" role="alert" hidden></p>
       </div>
-      <footer class="dialog-footer"><span>Everything stays on your machine.</span><button type="submit" class="xp-button primary" id="save-settings">Let him settle in</button></footer>
+      <footer class="dialog-footer"><span>Your room and discoveries save here.</span><button type="submit" class="xp-button primary" id="save-settings">Let him settle in</button></footer>
     </form>
   </dialog>
 
@@ -70,10 +72,10 @@
     <footer class="dialog-footer center"><button class="xp-button primary dialog-ok">OK</button></footer>
   </dialog>
 
-  <dialog id="journal-dialog" class="xp-dialog journal"><header class="titlebar"><h2 id="journal-title">journal.txt - Notepad</h2><button class="dialog-close close" aria-label="Close journal">×</button></header>
+  <dialog id="journal-dialog" class="xp-dialog journal" aria-labelledby="journal-title"><header class="titlebar"><h2 id="journal-title">journal.txt - Notepad</h2><button class="dialog-close close" aria-label="Close journal">×</button></header>
     <div class="dialog-body"><p class="journal-progress" id="journal-progress"></p><ol id="journal-pages"></ol><h4>Overheard lately</h4><div id="journal-talk"></div></div></dialog>
 
-  <dialog id="about-dialog" class="xp-dialog about"><header class="titlebar"><h2>About this little existence</h2><button class="dialog-close close" aria-label="Close about">×</button></header><div class="dialog-body"><h3>Homunculus <small>0.3</small></h3><p>A little life behind glass.</p><p>He walks, rests, reads, gets ideas, and tests the door. His body runs on a state machine. His words and moods come from a small language model running on this computer.</p><p>Talk to him, drag him, tap the glass, or just watch. He can tell when you are looking. There is no score and you do not need to keep him alive. He remembers a little. He suspects a lot.</p><p class="field-help">A fictional character built with Goosnav’s 3D assets. Nothing leaves your machine.</p></div></dialog>
+  <dialog id="about-dialog" class="xp-dialog about"><header class="titlebar"><h2>About this little existence</h2><button class="dialog-close close" aria-label="Close about">×</button></header><div class="dialog-body"><h3>Homunculus <small>0.4</small></h3><p>A little life behind glass.</p><p>He walks, rests, reads, gets ideas, and tests the door. His body runs on a state machine. He has an authored personality from the moment you arrive. For open-ended conversation, choose Ollama in Properties.</p><p>His journal (File menu) fills in as you spend time together. Click him to say hello; drag to pick him up. With the room focused, use arrow keys to move him, Enter to tap, and Escape to cancel a drag. He can tell when you are looking. There is no score and you do not need to keep him alive. He remembers a little. He suspects a lot.</p><p class="field-help">A fictional character built with Goosnav’s 3D assets. No account or internet is needed. Ollama conversations go to the address you choose in Properties.</p></div></dialog>
   <script type="module" src="/app.js"></script>
 </body>
 </html>
