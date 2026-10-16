@@ -42,6 +42,8 @@ class Settings:
         if not isinstance(patch, dict) or set(patch) - set(asdict(self)):
             raise ValueError('Unknown setting.')
         values = asdict(self) | patch
+        if isinstance(values['goal'], str):  # The motivation box is multi-line; the model wants one paragraph.
+            values['goal'] = ' '.join(values['goal'].split())
         for key, limit in [('name', 32), ('goal', 500), ('model', 120), ('endpoint', 240)]:
             v = values[key]
             if not isinstance(v, str) or not v.strip() or len(v) > limit or any(ord(c) < 32 for c in v):

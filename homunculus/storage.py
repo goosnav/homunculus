@@ -14,6 +14,10 @@ def data_directory():
     return Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share')) / 'homunculus'
 
 
+def reject_constant(name):
+    raise ValueError(f'Non-standard JSON value {name}')
+
+
 class Store:
     def __init__(self, directory):
         directory.mkdir(parents=True, exist_ok=True)
@@ -24,7 +28,9 @@ class Store:
         if not self.path.exists():
             return {}
         try:
-            data = json.loads(self.path.read_text(encoding='utf-8'))
+            if self.path.stat().st_size > 2_000_000:
+                raise ValueError('Save is too large')
+            data = json.loads(self.path.read_text(encoding='utf-8'), parse_constant=reject_constant)
             if not isinstance(data, dict) or data.get('version') != 1 or not isinstance(data.get('data'), dict):
                 raise ValueError('Unsupported save format')
             return data['data']

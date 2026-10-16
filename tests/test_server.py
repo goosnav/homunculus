@@ -8,6 +8,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from homunculus.runtime import Runtime
 from homunculus.server import make_server
+from homunculus.script import LINES
 
 class SlowBrain:
     def __init__(self):
@@ -55,7 +56,7 @@ class ServerTests(unittest.TestCase):
     def test_kiosk_still_hears_the_microphone(self):
         self.runtime.kiosk = True
         self.runtime.hear('hello in there')
-        self.assertEqual(self.runtime.sim.dialogue[-1], {'role': 'user', 'content': 'hello in there'})
+        self.assertEqual(self.runtime.sim.dialogue[-1]['content'], 'hello in there')
         self.assertEqual(self.request('/api/pull', {'model': 'qwen2.5:0.5b'})[0], 403)
 
     def test_visible_polls_mean_he_is_watched(self):
@@ -119,7 +120,17 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(self.runtime.status, 'offline')
         self.assertTrue(self.runtime.threads[1].is_alive())
 
-    def test_failed_inference_leaves_body_alive(self):
+    def test_absence_counts_from_last_visit_not_last_autosave(self):
+        from homunculus.storage import Store
+        now = time.time()
+        Store(Path(self.directory.name)).save({'saved_at': now, 'last_seen_at': now - 7200})
+        runtime = Runtime(Path(self.directory.name), host_speech=False)
+        try:
+            self.assertAlmostEqual(runtime.away_on_boot, 7200, delta=5)
+        finally:
+            runtime.speaker.close()
+
+    def test_without_a_brain_the_simple_mind_answers(self):
         class Offline:
             def think(self, *args): raise OSError('offline')
         self.runtime.brain = Offline()
@@ -128,7 +139,37 @@ class ServerTests(unittest.TestCase):
         deadline = time.monotonic() + 2
         while self.runtime.status != 'offline' and time.monotonic() < deadline: time.sleep(.01)
         self.assertEqual(self.runtime.status, 'offline')
-        self.assertEqual(self.runtime.sim.utterance['source'], 'none')
+        # Never mute, never pretending: an authored line, marked as such, and a clear status.
+        self.assertEqual(self.runtime.sim.utterance['source'], 'script')
+        self.assertIn(self.runtime.sim.utterance['text'], [l for _, _, ls in LINES.values() for l in ls])
+        self.assertIn('simple', self.runtime.error)
         self.assertTrue(self.runtime.threads[0].is_alive())
+
+    def test_old_rejected_thought_cannot_overwrite_new_status(self):
+        class Garbled(SlowBrain):
+            def think(self, *args):
+                super().think(*args); raise ValueError('garbled')
+        brain = Garbled(); self.runtime.brain = brain; self.runtime.start()
+        self.runtime.interact('message', {'text': 'Hello'})
+        self.assertTrue(brain.entered.wait(1))
+        self.runtime.configure({'name': 'Otto'})
+        brain.release.set()
+        deadline = time.monotonic() + 2
+        while self.runtime.busy and time.monotonic() < deadline: time.sleep(.01)
+        self.assertEqual(self.runtime.status, 'waiting')
+
+    def test_reply_to_a_queued_message_never_sees_later_messages(self):
+        seen = []
+        class Recorder:
+            def think(self, settings, state, trigger):
+                seen.append((trigger, [m['content'] for m in state['dialogue'] if m['role'] == 'user']))
+                return {'say': f'Reply {len(seen)}', 'action': 'watch', 'feeling': 'calm'}
+        self.runtime.brain = Recorder()
+        for text in ('First', 'Second'):
+            self.runtime.interact('message', {'text': text})
+        self.runtime.start()
+        deadline = time.monotonic() + 2
+        while len(seen) < 2 and time.monotonic() < deadline: time.sleep(.01)
+        self.assertEqual(seen[1], ('The watcher says: Second', ['First']))
 
 if __name__ == '__main__': unittest.main()

@@ -116,6 +116,7 @@ class SimulationTests(unittest.TestCase):
 
 class ConfigTests(unittest.TestCase):
     def test_rejects_unknown_invalid_and_unbounded_settings(self):
+        self.assertEqual(Settings().update({'goal': 'Be kind.\n\nAsk questions.'}).goal, 'Be kind. Ask questions.')
         for patch in ({'fps': 1000}, {'name': ''}, {'model': ''}, {'profile': 'huge'},
                       {'endpoint': 'file:///etc/passwd'}, {'tts': 'yes'}, {'unexpected': 2}):
             with self.subTest(patch=patch), self.assertRaises(ValueError):
@@ -128,7 +129,36 @@ class ConfigTests(unittest.TestCase):
         self.assertGreaterEqual(s.thought_interval, 90)
 
 
+class JournalTests(unittest.TestCase):
+    def test_discoveries_persist_once_and_finishing_leaves_a_keepsake(self):
+        from homunculus.simulation import DISCOVERIES, KEEPSAKE
+        sim = Simulation(seed=1, clock=lambda: 1000)
+        sim.interact('tap', {}); sim.interact('tap', {})
+        self.assertEqual([j['key'] for j in sim.journal], ['tap'])
+        for key in DISCOVERIES:
+            sim.discover(key)
+        self.assertTrue(sim.keepsake)
+        self.assertIn(KEEPSAKE, sim.notices)
+        restored = Simulation(saved=sim.snapshot())
+        self.assertEqual(len(restored.journal), len(DISCOVERIES))
+        self.assertTrue(restored.keepsake)
+
+    def test_own_discoveries_wait_behind_what_the_watcher_did(self):
+        sim = Simulation(seed=1)
+        sim.interact('tap', {})
+        sim.choose('read')
+        self.assertIn('tapped', sim.event)
+        self.assertTrue(sim.notices[0].startswith('Noticed: '))
+
+
 class StoreTests(unittest.TestCase):
+    def test_nonstandard_numbers_in_a_save_are_quarantined(self):
+        with tempfile.TemporaryDirectory() as path:
+            store = Store(Path(path))
+            store.path.write_text('{"version": 1, "data": {"saved_at": -Infinity}}')
+            self.assertEqual(store.load(), {})
+            self.assertTrue(list(Path(path).glob('*.corrupt-*')))
+
     def test_roundtrip_and_corrupt_backup(self):
         with tempfile.TemporaryDirectory() as path:
             store = Store(Path(path))

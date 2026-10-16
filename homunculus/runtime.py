@@ -1,5 +1,6 @@
 """Owns lifecycle, canonical state, background inference, and atomic saves."""
 import json
+import math
 import queue
 import threading
 import time
@@ -8,6 +9,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from .brain import SILENCE, OllamaBrain
 from .config import Settings
+from .script import ScriptedMind
 from .simulation import Simulation
 from .speech import Speaker
 from .storage import Store
@@ -34,12 +36,16 @@ class Runtime:
             self.settings = Settings()
             self.store.warning = 'Saved settings were invalid; using defaults.'
         self.sim = Simulation(saved=saved.get('simulation'))
-        last_wall = saved.get('saved_at')
-        self.away_on_boot = max(0., time.time() - last_wall) if type(last_wall) in (int, float) else 0.
+        # Absence is measured from the last time somebody actually watched, not the last autosave.
+        last_wall = saved.get('last_seen_at', saved.get('saved_at'))
+        finite = type(last_wall) in (int, float) and math.isfinite(last_wall)
+        self.away_on_boot = min(365 * 86400., max(0., time.time() - last_wall)) if finite else 0.
+        self.last_seen_wall = last_wall if finite else time.time()
         self.kiosk = kiosk
         if kiosk:
             self.settings = self.settings.update({'profile': 'tiny', 'configured': True})
         self.brain = brain or OllamaBrain()
+        self.script = ScriptedMind()  # His simple mind, for whenever the language model cannot answer.
         self.speaker = Speaker(enabled=self.settings.tts and host_speech)
         if not host_speech:
             self.speaker.command = None
@@ -78,7 +84,7 @@ class Runtime:
         with self.lock:
             try:
                 self.store.save({'settings': asdict(self.settings), 'simulation': self.sim.snapshot(),
-                                 'saved_at': time.time()})
+                                 'saved_at': time.time(), 'last_seen_at': self.last_seen_wall})
             except OSError as exc:
                 self.store.warning = f'Could not save habitat: {exc.strerror or "storage unavailable"}'
 
@@ -125,10 +131,11 @@ class Runtime:
                 raise OverflowError('Give him a moment to catch up.')
             self.sim.interact(kind, payload)
             if kind == 'message':
-                self.jobs.put_nowait((self.generation, f'The watcher says: {payload["text"].strip()}'))
+                # Remember where this message sits, so its reply never sees messages sent after it.
+                self.jobs.put_nowait((self.generation, f'The watcher says: {payload["text"].strip()}', self.sim.said))
                 self.last_trigger = self.sim.event
             elif kind in ('tap', 'move', 'close', 'release') and not self.busy and self.jobs.empty():
-                self.jobs.put_nowait((self.generation, self.sim.event))
+                self.jobs.put_nowait((self.generation, self.sim.event, None))
                 self.last_trigger = self.sim.event
             else:
                 return
@@ -142,15 +149,18 @@ class Runtime:
                 watched = self.kiosk or now - self.last_seen < PRESENCE_TIMEOUT
                 was_watched = self.sim.watched
                 self.sim.observe(watched, self.away_on_boot)
+                if watched:
+                    self.last_seen_wall = time.time()
                 if watched and not was_watched:
                     self.away_on_boot = 0.
                     if self.sim.event != self.last_trigger:
                         self.next_thought = min(self.next_thought, now + 1.5)  # Greet a returning watcher.
                 self.sim.tick(now - previous)
                 if self.settings.configured and now >= self.next_thought and not self.busy and self.jobs.empty():
-                    trigger = self.sim.event if self.sim.event != self.last_trigger else SILENCE
+                    trigger = (self.sim.event if self.sim.event != self.last_trigger
+                               else self.sim.notices.pop(0) if self.sim.notices else SILENCE)
                     self.last_trigger = self.sim.event
-                    self.jobs.put_nowait((self.generation, trigger))
+                    self.jobs.put_nowait((self.generation, trigger, None))
                     # Alone, he mutters less often; nobody is listening and the CPU has better things to do.
                     self.next_thought = now + self.settings.thought_interval * (1 if watched else 3)
             previous = now
@@ -161,7 +171,7 @@ class Runtime:
     def _think(self):
         while not self.stopped.is_set():
             try:
-                generation, trigger = self.jobs.get(timeout=.25)
+                generation, trigger, said = self.jobs.get(timeout=.25)
             except queue.Empty:
                 continue
             with self.lock:
@@ -171,36 +181,46 @@ class Runtime:
                 self.status = 'thinking'
                 settings = self.settings
                 state = self.sim.snapshot() | {'clock': clock()}
+                if said is not None:  # Only the conversation up to (not including) this message.
+                    state['dialogue'] = [m for m in state['dialogue'] if m.get('n', 0) < said]
             started = time.monotonic()
             try:
                 thought = self.brain.think(settings, state, trigger)
                 with self.lock:
                     if generation == self.generation and not self.stopped.is_set():
-                        self.sim.apply_thought(thought)
+                        self._say(thought, 'llm')
                         self.status, self.error = 'connected', ''
                         self.last_latency = round(time.monotonic() - started, 2)
-                        if settings.tts:
-                            self.speaker.say(thought['say'])
             except HTTPError as exc:
-                self._failure(generation, f'This brain is not installed yet: {settings.model}. Download it in Settings.'
-                              if exc.code == 404 else f'Ollama returned HTTP {exc.code}.')
+                self._failure(generation, f'His full mind is not installed yet ({settings.model}). Download it in File → Properties.'
+                              if exc.code == 404 else f'Ollama returned HTTP {exc.code}.', state, trigger)
             except (URLError, TimeoutError, OSError):
-                self._failure(generation, 'Cannot reach the brain. Start Ollama and check the address in Settings.')
+                self._failure(generation, 'Running on his simple built-in mind. Start Ollama for his full personality.',
+                              state, trigger)
             except (ValueError, KeyError, TypeError):
                 with self.lock:  # Repeats, help-desk lines, garbled JSON: the brain is fine; he lost the thought.
-                    self.status, self.error = 'connected', ''
-                    self.next_thought = min(self.next_thought, time.monotonic() + 8)
+                    if generation == self.generation:
+                        self.status, self.error = 'connected', ''
+                        self.next_thought = min(self.next_thought, time.monotonic() + 8)
             except Exception:  # A truncated or odd HTTP reply must never kill the brain thread.
-                self._failure(generation, 'The brain connection dropped mid-thought. It will try again.')
+                self._failure(generation, 'The brain connection dropped mid-thought. It will try again.', state, trigger)
             finally:
                 with self.lock:
                     self.busy = False
 
-    def _failure(self, generation, message):
+    def _say(self, thought, source):
+        self.sim.apply_thought(thought)
+        self.sim.utterance['source'] = source
+        if self.settings.tts:
+            self.speaker.say(thought['say'])
+
+    def _failure(self, generation, message, state, trigger):
+        """No language model: say so in the status bar, and let the simple mind answer so he is never mute."""
         with self.lock:
-            if generation == self.generation:
+            if generation == self.generation and not self.stopped.is_set():
                 self.status, self.error = 'offline', message
                 self.next_thought = time.monotonic() + self.settings.thought_interval
+                self._say(self.script.think(self.settings, state, trigger), 'script')
 
     # Brain management: what is installed, and fetching a model without a terminal.
     def installed_models(self):

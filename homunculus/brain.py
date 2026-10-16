@@ -126,10 +126,14 @@ def build_messages(settings, state, trigger, rng=random):
     if said and history and history[-1]['role'] == 'user':
         history = history[:-1]  # The new message is the final turn; do not send it twice.
     for m in history[-4:]:
-        messages.append(m if m['role'] == 'user' else
+        messages.append({'role': 'user', 'content': m['content']} if m['role'] == 'user' else
                         {'role': 'assistant', 'content': json.dumps({'say': m['content'], 'action': 'watch', 'feeling': 'calm'})})
     if said:
         ask = trigger[len('The watcher says:'):].strip()
+    elif trigger.startswith('Noticed: '):
+        ask = f'(You just noticed something: {trigger[9:]}) Tell me about it, in your own words.'
+    elif trigger.startswith('Made: '):
+        ask = f'(You just made {trigger[6:]}) Tell me about it. This matters to you.'
     elif trigger != SILENCE:  # Something actually happened: react to it, no distractions.
         ask = f'*{as_watcher(trigger)}* React to that. Speak to me.'
     elif not state.get('watched', True):
