@@ -12,7 +12,7 @@
       <header class="titlebar pywebview-drag-region"><span class="app-icon" aria-hidden="true"></span><h1>homunculus.exe</h1><span id="title-name">Hugh’s room</span><div class="window-controls"><button id="fullscreen" title="Maximize" aria-label="Toggle full screen">□</button><button id="close-window" class="close" title="Close" aria-label="Close">×</button></div></header>
       <nav class="menubar" aria-label="Habitat controls">
         <div class="menu"><button id="file-button" aria-haspopup="true" aria-expanded="false"><u>F</u>ile</button>
-          <div class="dropdown" id="file-menu" role="menu" hidden><button role="menuitem" id="release-button">Let him out…</button><button role="menuitem" id="settings-button">Properties…</button><hr><button role="menuitem" id="menu-close">Close</button><button role="menuitem" id="menu-exit" hidden>Exit</button></div></div>
+          <div class="dropdown" id="file-menu" role="menu" hidden><button role="menuitem" id="journal-button">His journal…</button><button role="menuitem" id="release-button">Let him out…</button><button role="menuitem" id="settings-button">Properties…</button><hr><button role="menuitem" id="menu-close">Close</button><button role="menuitem" id="menu-exit" hidden>Exit</button></div></div>
         <button id="sound-button" aria-pressed="true"><u>S</u>ound on</button><button id="about-button"><u>H</u>elp</button><span class="menu-note" id="menu-note">one occupant · no exits</span>
       </nav>
       <div id="viewport" tabindex="0" aria-label="A fixed view into the creature’s room. Drag the creature to move him, or tap the glass.">
@@ -70,7 +70,10 @@
     <footer class="dialog-footer center"><button class="xp-button primary dialog-ok">OK</button></footer>
   </dialog>
 
-  <dialog id="about-dialog" class="xp-dialog about"><header class="titlebar"><h2>About this little existence</h2><button class="dialog-close close" aria-label="Close about">×</button></header><div class="dialog-body"><h3>Homunculus <small>0.2</small></h3><p>A little life behind glass.</p><p>He walks, rests, reads, gets ideas, and tests the door. His body runs on a state machine. His words and moods come from a small language model running on this computer.</p><p>Talk to him, drag him, tap the glass, or just watch. He can tell when you are looking. There is no score and you do not need to keep him alive. He remembers a little. He suspects a lot.</p><p class="field-help">A fictional character built with Goosnav’s 3D assets. Nothing leaves your machine.</p></div></dialog>
+  <dialog id="journal-dialog" class="xp-dialog journal"><header class="titlebar"><h2 id="journal-title">journal.txt - Notepad</h2><button class="dialog-close close" aria-label="Close journal">×</button></header>
+    <div class="dialog-body"><p class="journal-progress" id="journal-progress"></p><ol id="journal-pages"></ol><h4>Overheard lately</h4><div id="journal-talk"></div></div></dialog>
+
+  <dialog id="about-dialog" class="xp-dialog about"><header class="titlebar"><h2>About this little existence</h2><button class="dialog-close close" aria-label="Close about">×</button></header><div class="dialog-body"><h3>Homunculus <small>0.3</small></h3><p>A little life behind glass.</p><p>He walks, rests, reads, gets ideas, and tests the door. His body runs on a state machine. His words and moods come from a small language model running on this computer.</p><p>Talk to him, drag him, tap the glass, or just watch. He can tell when you are looking. There is no score and you do not need to keep him alive. He remembers a little. He suspects a lot.</p><p class="field-help">A fictional character built with Goosnav’s 3D assets. Nothing leaves your machine.</p></div></dialog>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

@@ -122,6 +122,13 @@ export class Room {
     // Long afternoon light is painted onto the floor.
     this.patch=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.7),new THREE.MeshBasicMaterial({color:0xffe4a1,transparent:true,opacity:.13,depthWrite:false}));this.patch.rotation.x=-Math.PI/2;this.patch.rotation.z=.2;this.patch.position.set(-.7,.018,-.5);this.scene.add(this.patch);
     this.shadow=this.blob(0,.8,.32,.24,.23);
+    // The keepsake: once every journal page is found, he pins up a drawing of you.
+    const drawing=canvasTexture(96,128,(c,w,h)=>{c.fillStyle='#f3eedb';c.fillRect(0,0,w,h);c.strokeStyle='#33405a';c.lineWidth=2;
+      c.beginPath();c.arc(48,46,26,0,Math.PI*2);c.stroke();c.fillStyle='#33405a';c.fillRect(38,40,4,4);c.fillRect(54,40,4,4);
+      c.beginPath();c.arc(48,52,10,.2,Math.PI-.2);c.stroke();c.strokeRect(6,6,w-12,82);
+      c.fillStyle='#b5442f';c.fillRect(70,92,6,18);c.beginPath();c.arc(73,90,5,0,Math.PI*2);c.fill();
+      c.fillStyle='#33405a';c.font='bold 13px monospace';c.textAlign='center';c.fillText('YOU',36,112);c.font='9px monospace';c.fillText('+ me',36,123);});
+    this.keepsake=this.plane([.62,.82],[-3.4,1.95,.55],drawing);this.keepsake.rotation.y=Math.PI/2;this.keepsake.visible=false;
   }
   setDaylight(now){
     const h=now.getHours()+now.getMinutes()/60, night=h<6||h>=20.5, dusk=!night&&(h<7.5||h>=18);
@@ -150,7 +157,7 @@ export class Room {
     this.container.dataset.loaded='true';
     return this;
   }
-  update(state,extra={}){this.state=state;Object.assign(this,extra);}
+  update(state,extra={}){this.state=state;Object.assign(this,extra);this.keepsake.visible=!!state.keepsake;}
   pose(name,x=0,y=0,z=0){name=name.replaceAll('.','');const bone=this.bones[name],rest=this.rest[name];if(!bone)return;bone.quaternion.copy(rest.q).multiply(_q.setFromEuler(_e.set(x,y,z)));}
   animate(t,dt){
     if(!this.state||!this.model)return;
@@ -223,10 +230,13 @@ export class Room {
     canvas.addEventListener('pointerdown',e=>{
       if(this.settings.kiosk||!this.model)return;
       this.ray(e);const hits=this.raycaster.intersectObject(this.resident,true);
-      this.down={x:e.clientX,y:e.clientY};
-      if(hits.length){this.dragging=true;this.body.rotation.x=0;canvas.setPointerCapture(e.pointerId);}
+      this.down={x:e.clientX,y:e.clientY,grab:hits.length>0};
+      if(hits.length)canvas.setPointerCapture(e.pointerId);
     });
-    canvas.addEventListener('pointermove',e=>{if(!this.dragging)return;this.ray(e);const hit=new THREE.Vector3();if(this.raycaster.ray.intersectPlane(this.ground,hit)){this.resident.position.x=clamp(hit.x,-3,3);this.resident.position.z=clamp(hit.z,-1.75,2.25);}});
+    canvas.addEventListener('pointermove',e=>{
+      // A click on him is a hello, not an abduction: only a real drag picks him up.
+      if(this.down?.grab&&!this.dragging&&Math.hypot(e.clientX-this.down.x,e.clientY-this.down.y)>6){this.dragging=true;this.body.rotation.x=0;}
+      if(!this.dragging)return;this.ray(e);const hit=new THREE.Vector3();if(this.raycaster.ray.intersectPlane(this.ground,hit)){this.resident.position.x=clamp(hit.x,-3,3);this.resident.position.z=clamp(hit.z,-1.75,2.25);}});
     const end=e=>{if(!this.down)return;const dragged=this.dragging;this.dragging=false;if(dragged)this.onInteraction('move',{x:this.resident.position.x,z:this.resident.position.z});else if(Math.hypot(e.clientX-this.down.x,e.clientY-this.down.y)<8)this.onInteraction('tap',{});this.down=null;};
     canvas.addEventListener('pointerup',end);
     canvas.addEventListener('pointercancel',()=>{this.down=null;this.dragging=false;});

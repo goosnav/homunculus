@@ -10,9 +10,9 @@ His body is a state machine. His words and moods come from a real language model
 
 ## Start here
 
-You need **Python 3.10+**, a browser with **WebGL 2**, and **[Ollama](https://ollama.com/download)** for the brain. There are no Python packages to install.
+You need **Python 3.10+** and a browser with **WebGL 2**. There are no Python packages to install. **[Ollama](https://ollama.com/download)** is optional but recommended. Without it, he runs on a simple built-in mind: short authored lines that react to what you do. With it, he has a real language model and a lot more personality.
 
-1. Install Ollama and start it. On Linux, `ollama serve` starts it if it isn't already running.
+1. Optional: install Ollama and start it. On Linux, `ollama serve` starts it if it isn't already running.
 2. Start Homunculus:
 
    | Computer | Launcher |
@@ -29,9 +29,10 @@ The launcher opens `http://127.0.0.1:8765`. Keep the launcher running; Ctrl+C sa
 ## What you can do
 
 - **Talk.** Type in the box at the bottom. He turns to listen while you type.
-- **Move him.** Drag him somewhere else and let go. He'll have something to say about it.
+- **Move him.** Drag him somewhere else and let go. He'll have something to say about it. A plain click on him is just a hello.
 - **Tap the glass.** Click an empty spot, or focus the room and press Enter. If he's asleep, you wake him up.
 - **Watch.** He can tell whether the window is on screen. Switch tabs or minimize it and he's alone, so he mutters less. Come back after a while and he notices how long you were gone, even across restarts.
+- **File → His journal…** There are thirteen pages to fill. Some come from what he explores (the door, the book, the bowl, the bed) and some from what you do together: talking, knocking, picking him up, trying to let him out, leaving and coming back. Fill all thirteen and he pins a drawing of you on his wall. That's the only "win", and there's no hurry.
 - **File → Let him out…** Go on.
 - **Close him.** The × only makes the room go dark for a moment. He keeps running, and he noticed. Ctrl+C in the launcher really stops him; in the native window, use File → Exit.
 - **File → Properties** changes his name, motivation, brain and voice.
@@ -41,6 +42,8 @@ The room follows your real clock. The wall clock shows your time. At dusk the la
 ## His mind
 
 The **state machine** runs the body 10 times a second. Energy, hunger, curiosity and a need for company decide where he goes: the bed, the desk, the bowl, the door, or the glass.
+
+If no language model answers (Ollama isn't running, the model isn't installed, or it times out), his **simple mind** replies instead with an authored line that fits what just happened. The status bar says **Simple mind only**, so it never pretends to be the model.
 
 The **language model** speaks every 45 seconds or so (90 seconds on a small computer), and whenever you do something. It gets a short description of the room, what just happened, and his recent memories. It replies with JSON: one line of speech, one allowed action, and a mood. The body takes that as a suggestion. When he's exhausted or starving, the body overrides the model. The model can't run commands, open files, or invent new actions.
 
@@ -80,7 +83,7 @@ The appliance shows only the window, filling the screen. There's no typing, no s
 
 ## Downloads and native windows
 
-`python3 tools/build-zip.py` creates `dist/homunculus-0.2.0.zip` and its SHA-256. The ZIP contains everything: the launchers (still executable), all the 3D assets, and a local copy of Three.js. Nothing is fetched at runtime. Ollama and its models are installed separately.
+`python3 tools/build-zip.py` creates `dist/homunculus-0.3.0.zip` and its SHA-256. The ZIP contains everything: the launchers (still executable), all the 3D assets, and a local copy of Three.js. Nothing is fetched at runtime. Ollama and its models are installed separately.
 
 For a native window instead of a browser tab, `python -m pip install -r requirements-desktop.txt`, then `python run.py --desktop`. The native window is frameless, so the XP frame is the only frame. Drag it by the blue title bar. Linux also needs GTK/WebKit or Qt; see the [pywebview docs](https://pywebview.flowrl.com/guide/installation.html). `.github/workflows/native-build.yml` builds PyInstaller folders for Windows, macOS and Linux when you run it by hand. Those builds haven't been tested yet.
 
@@ -110,6 +113,7 @@ python3 -m homunculus --no-browser --data-dir .local/dev
 | `homunculus/simulation.py` | The body and psyche |
 | `homunculus/world.py` | The room, the invisible walls and the paths |
 | `homunculus/brain.py` | Prompts and filters for the language model |
+| `homunculus/script.py` | His simple built-in mind |
 | `homunculus/runtime.py` | Threads, who's watching, saves and model downloads |
 | `homunculus/ears.py` | The optional microphone |
 | `homunculus/server.py` | The local API |

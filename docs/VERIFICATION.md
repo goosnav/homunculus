@@ -4,7 +4,7 @@ Checked on 2026-10-15 on the development machine. It's a Dell with an i7-6700 (4
 
 ## Automated
 
-`python3 -m unittest discover -s tests -v` passes 42 tests. They cover:
+`python3 -m unittest discover -s tests -v` passes 48 tests. They cover:
 
 - **Body:**
   - needs stay within limits over 30 simulated minutes, and he never ends up somewhere he can't stand (or he's on the bed or chair)
@@ -62,6 +62,11 @@ Run with Ollama on this CPU:
 - **Window shapes:** at 1280×900, 1600×700 and 600×900 the XP window fills the page, and the room fills the whole inner area with no edges or letterboxing.
 - **Appliance mode at 800×480:** there's no menu and no typing. Problems from the ears appear in the notice bar.
 - **Source ZIP (953 KB):** extracted, launched with `Start Homunculus.sh --local --no-browser`, and served the page, the API, the GLB assets and Three.js. The launchers kept their executable bits.
+
+## 0.3 playtest
+
+- **Ollama pointed at a dead address:** your message is echoed at once. He replies "Oh. Hello. Nobody ever says hello." and the status reads "Simple mind only". Pages appear in the journal, and a notice announces each one.
+- **Completed journal:** a save with all 13 pages restores the drawing on the left wall.
 
 ## Not verified
 

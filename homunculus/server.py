@@ -12,7 +12,7 @@ WEB = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent)) / '
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = 'Homunculus/0.2'
+    server_version = 'Homunculus/0.3'
 
     def log_message(self, *args):
         pass
@@ -47,6 +47,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/models':
             return self.reply(200, self.server.runtime.installed_models())
         if path == '/api/bootstrap':
+            self.server.runtime.seen(True)  # Opening the window is the first look.
             return self.reply(200, self.server.runtime.snapshot() | {'token': self.server.token,
                 'world': {'bounds': BOUNDS, 'obstacles': OBSTACLES, 'places': PLACES}})
         if path.startswith('/api/'):

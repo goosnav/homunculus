@@ -10,7 +10,7 @@ root = Path(__file__).resolve().parent.parent
 out = root / 'dist'
 out.mkdir(exist_ok=True)
 archive = out / f'homunculus-{__version__}.zip'
-files = ['README.md', 'LICENSE.md', 'run.py', 'Start Homunculus.sh', 'Start Homunculus.command', 'Start Homunculus.bat',
+files = ['README.md', 'CHANGELOG.md', 'LICENSE.md', 'run.py', 'Start Homunculus.sh', 'Start Homunculus.command', 'Start Homunculus.bat',
          'requirements-desktop.txt']
 for folder in ('homunculus', 'web', 'deploy', 'docs'):
     files += [str(p.relative_to(root)) for p in (root / folder).rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc']

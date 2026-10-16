@@ -2,13 +2,14 @@ import { Room } from './room.js';
 import { Voice } from './speech.js';
 const $=s=>document.querySelector(s), voice=new Voice();
 const debug=new URLSearchParams(location.search).has('debug');
-let token,room,current,lastUtterance=0,lastHeard=0,heardTimer,subtitleTimer,firstRun=false,installed=null;
+let token,room,current,lastUtterance=0,lastHeard=0,lastPages=null,heardTimer,subtitleTimer,firstRun=false,installed=null;
 let temporaryNotice='',noticeUntil=0;
 const settingsDialog=$('#settings-dialog'), settingsForm=$('#settings-form'), habitat=$('#habitat-window');
 const FEELINGS={calm:'seems calm',curious:'seems curious',hopeful:'looks hopeful',happy:'seems pleased',annoyed:'seems annoyed',sad:'seems a little sad',scheming:'is scheming',afraid:'seems uneasy'};
 
 function notice(text,temporary=false){$('#notice').textContent=text;$('#notice').hidden=!text;if(temporary){temporaryNotice=text;noticeUntil=Date.now()+6500;}}
-async function api(path,data){const response=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json','X-Habitat-Token':token}:{},body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(8000)});const value=await response.json();if(!response.ok)throw Error(value.error||'The habitat could not complete that request.');return value;}
+async function api(path,data,retried=false){const response=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json','X-Habitat-Token':token}:{},body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(8000)});const value=await response.json();if(response.status===403&&data&&!retried&&!current?.kiosk){token=(await api('/api/bootstrap')).token;return api(path,data,true);}  // Launcher restarted: new token.
+  if(!response.ok)throw Error(value.error||'The habitat could not complete that request.');return value;}
 const watching=()=>!document.hidden;
 function xpError(text,title='homunculus.exe'){$('#error-title').textContent=title;$('#error-text').textContent=text;$('#error-dialog').showModal();}
 
@@ -21,16 +22,17 @@ function sync(data){
   $('#activity').textContent=`${name} is ${s.description}.`;$('#feeling').textContent=`He ${FEELINGS[s.feeling]||'is here'}.`;
   const mins=Math.floor(s.age/60);$('#room-time').textContent=`${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
   $('#brain-dot').className=data.brain.status;
-  $('#brain-status').textContent=({thinking:'A thought is forming',offline:'Mind disconnected',connected:'Somebody’s home',waiting:'Waking up'})[data.brain.status]||'Quiet';
+  $('#brain-status').textContent=({thinking:'A thought is forming',offline:'Simple mind only',connected:'Somebody’s home',waiting:'Waking up'})[data.brain.status]||'Quiet';
   $('#sound-button').textContent=cfg.tts?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(cfg.tts));
   $('#menu-note').textContent=s.release_attempts?`one occupant · ${s.release_attempts} denied release${s.release_attempts>1?'s':''}`:'one occupant · no exits';
   const earsProblem=data.ears&&!['listening','starting'].includes(data.ears)?data.ears:'';
   $('#ears-status').hidden=data.ears!=='listening';
   if(Date.now()<noticeUntil)notice(temporaryNotice);else notice(data.brain.error||data.warning||data.voice.error||earsProblem);
-  if(data.heard?.id>lastHeard){  // Spoken to through a microphone: show what he heard, as he heard it.
-    lastHeard=data.heard?.id||0;$('#heard-text').textContent=data.heard.text;$('#heard').hidden=false;
-    clearTimeout(heardTimer);heardTimer=setTimeout(()=>$('#heard').hidden=true,5000);
-  }
+  if(data.heard?.id>lastHeard){lastHeard=data.heard.id;showHeard(data.heard.text);}  // Microphone: what he heard.
+  const pages=s.journal?.length||0;
+  if(lastPages!==null&&pages>lastPages)notice(s.keepsake&&pages===s.journal_total?`${name} finished his journal. Look at the wall.`:`New page in ${name}’s journal (File → His journal…)`,true);
+  lastPages=pages;$('#journal-button').textContent=`His journal… (${pages}/${s.journal_total||13})`;
+  if($('#journal-dialog').open)renderJournal();
   if(!cfg.subtitles)$('#subtitle').hidden=true;
   if(s.utterance.id>lastUtterance){
     lastUtterance=s.utterance.id;const text=s.utterance.text;
@@ -40,6 +42,20 @@ function sync(data){
   if(settingsDialog.open)showDownload(data.brain.download);
 }
 
+function showHeard(text){$('#heard-text').textContent=text;$('#heard').hidden=false;clearTimeout(heardTimer);heardTimer=setTimeout(()=>$('#heard').hidden=true,6000);}
+const PAGES={door:'The door',book:'The book',pack:'The booster pack',bowl:'The bowl',bed:'The bed',glass:'The glass',tiles:'The floor',voice:'A voice',tap:'A knock',lifted:'Being lifted',dark:'The dark',denied:'ACCESS DENIED',return:'The return'};
+const HINTS={door:'He has not looked at the door properly.',book:'There is a book on the desk.',pack:'Something sealed on the desk.',bowl:'Who fills the bowl?',bed:'He has not slept yet.',glass:'He has not come to the glass.',tiles:'Restless feet.',voice:'Nobody has spoken to him.',tap:'Nobody has knocked.',lifted:'He has never been picked up.',dark:'He has never seen the dark.',denied:'Nobody has tried the File menu.',return:'Leave for a while. Come back.'};
+function renderJournal(){
+  const s=current.simulation,found=new Map(s.journal.map(j=>[j.key,j])),list=$('#journal-pages');list.replaceChildren();
+  $('#journal-title').textContent=`${current.settings.name.toLowerCase()}_journal.txt - Notepad`;
+  $('#journal-progress').textContent=`${found.size} of ${s.journal_total} pages.${s.keepsake?' He made you something. It is on the wall.':' Find them together. No hurry.'}`;
+  for(const key of Object.keys(PAGES)){const li=document.createElement('li'),j=found.get(key);
+    li.className=j?'found':'missing';li.textContent=j?`${PAGES[key]} — ${new Date(j.when*1000).toLocaleDateString([], {month:'short',day:'numeric'})}`:`??? — ${HINTS[key]}`;list.append(li);}
+  const talk=$('#journal-talk');talk.replaceChildren();
+  for(const m of s.dialogue.slice(-8)){const p=document.createElement('p');p.className=m.role;p.textContent=`${m.role==='user'?'You':current.settings.name}: ${m.content}`;talk.append(p);}
+  if(!s.dialogue.length)talk.textContent='Nothing yet. Say something through the glass.';
+}
+$('#journal-button').addEventListener('click',()=>{closeMenus();renderJournal();$('#journal-dialog').showModal();});
 async function interaction(kind,payload={}){voice.unlock();try{await api('/api/interact',{kind,...payload});$('#interaction-tip').style.opacity=0;}catch(e){notice(e.message,true);}}
 
 // Closing does not stop him. The room goes dark for a moment, and he notices.
@@ -131,8 +147,8 @@ const input=$('#message');
 input.addEventListener('input',()=>room&&(room.listening=input.value.trim().length>0));
 input.addEventListener('blur',()=>room&&(room.listening=false));
 $('#message-form').addEventListener('submit',async e=>{
-  e.preventDefault();voice.unlock();const text=input.value.trim();if(!text)return;const button=e.submitter;button.disabled=true;
-  try{await api('/api/interact',{kind:'message',text});input.value='';if(room)room.listening=false;$('#interaction-tip').style.opacity=0;}
+  e.preventDefault();voice.unlock();const text=input.value.trim();const button=e.submitter||e.target.querySelector('button[type=submit]');if(!text||button.disabled)return;button.disabled=true;
+  try{await api('/api/interact',{kind:'message',text});input.value='';showHeard(text);if(room)room.listening=false;$('#interaction-tip').style.opacity=0;}
   catch(error){notice(error.message,true);}finally{button.disabled=false;input.focus();}
 });
 
@@ -154,8 +170,10 @@ async function start(){
   try{
     const data=await api('/api/bootstrap');token=data.token;current=data;lastUtterance=data.simulation.utterance.id;lastHeard=data.heard?.id||0;
     document.body.classList.toggle('kiosk',data.kiosk);
-    try{room=new Room($('#viewport'),{...data.settings,kiosk:data.kiosk},interaction);if(debug)window.__room=room;await room.ready;$('#scene-loading').hidden=true;}
+    try{room=new Room($('#viewport'),{...data.settings,kiosk:data.kiosk},interaction);if(debug)window.__room=room;}
     catch(error){$('#scene-loading').textContent='The room could not be drawn. This device needs WebGL 2. Try a current browser with graphics acceleration.';console.error(error);}
+    if(room)try{await room.ready;$('#scene-loading').hidden=true;}
+    catch(error){$('#scene-loading').textContent='Part of the room failed to load. Reload this window; if it keeps happening, re-extract Homunculus.';console.error(error);}
     sync(data);firstRun=!data.settings.configured&&!data.kiosk;if(firstRun)openSettings();
     setTimeout(()=>$('#interaction-tip').style.opacity=0,24000);poll();
   }catch(error){$('#scene-loading').textContent='The habitat could not start. Keep the Homunculus launcher running, then reload this window.';console.error(error);}

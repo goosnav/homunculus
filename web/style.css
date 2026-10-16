@@ -116,6 +116,9 @@ summary{font-size:11px;cursor:pointer;color:#52605d}
 .about h3 small{font:10px monospace;color:#89917c}
 .error{color:#a12b1a;font-size:11px;line-height:1.5}
 
+.journal .dialog-body{background:#fff;font:12px/1.6 "Lucida Console",monospace;border:1px solid #7f9db9;margin:4px;max-height:70vh}
+.journal ol{padding-left:22px;margin:6px 0 12px}.journal li.missing{color:#9a9a8a}.journal h4{font:bold 12px monospace;margin:8px 0 4px;border-top:1px dashed #bbb;padding-top:8px}
+.journal-progress{margin:0 0 4px;color:#34405a}#journal-talk p{margin:2px 0}#journal-talk p.user{color:#2a5bb5}
 /* Appliance: no menus, no typing. */
 .kiosk .menubar,.kiosk #message-form,.kiosk .window-controls,.kiosk #interaction-tip{display:none}
 .kiosk #viewport canvas{cursor:default}
