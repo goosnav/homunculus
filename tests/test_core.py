@@ -21,6 +21,12 @@ class SimulationTests(unittest.TestCase):
         self.assertGreater(len(positions), 20)
         self.assertLessEqual(len(s['memories']), 16)
 
+    def test_navigation_avoids_the_chair(self):
+        from homunculus.world import route
+        path = route([2, .5], [2, -.5])
+        self.assertTrue(path)
+        self.assertFalse(any(1.5 <= x <= 2.4 and -.65 <= z <= .1 for x,z in path))
+
     def test_exhaustion_overrides_llm_action(self):
         sim = Simulation(seed=1)
         sim.needs['energy'] = 1

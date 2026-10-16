@@ -75,6 +75,30 @@ class ServerTests(unittest.TestCase):
         deadline = time.monotonic() + 2
         while self.runtime.busy and time.monotonic() < deadline: time.sleep(.01)
         self.assertEqual(self.runtime.sim.utterance['id'], 0)
+    def test_sound_toggle_keeps_pending_reply(self):
+        brain = SlowBrain()
+        self.runtime.brain = brain
+        self.runtime.start()
+        self.runtime.interact('message', {'text': 'Can you hear me?'})
+        self.assertTrue(brain.entered.wait(1))
+        self.runtime.configure({'tts': False, 'subtitles': False, 'profile': 'tiny'})
+        brain.release.set()
+        deadline = time.monotonic() + 2
+        while self.runtime.busy and time.monotonic() < deadline: time.sleep(.01)
+        self.assertEqual(self.runtime.sim.utterance['text'], 'The glass is quite solid.')
+
+    def test_truncated_http_reply_does_not_kill_brain(self):
+        from http.client import IncompleteRead
+        class Truncated:
+            def think(self, *args): raise IncompleteRead(b'partial', 100)
+        self.runtime.brain = Truncated()
+        self.runtime.start()
+        self.runtime.interact('message', {'text': 'Hello'})
+        deadline = time.monotonic() + 1
+        while self.runtime.status != 'offline' and time.monotonic() < deadline: time.sleep(.01)
+        self.assertEqual(self.runtime.status, 'offline')
+        self.assertTrue(self.runtime.threads[1].is_alive())
+
     def test_failed_inference_leaves_body_alive(self):
         class Offline:
             def think(self, *args): raise OSError('offline')

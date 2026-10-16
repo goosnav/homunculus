@@ -1,0 +1,13 @@
+[Unit]
+Description=Homunculus creature simulation
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/code/homunculus
+ExecStart=/usr/bin/python3 %h/code/homunculus/run.py --kiosk --no-browser
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

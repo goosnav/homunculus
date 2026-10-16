@@ -1,0 +1,2 @@
+# Optional native system-webview shell. The standard browser launcher needs no packages.
+pywebview==6.1

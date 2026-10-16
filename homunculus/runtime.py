@@ -11,6 +11,8 @@ from .simulation import Simulation
 from .speech import Speaker
 from .storage import Store
 
+MIND = ('name', 'goal', 'model', 'endpoint')  # Changing these invalidates pending thoughts.
+
 
 class Runtime:
     def __init__(self, directory, kiosk=False, brain=None, host_speech=True):
@@ -66,17 +68,19 @@ class Runtime:
             if self.kiosk:
                 raise PermissionError('Appliance mode has no interactive settings.')
             settings = self.settings.update(patch)
+            mind_changed = any(getattr(settings, k) != getattr(self.settings, k) for k in MIND)
             self.settings = settings
-            self.generation += 1  # Discard thoughts generated under an old personality/model.
-            while True:
-                try:
-                    self.jobs.get_nowait()
-                except queue.Empty:
-                    break
+            if mind_changed:
+                self.generation += 1  # Discard thoughts generated under an old personality/model.
+                while True:
+                    try:
+                        self.jobs.get_nowait()
+                    except queue.Empty:
+                        break
+                self.next_thought = time.monotonic() + 1
+                self.error = ''
+                self.status = 'waiting'
             self.speaker.set_enabled(settings.tts)
-            self.next_thought = time.monotonic() + 1
-            self.error = ''
-            self.status = 'waiting'
             self.save()
 
     def interact(self, kind, payload):
@@ -134,6 +138,8 @@ class Runtime:
                 self._failure(generation, 'Cannot reach the brain. Start Ollama and check the address in Settings.')
             except (ValueError, KeyError, TypeError):
                 self._failure(generation, 'The model lost its train of thought. It will try again.')
+            except Exception:  # A truncated or odd HTTP reply must never kill the brain thread.
+                self._failure(generation, 'The brain connection dropped mid-thought. It will try again.')
             finally:
                 with self.lock:
                     self.busy = False

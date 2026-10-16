@@ -106,7 +106,7 @@ export class Room {
     };
     const resident=await load('resident');
     this.model=resident;this.resident.add(resident);
-    resident.traverse(o=>{if(o.isBone){this.bones[o.name]=o;this.rest[o.name]={q:o.quaternion.clone(),p:o.position.clone()};}});
+    resident.traverse(o=>{if(o.isBone){this.bones[o.name.replaceAll('.','')]=o;this.rest[o.name.replaceAll('.','')]={q:o.quaternion.clone(),p:o.position.clone()};}});
     // Blender faces -Y; glTF conversion maps that to +Z, toward the glass.
     const items=[['book',[1.64,1.025,-1.3],2.1,.24],['pack',[2.17,1.03,-1.4],1.65,-.3],['zine',[-2.33,.694,.51],1.8,.2],['card',[1.88,1.035,-1.04],2.1,.45]];
     await Promise.all(items.map(async([file,p,s,y])=>{const item=await load(file);item.position.set(...p);item.scale.setScalar(s);item.rotation.y=y;this.scene.add(item);}));
@@ -114,22 +114,23 @@ export class Room {
     return this;
   }
   update(state){this.state=state;}
-  pose(name,x=0,y=0,z=0){const bone=this.bones[name],rest=this.rest[name];if(!bone)return;bone.quaternion.copy(rest.q).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,z)));}
+  pose(name,x=0,y=0,z=0){name=name.replaceAll('.','');const bone=this.bones[name],rest=this.rest[name];if(!bone)return;bone.quaternion.copy(rest.q).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,z)));}
   animate(t,dt){
     if(!this.state||!this.model)return;
     const s=this.state, moving=s.walking&&!this.dragging, w=Math.sin(t*7.5), rest=s.activity==='rest'&&!moving, speaking=t<this.speakingUntil;
     if(!this.dragging){this.resident.position.x=THREE.MathUtils.damp(this.resident.position.x,s.position[0],12,dt);this.resident.position.z=THREE.MathUtils.damp(this.resident.position.z,s.position[1],12,dt);const d=Math.atan2(Math.sin(s.yaw-this.resident.rotation.y),Math.cos(s.yaw-this.resident.rotation.y));this.resident.rotation.y+=d*Math.min(1,dt*7);}
     this.resident.position.y=this.dragging?.45:Math.abs(moving?w*.018:0);
     for(const [name,bone]of Object.entries(this.bones)){bone.quaternion.copy(this.rest[name].q);bone.position.copy(this.rest[name].p);}
-    this.pose('thighL',moving?w*.32:0);this.pose('thighR',moving?-w*.32:0);
-    this.pose('shinL',moving?Math.max(0,-w)*.35:0);this.pose('shinR',moving?Math.max(0,w)*.35:0);
-    // GLTFLoader sanitizes dots in bone names; exported names are handled below.
     for(const [side,sign]of [['L',1],['R',-1]]){
       this.pose(`thigh.${side}`,moving?w*.32*sign:0);
       this.pose(`shin.${side}`,moving?Math.max(0,-w*sign)*.35:0);
       this.pose(`upper_arm.${side}`,moving?-w*.25*sign:speaking?-.28+Math.sin(t*3+sign)*.08:rest?.1:0,0,this.dragging?sign*.9:0);
       this.pose(`forearm.${side}`,speaking?-.35:0);
-      this.pose(`upper_arm${side}`,moving?-w*.25*sign:speaking?-.28:0,0,this.dragging?sign*.9:0);
+
+    }
+    if(!moving&&!this.dragging&&['read','inspect','escape'].includes(s.activity)){
+      this.pose('upper_arm.R',-.65,0,-.1);this.pose('forearm.R',-.55+Math.sin(t*3)*.07);
+      if(s.activity==='read'){this.pose('upper_arm.L',-.55);this.pose('forearm.L',-.65);}
     }
     this.pose('chest',rest?.18:Math.sin(t*1.6)*.012,0,0);
     this.pose('head',rest?.28:speaking?Math.sin(t*4)*.045:Math.sin(t*.7)*.025,Math.sin(t*.43)*.06,0);

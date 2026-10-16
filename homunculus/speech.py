@@ -7,12 +7,25 @@ import sys
 import threading
 
 
+def speech_command(command, text, platform):
+    if platform == 'darwin':
+        return [command, '-r', '155', '--', text], None
+    if platform == 'win32':
+        encoded = base64.b64encode(text.encode('utf-8')).decode('ascii')
+        script = ("Add-Type -AssemblyName System.Speech; $v = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+                  f"$v.Rate = -1; $v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{encoded}')))" )
+        return [command, '-NoProfile', '-NonInteractive', '-Command', script], None
+    if command.endswith('spd-say'):
+        return [command, '-w', '-r', '-15', '-p', '-15', '-N', 'homunculus', '--', text], None
+    return [command, '-s', '155', '-p', '37', '--stdin'], text.encode('utf-8')
+
+
 class Speaker:
     def __init__(self, enabled=True):
         self.enabled = enabled
         self.command = (shutil.which('say') if sys.platform == 'darwin' else
                         shutil.which('powershell') if sys.platform == 'win32' else
-                        shutil.which('espeak-ng') or shutil.which('espeak'))
+                        shutil.which('espeak-ng') or shutil.which('espeak') or shutil.which('spd-say'))
         self.queue = queue.Queue(maxsize=1)
         self.stopped = threading.Event()
         self.process = None
@@ -23,7 +36,7 @@ class Speaker:
 
     @property
     def available(self):
-        return bool(self.command)
+        return bool(self.command) and not self.error
 
     def say(self, text):
         if not self.enabled or not self.command:
@@ -41,16 +54,7 @@ class Speaker:
                 continue
             if not self.enabled:
                 continue
-            if sys.platform == 'darwin':
-                args = [self.command, '-r', '155', text]
-                data = None
-            elif sys.platform == 'win32':
-                encoded = base64.b64encode(text.encode('utf-8')).decode('ascii')
-                script = ("Add-Type -AssemblyName System.Speech; $v = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-                          f"$v.Rate = -1; $v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{encoded}')))" )
-                args, data = [self.command, '-NoProfile', '-NonInteractive', '-Command', script], None
-            else:
-                args, data = [self.command, '-s', '155', '-p', '37', '--stdin'], text.encode('utf-8')
+            args, data = speech_command(self.command, text, sys.platform)
             try:
                 with self.lock:
                     if self.stopped.is_set() or not self.enabled:
