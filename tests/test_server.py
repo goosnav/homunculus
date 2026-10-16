@@ -52,6 +52,26 @@ class ServerTests(unittest.TestCase):
         self.runtime.kiosk = True
         self.assertEqual(self.request('/api/settings', {'name': 'Bob'})[0], 403)
         self.assertEqual(self.request('/api/interact', {'kind': 'message', 'text': 'Hi'})[0], 403)
+    def test_kiosk_still_hears_the_microphone(self):
+        self.runtime.kiosk = True
+        self.runtime.hear('hello in there')
+        self.assertEqual(self.runtime.sim.dialogue[-1], {'role': 'user', 'content': 'hello in there'})
+        self.assertEqual(self.request('/api/pull', {'model': 'qwen2.5:0.5b'})[0], 403)
+
+    def test_visible_polls_mean_he_is_watched(self):
+        self.runtime.start()
+        self.request('/api/state?visible=1')
+        deadline = time.monotonic() + 1
+        while not self.runtime.sim.watched and time.monotonic() < deadline: time.sleep(.02)
+        self.assertTrue(self.runtime.sim.watched)
+        self.request('/api/state?visible=0')
+        self.assertTrue(self.runtime.snapshot()['simulation']['watched'])  # Grace period, not instant.
+
+    def test_model_list_reports_unreachable_brain(self):
+        self.runtime.settings = self.runtime.settings.update({'endpoint': 'http://127.0.0.1:9'})
+        status, data = self.request('/api/models')
+        self.assertEqual((status, data), (200, {'reachable': False, 'models': []}))
+
     def test_private_files_not_served(self):
         self.assertEqual(self.request('/../homunculus/config.py')[0], 404)
         self.assertEqual(self.request('/%2e%2e/homunculus/config.py')[0], 404)

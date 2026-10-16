@@ -5,7 +5,7 @@ import secrets
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 from .world import BOUNDS, OBSTACLES, PLACES
 
 WEB = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent)) / 'web'
@@ -39,9 +39,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.allowed_host():
             return self.reply(403, {'error': 'Local access only.'})
-        path = urlsplit(self.path).path
+        url = urlsplit(self.path)
+        path = url.path
         if path == '/api/state':
+            self.server.runtime.seen(parse_qs(url.query).get('visible') == ['1'])
             return self.reply(200, self.server.runtime.snapshot())
+        if path == '/api/models':
+            return self.reply(200, self.server.runtime.installed_models())
         if path == '/api/bootstrap':
             return self.reply(200, self.server.runtime.snapshot() | {'token': self.server.token,
                 'world': {'bounds': BOUNDS, 'obstacles': OBSTACLES, 'places': PLACES}})
@@ -78,6 +82,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.server.runtime.configure(data)
             elif self.path == '/api/interact':
                 self.server.runtime.interact(data.get('kind'), data)
+            elif self.path == '/api/pull':
+                self.server.runtime.pull(data.get('model'))
             else:
                 return self.reply(404, {'error': 'Unknown endpoint.'})
             self.reply(200, {'ok': True})

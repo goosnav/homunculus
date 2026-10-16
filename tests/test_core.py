@@ -5,7 +5,7 @@ from pathlib import Path
 from homunculus.config import Settings
 from homunculus.simulation import Simulation
 from homunculus.storage import Store
-from homunculus.world import walkable
+from homunculus.world import SEATS, walkable
 
 
 class SimulationTests(unittest.TestCase):
@@ -16,7 +16,7 @@ class SimulationTests(unittest.TestCase):
             sim.tick(.1)
             s = sim.snapshot()
             positions.add(tuple(round(v, 1) for v in s['position']))
-            self.assertTrue(walkable(*s['position']))
+            self.assertTrue(walkable(*s['position']) or (s['seated'] and tuple(s['position']) in SEATS.values()))
             self.assertTrue(all(0 <= v <= 100 for v in s['needs'].values()))
         self.assertGreater(len(positions), 20)
         self.assertLessEqual(len(s['memories']), 16)
@@ -26,6 +26,45 @@ class SimulationTests(unittest.TestCase):
         path = route([2, .5], [2, -.5])
         self.assertTrue(path)
         self.assertFalse(any(1.5 <= x <= 2.4 and -.65 <= z <= .1 for x,z in path))
+
+    def test_he_lies_on_the_bed_and_gets_up_onto_clear_floor(self):
+        sim = Simulation(seed=2)
+        sim.choose('rest')
+        for _ in range(400):
+            sim.tick(.1)
+            if sim.seated:
+                break
+        self.assertTrue(sim.seated)
+        self.assertEqual(tuple(sim.position), SEATS['rest'])
+        sim.choose('escape')
+        self.assertFalse(sim.seated)
+        self.assertTrue(walkable(*sim.position))
+
+    def test_he_notices_a_long_absence_once(self):
+        sim = Simulation()
+        sim.observe(True, away_seconds=3 * 3600)
+        self.assertIn('came back after 3 hours', sim.event)
+        sim.observe(True)
+        sim.observe(False)
+        sim.tick(.1)
+        sim.observe(True)
+        self.assertEqual(sum('came back' in m for m in sim.memories), 1)
+
+    def test_trying_to_let_him_out_is_remembered(self):
+        sim = Simulation()
+        trust = sim.trust
+        sim.interact('release', {})
+        self.assertEqual(sim.release_attempts, 1)
+        self.assertGreater(sim.trust, trust)
+        self.assertIn('ACCESS DENIED', sim.event)
+        self.assertEqual(Simulation(saved=sim.snapshot()).release_attempts, 1)
+
+    def test_llm_feeling_is_validated(self):
+        sim = Simulation()
+        sim.apply_thought({'say': 'Hm.', 'action': 'watch', 'feeling': 'murderous'})
+        self.assertIn(sim.feeling, ('curious', 'calm'))
+        sim.apply_thought({'say': 'Hm!', 'action': 'watch', 'feeling': 'annoyed'})
+        self.assertEqual(sim.feeling, 'annoyed')
 
     def test_exhaustion_overrides_llm_action(self):
         sim = Simulation(seed=1)

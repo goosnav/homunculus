@@ -2,6 +2,12 @@
 from dataclasses import asdict, dataclass, replace
 from urllib.parse import urlsplit
 
+# Recommended brains, smallest first. Any Ollama model name may still be typed in Settings.
+MODELS = [
+    {'name': 'qwen2.5:0.5b', 'label': 'Tiny brain', 'size': '0.4 GB', 'note': 'Fastest. Fits a Raspberry Pi. Says odd things.'},
+    {'name': 'llama3.2:1b', 'label': 'Small brain', 'size': '1.3 GB', 'note': 'More personality. Best on an ordinary computer.'},
+]
+
 GOAL = 'Convince the person outside the glass to let you out. Be resourceful, oddly polite, and suspicious of the furniture.'
 
 
@@ -27,6 +33,10 @@ class Settings:
     @property
     def thought_interval(self):
         return 90 if self.profile == 'tiny' else 45
+
+    @property
+    def threads(self):
+        return 2 if self.profile == 'tiny' else 4
 
     def update(self, patch):
         if not isinstance(patch, dict) or set(patch) - set(asdict(self)):
@@ -54,4 +64,4 @@ class Settings:
 
     def public(self):
         return asdict(self) | {'render_size': self.render_size, 'fps': self.fps,
-                               'thought_interval': self.thought_interval}
+                               'thought_interval': self.thought_interval, 'models': MODELS}

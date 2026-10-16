@@ -6,9 +6,13 @@ BOUNDS = (-3.1, 3.1, -1.9, 2.4)
 # Furniture rectangles include clearance for feet. Shared with renderer via bootstrap.
 OBSTACLES = [(-2.95, -1.65, -.8, 1.35), (1.25, 2.95, -1.95, -.65),
              (-2.9, -1.9, -1.95, -1.1), (1.5, 2.4, -.65, .1)]
-PLACES = {'rest': [-1.35, .6], 'read': [1.25, -.15], 'inspect': [1.95, .35],
-          'watch': [0, 2.05], 'escape': [0, -1.65], 'eat': [-1.5, -1.0]}
-ACTIONS = ('wander', 'rest', 'read', 'inspect', 'watch', 'escape', 'eat')
+PLACES = {'rest': [-1.5, 1.25], 'read': [1.95, .35], 'inspect': [1.0, -1.25],
+          'watch': [0, 2.05], 'escape': [0, -1.65], 'eat': [-1.5, -1.0], 'knock': [.5, 2.25],
+          'pace': [-.5, .5]}
+# Where the body ends up once it arrives: sit on the chair, lie on the bed.
+SEATS = {'read': (1.96, -.22), 'rest': (-2.35, 1.3)}
+ACTIONS = ('wander', 'rest', 'read', 'inspect', 'watch', 'escape', 'eat', 'knock', 'pace')
+FEELINGS = ('calm', 'curious', 'hopeful', 'happy', 'annoyed', 'sad', 'scheming', 'afraid')
 
 
 def walkable(x, z):

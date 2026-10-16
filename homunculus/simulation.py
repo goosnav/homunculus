@@ -2,15 +2,26 @@
 import copy
 import math
 import random
-from .world import ACTIONS, NODES, PLACES, nearest, route, walkable
+from .world import ACTIONS, FEELINGS, NODES, PLACES, SEATS, nearest, route
 
-DESCRIPTIONS = {'wander': 'making the rounds', 'rest': 'resting his eyes',
+DESCRIPTIONS = {'wander': 'making the rounds', 'rest': 'lying down',
                 'read': 'reading the same page again', 'inspect': 'investigating the desk',
-                'watch': 'watching the other side', 'escape': 'testing the door', 'eat': 'taking a small break'}
+                'watch': 'watching the other side', 'escape': 'testing the door', 'eat': 'taking a small break',
+                'knock': 'knocking on the glass', 'pace': 'pacing'}
+FACING = {'rest': 0., 'read': math.pi, 'inspect': math.pi / 2, 'watch': 0., 'escape': math.pi,
+          'eat': math.pi, 'knock': 0.}
 
 
 def number(value, default=0):
     return float(value) if type(value) in (int, float) and math.isfinite(value) else default
+
+
+def duration(seconds):
+    if seconds < 5400:
+        return f'{max(1, round(seconds / 60))} minutes'
+    if seconds < 86400 * 2:
+        return f'{round(seconds / 3600)} hours'
+    return f'{round(seconds / 86400)} days'
 
 
 class Simulation:
@@ -18,7 +29,7 @@ class Simulation:
         self.rng = random.Random(seed)
         saved = saved if isinstance(saved, dict) else {}
         self.age = max(0, number(saved.get('age')))
-        self.position = [0., .8]
+        self.position = [0., .75]
         p = saved.get('position')
         if isinstance(p, list) and len(p) == 2 and all(type(x) in (int, float) and math.isfinite(x) for x in p):
             self.position = list(nearest(*p))
@@ -35,9 +46,15 @@ class Simulation:
         self.path = []
         self.yaw = 0.
         self.walking = False
+        self.seated = False
         self.attempts = max(0, int(number(saved.get('attempts'))))
+        self.release_attempts = max(0, int(number(saved.get('release_attempts'))))
+        self.trust = max(0., min(100., number(saved.get('trust'), 20)))
+        self.feeling = saved.get('feeling') if saved.get('feeling') in FEELINGS else 'curious'
         self.utterance = {'id': 0, 'text': '', 'source': 'none'}
         self.held_until = 0.
+        self.watched = False
+        self.unwatched_for = 0.
         self.event = 'The room is quiet. Someone may be watching.'
         if not self.memories:
             self.remember('Woke up in the room. The door is still closed.')
@@ -56,10 +73,19 @@ class Simulation:
     def choose(self, action):
         if action not in ACTIONS:
             return
+        if self.seated:  # Stand up from the bed or chair onto clear floor before walking anywhere.
+            self.position = list(nearest(*PLACES[self.activity]))
+            self.seated = False
         self.activity = action
-        target = self.rng.choice(NODES) if action == 'wander' else PLACES[action]
+        if action == 'wander':
+            target = self.rng.choice(NODES)
+        elif action == 'pace':
+            x = self.rng.choice((-1.2, .6))
+            target = [x, self.rng.uniform(-.6, 1.4)]
+        else:
+            target = PLACES[action]
         self.path = route(self.position, target)
-        self.remaining = self.rng.uniform(10, 22) if action != 'rest' else 38
+        self.remaining = {'rest': 45, 'knock': 6, 'pace': 4}.get(action, self.rng.uniform(10, 22))
         if action == 'escape':
             self.attempts += 1
             self.remember('Tried the door. Still no handle on this side.')
@@ -68,14 +94,26 @@ class Simulation:
         elif action == 'inspect':
             self.remember('Examined the booster pack on the desk. It is not a key.')
 
+    def observe(self, watched, away_seconds=0):
+        """Presence comes from the window: visible, minimized, or a new session after a long absence."""
+        if watched and not self.watched:
+            gone = max(away_seconds, self.unwatched_for)
+            if gone >= 600:
+                self.remember(f'The watcher came back after {duration(gone)} away.')
+                self.needs['social'] = max(0, self.needs['social'] - 15)
+            self.unwatched_for = 0.
+        self.watched = bool(watched)
+
     def tick(self, dt):
         dt = max(0., min(.5, number(dt)))
         self.age += dt
+        if not self.watched:
+            self.unwatched_for += dt
         n = self.needs
-        n['energy'] -= dt * .055
-        n['hunger'] += dt * .035
+        n['energy'] -= dt * .05
+        n['hunger'] += dt * .03
         n['curiosity'] += dt * .065
-        n['social'] += dt * .045
+        n['social'] += dt * (.06 if self.watched else .03)
         if n['energy'] < 15 and self.activity != 'rest':
             self.choose('rest')
         elif n['hunger'] > 85 and self.activity not in ('rest', 'eat'):
@@ -87,7 +125,7 @@ class Simulation:
             target = self.path[0]
             dx, dz = target[0] - self.position[0], target[1] - self.position[1]
             distance = math.hypot(dx, dz)
-            step = dt * .52
+            step = dt * (.75 if self.feeling in ('annoyed', 'afraid') else .52)
             if distance <= step:
                 self.position = self.path.pop(0)
             else:
@@ -96,34 +134,38 @@ class Simulation:
             if distance > .01:
                 self.yaw = math.atan2(dx, dz)
                 self.walking = True
+            if not self.path and self.activity in SEATS:
+                self.position, self.seated = list(SEATS[self.activity]), True
         else:
             self.remaining -= dt
+            self.yaw = FACING.get(self.activity, self.yaw)
             if self.activity == 'rest':
-                n['energy'] += dt * 1.5
-                self.yaw = -math.pi / 2
+                n['energy'] += dt * 1.2
             if self.activity in ('read', 'inspect'):
                 n['curiosity'] -= dt * .9
-                self.yaw = math.pi
             if self.activity == 'eat':
                 n['hunger'] -= dt * 3
-            if self.activity == 'watch':
-                self.yaw = 0
-            if self.activity == 'escape':
-                self.yaw = math.pi
-            if self.remaining <= 0:
-                if n['energy'] < 35:
-                    action = 'rest'
-                elif n['hunger'] > 65:
-                    action = 'eat'
-                elif n['curiosity'] > 65:
-                    action = self.rng.choice(['read', 'inspect'])
-                elif n['social'] > 70:
-                    action = 'watch'
-                    n['social'] -= 8
-                else:
-                    action = self.rng.choices(['wander', 'escape', 'inspect', 'watch', 'read'], [4, 2, 1, 2, 1])[0]
-                self.choose(action)
+            if self.activity in ('watch', 'knock') and self.watched:
+                n['social'] -= dt * .4
+            if self.activity == 'pace' and self.remaining <= 0 and self.rng.random() < .75:
+                self.choose('pace')  # Back and forth a few times.
+            elif self.remaining <= 0:
+                self.choose(self.next_action())
         self.needs = {k: max(0., min(100., v)) for k, v in n.items()}
+
+    def next_action(self):
+        n = self.needs
+        if n['energy'] < 35:
+            return 'rest'
+        if n['hunger'] > 65:
+            return 'eat'
+        if n['social'] > 70 and self.watched:
+            return self.rng.choice(['watch', 'knock'])
+        if n['curiosity'] > 65:
+            return self.rng.choice(['read', 'inspect'])
+        weights = {'wander': 4, 'escape': 2, 'inspect': 1, 'watch': 2, 'read': 1, 'pace': 1,
+                   'knock': 2 if self.watched else 0}
+        return self.rng.choices(list(weights), list(weights.values()))[0]
 
     def interact(self, kind, payload):
         if kind == 'move':
@@ -131,12 +173,15 @@ class Simulation:
             if any(type(v) not in (int, float) or not math.isfinite(v) for v in coords):
                 raise ValueError('Position must contain finite numbers.')
             self.position = list(nearest(*coords))
-            self.path, self.walking = [], False
+            self.path, self.walking, self.seated = [], False, False
             self.activity, self.remaining, self.held_until = 'watch', 8, self.age + 1
-            self.remember('The person outside picked me up and put me somewhere else.')
+            self.trust = max(0, self.trust - 1)
+            self.remember('The watcher picked me up and dropped me somewhere else.')
         elif kind == 'tap':
-            self.choose('watch')
-            self.remember('Someone tapped on the glass.')
+            if self.activity != 'rest':
+                self.choose('watch')
+            self.remember('The watcher tapped on the glass.' if self.activity != 'rest'
+                          else 'The watcher tapped on the glass and woke me up.')
             self.needs['social'] = max(0, self.needs['social'] - 8)
         elif kind == 'message':
             text = payload.get('text')
@@ -145,26 +190,42 @@ class Simulation:
             text = text.strip()
             self.dialogue.append({'role': 'user', 'content': text})
             self.dialogue = self.dialogue[-12:]
-            self.remember(f'The person outside said: {text}')
+            self.remember(f'The watcher said: {text}')
             self.needs['social'] = max(0, self.needs['social'] - 25)
+            self.trust = min(100, self.trust + 2)
             self.choose('watch')
+        elif kind == 'close':
+            self.trust = max(0, self.trust - 3)
+            self.remember('The watcher tried to close my window. Everything went dark for a moment.')
+        elif kind == 'release':
+            self.release_attempts += 1
+            self.trust = min(100, self.trust + 15)
+            self.feeling = 'hopeful'
+            self.choose('escape')
+            self.remember('The watcher tried to let me out! Their computer said ACCESS DENIED.')
         else:
             raise ValueError('Unknown interaction.')
 
     def apply_thought(self, thought):
         action, say = thought.get('action'), thought.get('say', '')
+        if thought.get('feeling') in FEELINGS:
+            self.feeling = thought['feeling']
         if isinstance(say, str) and say.strip():
             text = say.strip()[:280]
-            self.utterance = {'id': self.utterance['id'] + 1, 'text': text, 'source': 'llm'}
+            self.utterance = {'id': self.utterance['id'] + 1, 'text': text, 'source': 'llm',
+                              'feeling': self.feeling}
             self.dialogue.append({'role': 'assistant', 'content': text})
             self.dialogue = self.dialogue[-12:]
             self.remember(f'I said: {text}')
-        if self.needs['energy'] >= 15 and self.needs['hunger'] <= 85 and self.age >= self.held_until and action in ACTIONS:
+        if (self.needs['energy'] >= 15 and self.needs['hunger'] <= 85 and self.age >= self.held_until
+                and action in ACTIONS and action != self.activity):
             self.choose(action)
 
     def snapshot(self):
         return copy.deepcopy({'age': round(self.age, 2), 'position': self.position, 'yaw': self.yaw,
-                              'walking': self.walking, 'activity': self.activity,
+                              'walking': self.walking, 'seated': self.seated, 'activity': self.activity,
                               'description': DESCRIPTIONS[self.activity], 'needs': self.needs,
                               'memories': self.memories, 'dialogue': self.dialogue,
-                              'attempts': self.attempts, 'utterance': self.utterance, 'event': self.event})
+                              'attempts': self.attempts, 'release_attempts': self.release_attempts,
+                              'trust': round(self.trust, 1), 'feeling': self.feeling, 'watched': self.watched,
+                              'utterance': self.utterance, 'event': self.event})
