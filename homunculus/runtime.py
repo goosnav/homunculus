@@ -69,7 +69,7 @@ class Runtime:
             return {'simulation': self.sim.snapshot(), 'settings': self.settings.public(),
                     'kiosk': self.kiosk, 'brain': {'status': self.status, 'busy': self.busy,
                     'error': self.error, 'queued': self.jobs.qsize(), 'latency': self.last_latency,
-                    'download': self.download},
+                    'download': dict(self.download) if self.download else None},
                     'voice': {'host': self.speaker.available, 'error': self.speaker.error},
                     'ears': self.ears.status if self.ears else None, 'heard': self.heard,
                     'warning': self.store.warning}

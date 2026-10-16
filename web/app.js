@@ -29,8 +29,8 @@ function sync(data){
   const earsProblem=data.ears&&!['listening','starting'].includes(data.ears)?data.ears:'';
   $('#ears-status').hidden=data.ears!=='listening';
   if(Date.now()<noticeUntil)notice(temporaryNotice);else notice(data.brain.error||data.warning||data.voice.error||earsProblem);
-  if(data.heard.id>lastHeard){  // Spoken to through a microphone: show what he heard, as he heard it.
-    lastHeard=data.heard.id;$('#heard-text').textContent=data.heard.text;$('#heard').hidden=false;
+  if(data.heard?.id>lastHeard){  // Spoken to through a microphone: show what he heard, as he heard it.
+    lastHeard=data.heard?.id||0;$('#heard-text').textContent=data.heard.text;$('#heard').hidden=false;
     clearTimeout(heardTimer);heardTimer=setTimeout(()=>$('#heard').hidden=true,5000);
   }
   if(!cfg.subtitles)$('#subtitle').hidden=true;
@@ -167,7 +167,7 @@ async function poll(){
 }
 async function start(){
   try{
-    const data=await api('/api/bootstrap');token=data.token;current=data;lastUtterance=data.simulation.utterance.id;lastHeard=data.heard.id;
+    const data=await api('/api/bootstrap');token=data.token;current=data;lastUtterance=data.simulation.utterance.id;lastHeard=data.heard?.id||0;
     document.body.classList.toggle('kiosk',data.kiosk);
     try{room=new Room($('#viewport'),{...data.settings,kiosk:data.kiosk},interaction);if(debug)window.__room=room;await room.ready;$('#scene-loading').hidden=true;}
     catch(error){$('#scene-loading').textContent='The room could not be drawn. This device needs WebGL 2. Try a current browser with graphics acceleration.';console.error(error);}

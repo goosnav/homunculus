@@ -11,6 +11,7 @@ function canvasTexture(width,height,draw){
   const c=document.createElement('canvas');c.width=width;c.height=height;draw(c.getContext('2d'),width,height);
   const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;return t;
 }
+const _q=new THREE.Quaternion(),_e=new THREE.Euler(),_v=new THREE.Vector3();  // Reused every frame: no garbage on small devices.
 const damp=THREE.MathUtils.damp, clamp=THREE.MathUtils.clamp;
 function angleTo(from,to){return Math.atan2(Math.sin(to-from),Math.cos(to-from));}
 // Seat transforms: feet planted at the seat point; the body pivots at the feet.
@@ -139,7 +140,7 @@ export class Room {
     return this;
   }
   update(state,extra={}){this.state=state;Object.assign(this,extra);}
-  pose(name,x=0,y=0,z=0){name=name.replaceAll('.','');const bone=this.bones[name],rest=this.rest[name];if(!bone)return;bone.quaternion.copy(rest.q).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,z)));}
+  pose(name,x=0,y=0,z=0){name=name.replaceAll('.','');const bone=this.bones[name],rest=this.rest[name];if(!bone)return;bone.quaternion.copy(rest.q).multiply(_q.setFromEuler(_e.set(x,y,z)));}
   animate(t,dt){
     if(!this.state||!this.model)return;
     const s=this.state, f=s.feeling||'calm', moving=s.walking&&!this.dragging, w=Math.sin(t*(f==='annoyed'||f==='afraid'?10:7.5));
@@ -193,7 +194,7 @@ export class Room {
     const text=lying&&!speaking?'z'+(Math.floor(t*1.2)%3?' Z':'')+(Math.floor(t*1.2)%3===2?' z':''):this.thinking&&!speaking?'.'.repeat(1+Math.floor(t*2.5)%3):'';
     if(text!==this.overlay.textContent)this.overlay.textContent=text;
     this.overlay.hidden=!text;if(!text||!this.headBone)return;
-    const p=new THREE.Vector3();this.headBone.getWorldPosition(p);p.y+=lying?.35:.5;p.project(this.camera);
+    const p=this.headBone.getWorldPosition(_v);p.y+=lying?.35:.5;p.project(this.camera);
     this.overlay.style.left=`${(p.x+1)/2*100}%`;this.overlay.style.top=`${(1-p.y)/2*100}%`;
   }
   frame(now){
