@@ -2,7 +2,7 @@ import { Room } from './room.js';
 import { Voice } from './speech.js';
 const $=s=>document.querySelector(s), voice=new Voice();
 const debug=new URLSearchParams(location.search).has('debug');
-let token,room,current,lastUtterance=0,subtitleTimer,balloonTimer,firstRun=false,installed=null;
+let token,room,current,lastUtterance=0,lastHeard=0,heardTimer,subtitleTimer,balloonTimer,firstRun=false,installed=null;
 let temporaryNotice='',noticeUntil=0;
 const settingsDialog=$('#settings-dialog'), settingsForm=$('#settings-form'), habitat=$('#habitat-window');
 const FEELINGS={calm:'seems calm',curious:'seems curious',hopeful:'looks hopeful',happy:'seems pleased',annoyed:'seems annoyed',sad:'seems a little sad',scheming:'is scheming',afraid:'seems uneasy'};
@@ -26,7 +26,13 @@ function sync(data){
   $('#tray-brain').title=$('#brain-status').textContent;
   $('#sound-button').textContent=cfg.tts?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(cfg.tts));$('#tray-sound').classList.toggle('muted',!cfg.tts);
   $('#menu-note').textContent=s.release_attempts?`one occupant · ${s.release_attempts} denied release${s.release_attempts>1?'s':''}`:'one occupant · no exits';
-  if(Date.now()<noticeUntil)notice(temporaryNotice);else notice(data.brain.error||data.warning||data.voice.error);
+  const earsProblem=data.ears&&!['listening','starting'].includes(data.ears)?data.ears:'';
+  $('#ears-status').hidden=data.ears!=='listening';
+  if(Date.now()<noticeUntil)notice(temporaryNotice);else notice(data.brain.error||data.warning||data.voice.error||earsProblem);
+  if(data.heard.id>lastHeard){  // Spoken to through a microphone: show what he heard, as he heard it.
+    lastHeard=data.heard.id;$('#heard-text').textContent=data.heard.text;$('#heard').hidden=false;
+    clearTimeout(heardTimer);heardTimer=setTimeout(()=>$('#heard').hidden=true,5000);
+  }
   if(!cfg.subtitles)$('#subtitle').hidden=true;
   if(s.utterance.id>lastUtterance){
     lastUtterance=s.utterance.id;const text=s.utterance.text;
@@ -161,7 +167,7 @@ async function poll(){
 }
 async function start(){
   try{
-    const data=await api('/api/bootstrap');token=data.token;current=data;lastUtterance=data.simulation.utterance.id;
+    const data=await api('/api/bootstrap');token=data.token;current=data;lastUtterance=data.simulation.utterance.id;lastHeard=data.heard.id;
     document.body.classList.toggle('kiosk',data.kiosk);
     try{room=new Room($('#viewport'),{...data.settings,kiosk:data.kiosk},interaction);if(debug)window.__room=room;await room.ready;$('#scene-loading').hidden=true;}
     catch(error){$('#scene-loading').textContent='The room could not be drawn. This device needs WebGL 2. Try a current browser with graphics acceleration.';console.error(error);}

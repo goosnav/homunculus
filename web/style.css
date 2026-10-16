@@ -69,6 +69,10 @@ button:disabled{cursor:wait;color:#777}
 #subtitle{position:absolute;bottom:30px;left:10%;right:10%;text-align:center;pointer-events:none}
 #speaker-name{font:9px monospace;letter-spacing:2px;color:#f3cf7d;background:#1c2629e8;padding:5px 8px 3px;display:inline-block}
 #subtitle p{font-size:14px;line-height:1.55;color:#f2efd8;text-shadow:1px 1px #000;margin:0 auto;background:#1c2629ed;padding:9px 15px 11px;max-width:560px;box-shadow:0 4px 16px #0002}
+#heard{position:absolute;top:34px;right:16px;max-width:45%;text-align:right;pointer-events:none}
+#heard span{font:9px monospace;letter-spacing:2px;color:#9fd0f3;background:#1c2629e8;padding:4px 7px 2px;display:inline-block}
+#heard p{margin:0;font-size:12px;color:#dfeefa;background:#1c2629d0;padding:6px 10px;font-style:italic}
+#ears-status{color:#3a7d34;border-right:1px solid #c5c4b4;padding-right:8px}
 #interaction-tip{position:absolute;bottom:10px;width:100%;text-align:center;color:#bfc6aa;font-size:10px;pointer-events:none;text-shadow:1px 1px #000;transition:opacity 1s}
 #message-form{display:flex;gap:6px;padding:7px 8px;align-items:center}
 .input-icon{color:#638259;font-size:23px;width:17px;text-align:center}
@@ -162,7 +166,11 @@ summary{font-size:11px;cursor:pointer;color:#52605d}
 
 /* Appliance: just the window, filling the screen. No desktop, taskbar, menus or typing. */
 .kiosk{background:#000}
-.kiosk #taskbar,.kiosk .desktop-icons,.kiosk .menubar,.kiosk #message-form,.kiosk .window-controls,.kiosk #interaction-tip{display:none}
+.kiosk #taskbar,.kiosk .desktop-icons,.kiosk .menubar,.kiosk #message-form,.kiosk .window-controls,.kiosk #heard{position:absolute;top:34px;right:16px;max-width:45%;text-align:right;pointer-events:none}
+#heard span{font:9px monospace;letter-spacing:2px;color:#9fd0f3;background:#1c2629e8;padding:4px 7px 2px;display:inline-block}
+#heard p{margin:0;font-size:12px;color:#dfeefa;background:#1c2629d0;padding:6px 10px;font-style:italic}
+#ears-status{color:#3a7d34;border-right:1px solid #c5c4b4;padding-right:8px}
+#interaction-tip{display:none}
 .kiosk #desktop{height:100vh;padding:0}
 .kiosk .window{width:min(100vw,calc((100vh - 52px)*1.333 + 6px))}
 .kiosk #viewport canvas{cursor:default}

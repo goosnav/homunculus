@@ -53,6 +53,8 @@ class Runtime:
         self.last_seen = 0.
         self.last_trigger = ''
         self.download = None
+        self.ears = None
+        self.heard = {'id': 0, 'text': ''}
         self.next_thought = time.monotonic() + 4
         self.threads = []
 
@@ -69,6 +71,7 @@ class Runtime:
                     'error': self.error, 'queued': self.jobs.qsize(), 'latency': self.last_latency,
                     'download': self.download},
                     'voice': {'host': self.speaker.available, 'error': self.speaker.error},
+                    'ears': self.ears.status if self.ears else None, 'heard': self.heard,
                     'warning': self.store.warning}
 
     def save(self):
@@ -113,6 +116,8 @@ class Runtime:
     def hear(self, text):
         """Speech from a microphone. Allowed in appliance mode; that is its only input."""
         self._interact('message', {'text': text[:400]})
+        with self.lock:
+            self.heard = {'id': self.heard['id'] + 1, 'text': text[:400]}
 
     def _interact(self, kind, payload):
         with self.lock:
@@ -247,6 +252,8 @@ class Runtime:
 
     def close(self):
         self.stopped.set()
+        if self.ears:
+            self.ears.close()
         self.save()
         self.speaker.close()
         for thread in self.threads:

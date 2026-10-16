@@ -38,6 +38,10 @@ class Speaker:
     def available(self):
         return bool(self.command) and not self.error
 
+    @property
+    def speaking(self):
+        return self.process is not None or not self.queue.empty()
+
     def say(self, text):
         if not self.enabled or not self.command:
             return
