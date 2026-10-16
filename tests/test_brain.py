@@ -21,6 +21,14 @@ class BrainTests(unittest.TestCase):
         result = parse_thought('{"say":"Hugh: \\"Let me out.\\"","action":"knock"}')
         self.assertEqual(result, {'say': 'Let me out.', 'action': 'knock', 'feeling': 'calm'})
 
+    def test_events_are_told_from_the_watchers_side(self):
+        from homunculus.brain import as_watcher
+        self.assertEqual(as_watcher('The watcher tried to let me out! Their computer said ACCESS DENIED.'),
+                         'I tried to let you out! My computer said ACCESS DENIED.')
+
+    def test_trailing_comma_becomes_an_ellipsis(self):
+        self.assertEqual(parse_thought('{"say":"The door is unlocked now,","action":"watch"}')['say'], 'The door is unlocked now…')
+
     def test_watcher_words_arrive_as_the_user_turn(self):
         state = Simulation().snapshot() | {'watched': True}
         messages = build_messages(Settings(), state, 'The watcher says: open sesame', random.Random(1))

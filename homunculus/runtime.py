@@ -51,7 +51,7 @@ class Runtime:
         self.error = ''
         self.last_latency = None
         self.last_seen = 0.
-        self.last_trigger = ''
+        self.last_trigger = self.sim.event  # Nothing has happened yet this session.
         self.download = None
         self.ears = None
         self.heard = {'id': 0, 'text': ''}

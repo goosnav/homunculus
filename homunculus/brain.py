@@ -75,8 +75,16 @@ def parse_thought(raw):
         raise ValueError('The model returned an incomplete thought.')
     say = ' '.join(data['say'].split())[:280]
     say = re.sub(r'^\W*(?:\w+\s*:\s*)?["“]?|["”]$', '', say) or say  # "Hugh: "quote"" -> quote
+    say = re.sub(r'[,;:\-–]+$', '…', say)  # A thought trailing off, not a typo.
     feeling = data.get('feeling') if data.get('feeling') in FEELINGS else 'calm'
     return {'say': say, 'action': data['action'], 'feeling': feeling}
+
+
+def as_watcher(event):
+    """His memory 'The watcher picked me up' becomes the user's turn 'I picked you up'."""
+    for pattern, replacement in ((r'\bThe watcher\b', 'I'), (r'\bme\b', 'you'), (r'\bmy\b', 'your'), (r'\bTheir\b', 'My')):
+        event = re.sub(pattern, replacement, event)
+    return event
 
 
 def stance(trust):
@@ -123,7 +131,7 @@ def build_messages(settings, state, trigger, rng=random):
     if said:
         ask = trigger[len('The watcher says:'):].strip()
     elif trigger != SILENCE:  # Something actually happened: react to it, no distractions.
-        ask = f'({trigger}) React to what just happened. Speak to me.'
+        ask = f'*{as_watcher(trigger)}* React to that. Speak to me.'
     elif not state.get('watched', True):
         ask = f'(I am away. You are alone, muttering to yourself. On your mind: {topic})'
     else:

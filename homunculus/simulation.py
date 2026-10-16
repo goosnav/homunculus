@@ -58,17 +58,17 @@ class Simulation:
         self.event = 'The room is quiet. Someone may be watching.'
         if not self.memories:
             self.remember('Woke up in the room. The door is still closed.')
-        else:
-            self.event = self.memories[-1]
 
     @staticmethod
     def _restore_list(value, limit, kind):
         return [v[:300] if isinstance(v, str) else v for v in value[-limit:] if isinstance(v, kind)] if isinstance(value, list) else []
 
-    def remember(self, text):
+    def remember(self, text, salient=True):
+        """Salient memories (things the watcher did) become the event the mind reacts to next."""
         self.memories.append(text[:300])
         self.memories = self.memories[-16:]
-        self.event = text[:300]
+        if salient:
+            self.event = text[:300]
 
     def choose(self, action):
         if action not in ACTIONS:
@@ -88,11 +88,11 @@ class Simulation:
         self.remaining = {'rest': 45, 'knock': 6, 'pace': 4}.get(action, self.rng.uniform(10, 22))
         if action == 'escape':
             self.attempts += 1
-            self.remember('Tried the door. Still no handle on this side.')
+            self.remember('Tried the door. Still no handle on this side.', salient=False)
         elif action == 'read':
-            self.remember('Read a Goosnav book. There are other people drawn inside it.')
+            self.remember('Read a Goosnav book. There are other people drawn inside it.', salient=False)
         elif action == 'inspect':
-            self.remember('Examined the booster pack on the desk. It is not a key.')
+            self.remember('Examined the booster pack on the desk. It is not a key.', salient=False)
 
     def observe(self, watched, away_seconds=0):
         """Presence comes from the window: visible, minimized, or a new session after a long absence."""
@@ -178,10 +178,10 @@ class Simulation:
             self.trust = max(0, self.trust - 1)
             self.remember('The watcher picked me up and dropped me somewhere else.')
         elif kind == 'tap':
-            if self.activity != 'rest':
-                self.choose('watch')
-            self.remember('The watcher tapped on the glass.' if self.activity != 'rest'
-                          else 'The watcher tapped on the glass and woke me up.')
+            asleep = self.activity == 'rest' and self.seated
+            self.choose('watch')
+            self.remember('The watcher tapped on the glass and woke me up.' if asleep
+                          else 'The watcher tapped on the glass.')
             self.needs['social'] = max(0, self.needs['social'] - 8)
         elif kind == 'message':
             text = payload.get('text')
@@ -216,7 +216,7 @@ class Simulation:
                               'feeling': self.feeling}
             self.dialogue.append({'role': 'assistant', 'content': text})
             self.dialogue = self.dialogue[-12:]
-            self.remember(f'I said: {text}')
+            self.remember(f'I said: {text}', salient=False)
         if (self.needs['energy'] >= 15 and self.needs['hunger'] <= 85 and self.age >= self.held_until
                 and action in ACTIONS and action != self.activity):
             self.choose(action)

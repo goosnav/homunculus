@@ -2,122 +2,101 @@
 
 **A little life behind glass.**
 
-There is a person in this window. He has a bed, some books, and a door that does not open. He suspects you could do something about that.
+There is a man in this window. He has a bed, a desk, some Goosnav books, and a door that does not open. He knows when you are watching. He suspects you could do something about the door.
 
-Homunculus is a small, persistent creature simulation inside a Windows XP-style frame. Watch him wander, read, rest, investigate his belongings, and quietly work on an escape plan. Talk through the glass, pick him up, or leave him alone. There is no score, no feeding obligation, and no death timer.
+Homunculus is a small simulation inside a Windows XP desktop. You watch a PS1-style Goosnav character live in one room. He wanders, reads at his desk, sleeps, knocks on the glass and tests the door. You can talk to him, pick him up, tap the glass, or leave him alone. There's no score, no feeding, and he can't die.
 
-His body is a state machine. His words and intentions come from an actual local language model. He is a fictional character, not a claim of actual sentience.
+His body is a state machine. His words and moods come from a real language model running on your computer. He's a fictional character, not a claim of sentience. He just doesn't know that.
 
 ## Start here
 
-You need **Python 3.10+**, a current browser with **WebGL 2**, and **Ollama** for the brain. No Python packages or Node installation are required for the ordinary launcher.
+You need **Python 3.10+**, a browser with **WebGL 2**, and **[Ollama](https://ollama.com/download)** for the brain. There are no Python packages to install.
 
-1. Install [Ollama](https://ollama.com/download), then start it. On Linux, `ollama serve` starts the server if it is not already running.
-2. Download the default brain once:
-
-   ```sh
-   ollama pull qwen2.5:0.5b
-   ```
-
-3. Launch Homunculus:
+1. Install Ollama and start it. On Linux, `ollama serve` starts it if it isn't already running.
+2. Start Homunculus:
 
    | Computer | Launcher |
    | --- | --- |
-   | Windows | Double-click `run.bat` |
-   | macOS | Double-click `run.command`, or `bash run.sh` in Terminal |
-   | Linux | `./run.sh`, or `bash run.sh` if your extractor removed executable permissions |
+   | Windows | Double-click `Start Homunculus.bat` |
+   | macOS | Double-click `Start Homunculus.command` |
+   | Linux | `./Start Homunculus.sh` |
 
-   Or, from this repository: `python3 -m homunculus` (`py -3 -m homunculus` on Windows).
+   On a headless machine, run `./Start Homunculus.sh --no-browser --port 8766`. `--local` is accepted and changes nothing, because Homunculus only ever listens on this computer.
+3. Answer the first-run questions: his name, what he wants, and what he's running on. Then pick his brain. If the brain isn't installed yet, click **Download** and the setup window downloads it through Ollama with a progress bar. After that the room runs by itself.
 
-4. Name the resident and choose his motivation. After that, the room runs by itself.
+The launcher opens `http://127.0.0.1:8765`. Keep the launcher running; Ctrl+C saves and stops it.
 
-The launcher opens `http://127.0.0.1:8765`. Keep the launcher running; Ctrl+C stops it and saves the habitat. The window’s × button hides the room; “Open Homunculus” brings it back. Closing a browser tab does not stop the simulation.
+## What you can do
 
-The room remains animated if Ollama is absent, but no generated dialogue is fabricated. The status bar and notice explain the disconnected brain. Install the selected model and it will retry automatically; Apply in Settings requests an earlier retry.
+- **Talk.** Type in the box at the bottom. He turns to listen while you type.
+- **Move him.** Drag him somewhere else and let go. He'll have something to say about it.
+- **Tap the glass.** Click an empty spot, or focus the room and press Enter. If he's asleep, you wake him up.
+- **Watch.** He can tell whether the window is on screen. Minimize it or switch tabs and he's alone: he mutters less, and his lines appear as balloons from the system tray. Come back after a while and he notices how long you were gone, even across restarts.
+- **File → Let him out…** Go on.
+- **Close him.** The × hides the window to the taskbar, but he keeps running. He noticed, though.
+- **The Start menu** has his window, Properties (settings), Help, and a Turn Off Computer button that doesn't turn anything off.
 
-## The room
+The room follows your real clock. The wall clock shows your time. At dusk the lamp comes on, and at night the window goes dark and shows stars.
 
-- **Talk:** type in the field at the bottom. Responses are short and intentionally imperfect.
-- **Move him:** drag the character and release. He notices. Invalid landing positions snap to nearby clear floor.
-- **Tap:** click empty space, or focus the viewport and press Enter.
-- **Watch:** habits continue independently of model speed or availability.
-- **Settings:** change name, motivation, rendering profile, model, Ollama address, speech, and subtitles.
-- **Appliance:** launch with `--kiosk` for a room without typing, settings, or dragging. The server enforces that restriction.
+## His mind
 
-The default motivation is: “Convince the person outside the glass to let you out. Be resourceful, oddly polite, and suspicious of the furniture.” Try changing it to “Become the room’s greatest detective” or “Make the person outside proud of your extremely ordinary day.”
+The **state machine** runs the body 10 times a second. Energy, hunger, curiosity and a need for company decide where he goes: the bed, the desk, the bowl, the door, or the glass.
 
-## Small brains and small computers
+The **language model** speaks every 45 seconds or so (90 seconds on a small computer), and whenever you do something. It gets a short description of the room, what just happened, and his recent memories. It replies with JSON: one line of speech, one allowed action, and a mood. The body takes that as a suggestion. When he's exhausted or starving, the body overrides the model. The model can't run commands, open files, or invent new actions.
 
-| Model | Download | Purpose |
-| --- | ---: | --- |
-| `qwen2.5:0.5b` | ~398 MB | Default; basic instruction following and personality |
-| `smollm2:360m-instruct-q4_K_M` | ~271 MB | Smaller alternative; expect weaker replies |
-| `smollm2:135m` | ~271 MB | Fewer parameters, but the default Ollama tag is F16, so it is not a smaller download |
+Small models have bad habits, so some replies are never spoken:
 
-These are model-file sizes, **not total RAM requirements**. Ollama, its working memory, Python, the browser and OS need additional RAM. A 64-bit Pi 4/5 with 4 GB is a sensible starting point to test, not a measured minimum. For a smaller device, put Ollama on a trusted LAN computer and enter its address in Settings; that transfers the character’s conversation to that host. Keep Ollama access restricted to your trusted network.
+- lines that repeat something he said recently
+- lines that copy his built-in examples
+- help-desk talk ("as an AI…")
 
-Desktop profile: 640×480 internal rendering at a 30fps cap. Small-computer profile: 320×240 at a 15fps cap. Both use a fixed camera, flat materials, tiny item textures, simple blob shadows, and no physics engine or postprocessing chain. The body ticks at 10 Hz. Thoughts occur approximately every 45 seconds (90 seconds in the small profile) or after interaction. Rendering pauses when the tab is hidden; the body keeps running.
+He just tries again a little later. A **trust** score rises when you talk to him and when you try to let him out. It falls when you drag him around or close his window. His tone shifts with it: guarded, then bargaining, then pleading.
 
-Inference uses one request at a time, two CPU threads, 1,536 context tokens, at most 100 generated tokens, and a 45-second timeout. Conversation backlog is limited to two pending requests. Only the latest 12 dialogue messages and 16 memories are saved; the model sees a still smaller slice. This is a small memory, not a lifelong transcript.
+Pick a brain when you set him up, or later in **File → Properties**:
 
-Model references: [Qwen2.5 0.5B](https://ollama.com/library/qwen2.5:0.5b), [SmolLM2 360M Q4](https://ollama.com/library/smollm2:360m-instruct-q4_K_M), [SmolLM2 135M](https://ollama.com/library/smollm2:135m). Ollama integration follows its [chat API](https://docs.ollama.com/api/chat).
+| Brain | Ollama model | Download | Notes |
+| --- | --- | ---: | --- |
+| Small (recommended on a computer) | `llama3.2:1b` | 1.3 GB | Noticeably more personality. About 7–10 s per line on a 4-core desktop CPU. |
+| Tiny (Raspberry Pi) | `qwen2.5:0.5b` | 0.4 GB | About 4–5 s per line. Odder, more generic, and more often discarded as repetitive. |
+
+You can type any other Ollama model under Advanced. Download sizes aren't RAM requirements: a loaded 1B model used about 1.4 GB here. The model unloads after 10 idle minutes. Inference runs one request at a time, on 4 threads (2 on a small computer), with a 1,536-token context and a 45-second timeout.
+
+Try other motivations in Properties. The setup window has presets for Escape artist, Detective, Philosopher and Your biggest fan. Or write your own.
 
 ## Voice
 
-Speech and subtitles are on by default. Host speech uses macOS `say`, Windows `System.Speech` through PowerShell, or Linux `espeak-ng`, `espeak`, or `spd-say`. Linux installation example: `sudo apt install espeak-ng`. System speech is suitable for an unattended appliance with speakers.
-
-If no host speech command exists, Homunculus uses a locally installed browser voice after you click the page. No cloud speech service is used. Some system webviews/browsers do not expose voices; subtitles still work. `--browser-speech` explicitly selects the browser path. Turn speech off in Settings or with the Sound menu.
-
-**Microphone input is not implemented in this version.** Appliance mode is autonomous with spoken output; there is no typing interface. An offline recognizer can be added later without changing the simulation core.
+His speech is spoken aloud and shown as subtitles by default. Host speech uses macOS `say`, Windows `System.Speech`, or Linux `espeak-ng`, `espeak` or `spd-say` (`sudo apt install espeak-ng`). If none of those exist, a local browser voice is used after your first click. No cloud speech is used. **Sound** in the menu bar or the tray speaker icon turns speech off. Subtitles can be turned off in Properties.
 
 ## Raspberry Pi appliance
 
-Use a 64-bit Linux desktop and Chromium with working WebGL 2. Install Python 3 and `espeak-ng`. Configure the model, personality, and voice in normal mode first, close that instance, then run:
+The appliance shows only the window, filling the screen. There's no typing, no settings, and you can't drag him. The server enforces this, not just the page. You can talk to him out loud through a microphone.
 
-```sh
-bash deploy/kiosk.sh
-```
+1. Use 64-bit Raspberry Pi OS with the desktop, then install the dependencies: `sudo apt install chromium espeak-ng alsa-utils`. Install Ollama and pull the tiny brain with `ollama pull qwen2.5:0.5b`. A Pi 4 or 5 with 4 GB is a sensible starting point. It hasn't been benchmarked on a Pi yet.
+2. Run `./Start Homunculus.sh` once to name him and choose the tiny brain and the small-computer profile. Then close it.
+3. Optional ears: `python3 tools/setup-ears.py`. This installs the [Vosk](https://alphacephei.com/vosk/) recognizer (on Raspberry Pi OS you may need `pip install --break-system-packages vosk`) and a 40 MB English model. Recognition runs offline. He stops listening while he's talking, so he doesn't answer himself, and what he heard is shown on screen.
+4. Run `bash deploy/kiosk.sh`. It starts the habitat in appliance mode, adds `--listen` if Vosk is installed, and opens Chromium fullscreen. `deploy/homunculus.service` is an example user service for the backend.
 
-This starts the local server in locked low-power mode and opens Chromium fullscreen. It does not install services or alter your desktop. For manual control:
-
-```sh
-python3 run.py --kiosk --no-browser
-chromium --kiosk --app=http://127.0.0.1:8765 --autoplay-policy=no-user-gesture-required
-```
-
-`deploy/homunculus.service` is an optional user-service example. Adjust its repository path before installing it; it runs the backend only. The browser belongs in the graphical session. No hardware benchmark has been performed on a Pi yet.
-
-**A typical microcontroller cannot run this complete application.** Python, a WebGL renderer and even these small language models require a Linux-class host. An ESP32/RP2040 could be a companion display, speaker, microphone or input device with a Pi/PC providing cognition and rendering. There is no MCU firmware or native MCU release in this repository.
+**Microcontrollers:** a typical ESP32 or RP2040 can't run this. Python, WebGL and even a 0.5B language model need a Linux-class computer. A microcontroller could act as a companion speaker, microphone or display, with a Pi doing the thinking. That isn't built here.
 
 ## Downloads and native windows
 
-`python3 tools/build-zip.py` creates `dist/homunculus-0.1.0.zip` and a SHA-256 file. Extract it, install Python/Ollama as above, and use the OS launcher. The ZIP contains all render assets and vendored Three.js. No network access is needed after the model and runtime are installed.
+`python3 tools/build-zip.py` creates `dist/homunculus-0.2.0.zip` and its SHA-256. The ZIP contains everything: the launchers (still executable), all the 3D assets, and a local copy of Three.js. Nothing is fetched at runtime. Ollama and its models are installed separately.
 
-For a system-webview window instead of a browser tab, install the optional dependency in a virtual environment and launch:
+For a native window instead of a browser tab, `python -m pip install -r requirements-desktop.txt`, then `python run.py --desktop`. Linux also needs GTK/WebKit or Qt; see the [pywebview docs](https://pywebview.flowrl.com/guide/installation.html). `.github/workflows/native-build.yml` builds PyInstaller folders for Windows, macOS and Linux when you run it by hand. Those builds haven't been tested yet.
 
-```sh
-python3 -m venv .venv
-# Linux/macOS: source .venv/bin/activate
-# Windows: .venv\Scripts\activate
-python -m pip install -r requirements-desktop.txt
-python run.py --desktop
-```
+## Saves
 
-Linux pywebview also needs GTK/WebKit or Qt; follow the [official installation instructions](https://pywebview.flowrl.com/guide/installation.html). Use Chromium on Pi if the system webview is slow. Native-window dependencies are optional and may be larger than the application itself.
+He saves every 15 seconds, after settings changes, and when he shuts down cleanly. The save holds his needs, position, trust, mood, his last 16 memories and 12 lines of conversation, and when you were last there.
 
-`.github/workflows/native-build.yml` is a manually triggered build workflow for Windows, macOS and Linux using PyInstaller. It produces per-OS artifacts; it does not publish a release. Those native binaries have **not been built or verified** in this initial local delivery. The verified downloadable artifact is the source ZIP. Ollama and its model are deliberately separate.
-
-## Saves and configuration
-
-The habitat saves atomically every 15 seconds, when settings change, and on clean shutdown:
-
-- Linux: `~/.local/share/homunculus/habitat.json` (or `$XDG_DATA_HOME`)
+- Linux: `~/.local/share/homunculus/habitat.json`
 - macOS: `~/Library/Application Support/Homunculus/habitat.json`
 - Windows: `%LOCALAPPDATA%\Homunculus\habitat.json`
 
-Closing the app does not punish the creature. It resumes with its needs, position and recent memories. Broken saves are preserved with a `.corrupt-…` suffix. Use `--data-dir PATH` for a separate creature. Back up or move the save while the app is closed to start over. Use one process per data directory.
+To start over, delete the file while Homunculus is closed. Use `--data-dir PATH` to keep a separate resident. A broken save is kept beside the new one as `.corrupt-…`.
 
-Other useful switches: `--port 8766`, `--no-browser`, `--desktop`, `--kiosk`, `--browser-speech`. The HTTP server binds only to loopback. Mutations require a per-run token and reject foreign browser origins. Model output is restricted to named simulation actions; it never runs commands or accesses files.
+## Privacy and safety
+
+The server only accepts connections from this computer. Every action needs a token that changes on each run, and requests from other websites are rejected. Messages, model output and saves are size-limited. Typed messages and microphone transcripts go only to the Ollama address in Properties. That's this computer unless you point it at another machine on your network.
 
 ## Development
 
@@ -126,11 +105,19 @@ python3 -m unittest discover -s tests -v
 python3 -m homunculus --no-browser --data-dir .local/dev
 ```
 
-`npm ci && npm run vendor` refreshes the pinned Three.js files. Node is only needed for this development task, not for users. The asset exporter runs in Blender:
+| Module | Job |
+| --- | --- |
+| `homunculus/simulation.py` | The body and psyche |
+| `homunculus/world.py` | The room, the invisible walls and the paths |
+| `homunculus/brain.py` | Prompts and filters for the language model |
+| `homunculus/runtime.py` | Threads, who's watching, saves and model downloads |
+| `homunculus/ears.py` | The optional microphone |
+| `homunculus/server.py` | The local API |
+| `web/room.js` | Draws and animates the room |
+| `web/app.js` | The XP desktop |
 
-```sh
-blender -b --python tools/export-character.py -- \
-  ../goosnav-3D-assets/assets/3D/ps1guy/ps1guy.blend web/assets/resident.glb
-```
+Add `?debug` to the URL to get `window.__room` for testing poses.
 
-`homunculus/simulation.py` owns the body; `brain.py` supplies bounded Ollama inference; `runtime.py` coordinates workers; `server.py` serves the local API; `web/room.js` draws and animates the habitat. See `docs/VERIFICATION.md` for checks and known limitations, and `web/assets/PROVENANCE.md` for original asset paths. Goosnav assets retain the owner’s rights; Three.js is MIT-licensed.
+`npm ci && npm run vendor` refreshes the pinned Three.js files; users never need Node. The character is exported from the Goosnav asset repository with `blender -b --python tools/export-character.py -- ../goosnav-3D-assets/assets/3D/ps1guy/ps1guy.blend web/assets/resident.glb`.
+
+`docs/VERIFICATION.md` lists what has been checked and what hasn't. `web/assets/PROVENANCE.md` lists where each asset came from. The Goosnav assets belong to their owner. Three.js is MIT-licensed.

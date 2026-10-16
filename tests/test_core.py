@@ -36,14 +36,18 @@ class SimulationTests(unittest.TestCase):
                 break
         self.assertTrue(sim.seated)
         self.assertEqual(tuple(sim.position), SEATS['rest'])
-        sim.choose('escape')
+        sim.interact('tap', {})
+        self.assertIn('woke me up', sim.event)
         self.assertFalse(sim.seated)
+        self.assertEqual(sim.activity, 'watch')
         self.assertTrue(walkable(*sim.position))
 
     def test_he_notices_a_long_absence_once(self):
         sim = Simulation()
         sim.observe(True, away_seconds=3 * 3600)
         self.assertIn('came back after 3 hours', sim.event)
+        sim.choose('read')  # Routine notes must not bury what the watcher did.
+        self.assertIn('came back', sim.event)
         sim.observe(True)
         sim.observe(False)
         sim.tick(.1)
