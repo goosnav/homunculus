@@ -58,14 +58,14 @@ Run with Ollama on this CPU:
 - **Full flow with the real model:**
   - setup, then a typed message, then a spoken reply with a subtitle
   - File → Let him out…: progress bar, then "Access is denied", then a remembered reaction
-  - × hides the window to the taskbar with a tray balloon
-  - the Start menu opens
-- **Appliance mode at 800×480:** only the window shows. There's no taskbar, menu or typing. Problems from the ears appear in the notice bar.
+  - × blacks out the room briefly, and he remembers it
+- **Window shapes:** at 1280×900, 1600×700 and 600×900 the XP window fills the page, and the room fills the whole inner area with no edges or letterboxing.
+- **Appliance mode at 800×480:** there's no menu and no typing. Problems from the ears appear in the notice bar.
 - **Source ZIP (953 KB):** extracted, launched with `Start Homunculus.sh --local --no-browser`, and served the page, the API, the GLB assets and Three.js. The launchers kept their executable bits.
 
 ## Not verified
 
-- Windows and macOS launchers, voices and PyInstaller builds. The CI workflow exists but hasn't been run.
-- Raspberry Pi performance, Chromium kiosk on a real Pi, and real microphone input on a Pi.
+- The frameless native window (`--desktop`). Windows and macOS launchers, voices and PyInstaller builds. The CI workflow exists but hasn't been run.
+- Raspberry Pi performance and Chromium kiosk on a real Pi. Real microphone recognition: the 40 MB Vosk model download failed on this network, so the ears were only tested with a fake recognizer.
 - Real WebGL on a GPU (only SwiftShader was used). Real browser audio.
 - How it holds up after hours of continuous running.

@@ -1,14 +1,7 @@
-/* Homunculus: a Windows XP-flavoured desktop with one occupied window. No images, no fonts to download. */
-:root{font-family:Tahoma,Verdana,"Segoe UI",Arial,sans-serif;color:#222;font-size:12px;color-scheme:light;--xp-blue:#0754d3;--taskbar:30px}
+/* Homunculus: one Windows XP window, and nothing else. No images, no fonts to download. */
+:root{font-family:Tahoma,Verdana,"Segoe UI",Arial,sans-serif;color:#222;font-size:12px;color-scheme:light;--xp-blue:#0754d3}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;overflow:hidden;
-  /* Not quite Bliss: a sky, a cloud or two, and a very green hill. */
-  background:
-    radial-gradient(ellipse 140% 55% at 30% 100%,#5a9a2d 0 45%,#3d7d1d 62%,transparent 63%),
-    radial-gradient(ellipse 90% 40% at 95% 100%,#4c8c25 0 50%,transparent 51%),
-    radial-gradient(ellipse 18% 6% at 22% 22%,#ffffffcc,transparent 70%),
-    radial-gradient(ellipse 25% 7% at 70% 14%,#ffffffaa,transparent 70%),
-    linear-gradient(180deg,#2a6fd6 0%,#5d9be8 35%,#a6cdf2 62%,#d6ebfb 75%)}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--xp-blue)}
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
 button:disabled{cursor:wait;color:#777}
@@ -16,26 +9,10 @@ button:disabled{cursor:wait;color:#777}
 #viewport:focus-visible{outline:2px solid #da9d31;outline-offset:-2px}
 [hidden]{display:none!important}
 
-/* Desktop */
-#desktop{height:calc(100vh - var(--taskbar));display:flex;align-items:center;justify-content:center;padding:16px 20px 16px 110px;position:relative}
-.desktop-icons{position:absolute;left:10px;top:12px;display:flex;flex-direction:column;gap:14px;width:84px}
-.desktop-icon{background:none;border:0;color:#fff;text-shadow:1px 1px 2px #000;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:3px;text-align:center}
-.desktop-icon:focus{background:#0b61ff88;outline:1px dotted #fff}
-.icon{display:inline-block;width:32px;height:32px;flex:none;image-rendering:pixelated;position:relative}
-.icon-computer{background:linear-gradient(#cfe3ff,#6f9fe0) 4px 3px/24px 18px no-repeat,linear-gradient(#999,#666) 10px 23px/12px 3px no-repeat,linear-gradient(#ddd,#aaa) 6px 26px/20px 4px no-repeat;border-radius:2px}
-.icon-habitat{background:linear-gradient(#2a72e6,#0b4cc0) 3px 3px/26px 6px no-repeat,linear-gradient(#efd8a3,#c9b07c) 3px 9px/26px 20px no-repeat;border:1px solid #1d3f86;border-radius:2px}
-.icon-habitat::after{content:"";position:absolute;left:13px;top:13px;width:6px;height:13px;background:#f1c8bd;border-radius:3px 3px 0 0;box-shadow:0 7px 0 -1px #33556a}
-.icon-bin{background:linear-gradient(90deg,#9fb6c9,#e8f0f6 40%,#9fb6c9) 7px 7px/18px 23px no-repeat,linear-gradient(#bbb,#888) 5px 3px/22px 4px no-repeat;border-radius:0 0 4px 4px}
-.icon-key{background:radial-gradient(circle at 10px 10px,transparent 3px,#e3b33a 4px 8px,transparent 9px),linear-gradient(#e3b33a,#c08e1d) 14px 15px/14px 4px no-repeat,linear-gradient(#c08e1d,#c08e1d) 24px 18px/3px 6px no-repeat}
-.icon-gear{background:radial-gradient(circle,#eee 0 4px,#777 5px 10px,transparent 11px),conic-gradient(#777 0 10%,transparent 0 15%,#777 0 35%,transparent 0 40%,#777 0 60%,transparent 0 65%,#777 0 85%,transparent 0 90%,#777 0);border-radius:50%;transform:scale(.8)}
-.icon-help{background:radial-gradient(circle,#2f78e4 0 14px,transparent 15px);color:#fff;font:bold 20px Georgia;text-align:center;line-height:32px}
-.icon-help::after{content:"?"}
-.icon-power{width:22px;height:22px;background:linear-gradient(#ef9a62,#cf4b14);border-radius:4px;border:1px solid #fff8}
-.icon-speaker{width:16px;height:16px;background:linear-gradient(#fff,#fff) 1px 5px/5px 6px no-repeat,conic-gradient(from 225deg at 6px 8px,#fff 0 25%,transparent 0) 0 0/12px 16px no-repeat}
-.muted .icon-speaker::after{content:"";position:absolute;right:-1px;top:1px;width:9px;height:9px;border-radius:50%;background:#d9301e;border:1px solid #fff}
-
 /* The window */
-.window{width:min(900px,92vw,calc((100vh - var(--taskbar) - 160px)*1.333 + 6px));background:#ece9d8;border:3px solid var(--xp-blue);border-top:0;border-radius:8px 8px 0 0;box-shadow:2px 3px 12px #0007;overflow:hidden}
+/* The window is the whole page: its XP frame is the only frame. */
+.window{position:fixed;inset:0;display:flex;flex-direction:column;background:#ece9d8;border:3px solid var(--xp-blue);border-top:0;border-radius:8px 8px 0 0;overflow:hidden}
+.window>*{flex:none}
 .titlebar{height:30px;background:linear-gradient(180deg,#4797ff 0,#1e6fe8 8%,#0860e6 30%,#0053d5 80%,#084ac3 100%);display:flex;align-items:center;gap:6px;padding:3px 5px;color:#fff;text-shadow:1px 1px #133d86}
 .titlebar h1,.titlebar h2{font-size:13px;margin:0;font-weight:bold;white-space:nowrap}
 .titlebar h2{flex:1}
@@ -55,7 +32,8 @@ button:disabled{cursor:wait;color:#777}
 .dropdown button:hover,.dropdown button:focus{background:#316ac5;color:#fff;outline:none}
 .dropdown hr{border:0;border-top:1px solid #aca899;margin:2px 1px}
 .menu-note{margin-left:auto;font-size:10px;color:#777765;padding-right:5px}
-#viewport{position:relative;background:#1b2728;aspect-ratio:4/3;overflow:hidden;margin:3px 3px 0;border:2px solid;border-color:#77796d #fff #fff #77796d;touch-action:none}
+#viewport{flex:1 1 auto;min-height:0;position:relative;background:#1b2728;overflow:hidden;touch-action:none}
+#blackout{position:absolute;inset:0;background:#000;z-index:5}
 #viewport canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;cursor:grab}
 #viewport canvas:active{cursor:grabbing}
 #viewport.tremble{animation:tremble .12s linear}
@@ -94,32 +72,6 @@ button:disabled{cursor:wait;color:#777}
 .thinking{background:#6a91c2!important;animation:pulse 1.2s infinite}
 .resize-grip{color:#a8a895;font-size:13px}
 #notice{background:#ffffe1;border-top:1px solid #d7cba2;color:#5e4b26;padding:6px 12px;font-size:11px}
-
-/* Taskbar */
-#taskbar{position:fixed;left:0;right:0;bottom:0;height:var(--taskbar);display:flex;align-items:center;gap:6px;background:linear-gradient(#3168d5 0,#4993e6 8%,#2f6fd8 15%,#245edb 50%,#2257d0 92%,#1941a5 100%);z-index:30}
-#start-button{height:100%;padding:0 18px 0 10px;border:0;border-radius:0 10px 10px 0;background:linear-gradient(#3c9c3c 0,#61c25f 10%,#3c9c3c 35%,#308a30 85%,#2b7c2b);color:#fff;font:italic bold 17px "Trebuchet MS",Tahoma,sans-serif;text-shadow:1px 1px 2px #0008;display:flex;align-items:center;gap:6px;box-shadow:inset -2px 0 3px #0004}
-#start-button:hover{filter:brightness(1.1)}
-.flag{width:16px;height:16px;background:conic-gradient(#f45024 0 25%,#7dbb0e 0 50%,#ffb901 0 75%,#00a2ed 0);border-radius:3px;transform:skewY(-6deg)}
-#task-button{height:23px;width:170px;display:flex;align-items:center;gap:6px;color:#fff;font-size:11px;border:1px solid #1a4fb4;border-radius:3px;background:linear-gradient(#3c81f3,#2a69e3);padding:0 8px;text-align:left}
-#task-button.active{background:linear-gradient(#1e4fb0,#1c4aa6);box-shadow:inset 1px 1px 2px #0006}
-#task-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tray{margin-left:auto;height:100%;display:flex;align-items:center;gap:8px;padding:0 12px;background:linear-gradient(#1290e8,#0f80e3 50%,#0d6fd1);border-left:1px solid #0b3f9a;box-shadow:inset 1px 0 #43a3f4;color:#fff;font-size:11px}
-.tray button{background:none;border:0;padding:0;position:relative;display:flex}
-#start-menu{position:fixed;left:0;bottom:var(--taskbar);width:300px;background:#fff;border:1px solid #0a246a;border-radius:7px 7px 0 0;overflow:hidden;box-shadow:3px 0 6px #0006;z-index:40}
-#start-menu header{height:52px;display:flex;align-items:center;gap:9px;padding:0 10px;color:#fff;font:bold 14px Tahoma;text-shadow:1px 1px #0005;background:linear-gradient(#1868ce,#0e60cb 60%,#2a7fe5)}
-.avatar{width:38px;height:38px;border:2px solid #fff;border-radius:4px;background:radial-gradient(circle at 50% 38%,#f1c8bd 0 9px,transparent 10px),radial-gradient(ellipse at 50% 110%,#33556a 0 16px,transparent 17px),#93c2e7}
-.start-items{display:flex;flex-direction:column;padding:6px;border-top:2px solid #e48e2d}
-.start-items button,#start-menu footer button{display:flex;align-items:center;gap:9px;text-align:left;background:none;border:0;padding:5px;color:#222}
-.start-items button:hover,#start-menu footer button:hover,.start-items button:focus{background:#316ac5;color:#fff;outline:none}
-.start-items small{display:block;color:#888;font-size:10px}
-.start-items button:hover small{color:#dde}
-#start-menu footer{display:flex;justify-content:flex-end;padding:4px 8px;background:linear-gradient(#4282d6,#2560c8);}
-#start-menu footer button{color:#fff;font-size:11px}
-#balloon{position:fixed;right:8px;bottom:calc(var(--taskbar) + 10px);max-width:290px;background:#ffffe1;border:1px solid #000;border-radius:8px;padding:8px 26px 9px 11px;box-shadow:2px 2px 5px #0005;z-index:35;cursor:pointer}
-#balloon::after{content:"";position:absolute;right:56px;bottom:-11px;border:10px solid transparent;border-top-color:#ffffe1;border-bottom:0}
-#balloon b{font-size:11px}
-#balloon p{margin:4px 0 0;font-size:11px;line-height:1.45}
-.balloon-close{position:absolute;right:5px;top:5px;width:15px;height:15px;font-size:12px;line-height:11px;padding:0;border:1px solid #9a9a9a;border-radius:3px;background:#fff}
 
 /* Dialogs */
 .xp-dialog{padding:0;background:#ece9d8;border:3px solid var(--xp-blue);border-top:0;border-radius:7px 7px 0 0;width:470px;max-width:94vw;max-height:calc(100vh - 40px);box-shadow:2px 4px 18px #0008}
@@ -164,15 +116,9 @@ summary{font-size:11px;cursor:pointer;color:#52605d}
 .about h3 small{font:10px monospace;color:#89917c}
 .error{color:#a12b1a;font-size:11px;line-height:1.5}
 
-/* Appliance: just the window, filling the screen. No desktop, taskbar, menus or typing. */
-.kiosk{background:#000}
-.kiosk #taskbar,.kiosk .desktop-icons,.kiosk .menubar,.kiosk #message-form,.kiosk .window-controls,.kiosk #interaction-tip{display:none}
-.kiosk #desktop{height:100vh;padding:0}
-.kiosk .window{width:min(100vw,calc((100vh - 86px)*1.333 + 10px))}
+/* Appliance: no menus, no typing. */
+.kiosk .menubar,.kiosk #message-form,.kiosk .window-controls,.kiosk #interaction-tip{display:none}
 .kiosk #viewport canvas{cursor:default}
-:fullscreen{background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center}
-:fullscreen #viewport{width:min(100%,calc((100vh - 120px)*1.333));flex-shrink:0}
-:fullscreen .menubar,:fullscreen #message-form,:fullscreen .statusbar,:fullscreen .titlebar{width:100%}
 @keyframes pulse{50%{opacity:.25}}
-@media(max-width:700px){#desktop{padding:8px}.desktop-icons{display:none}.window{width:100%}#title-name,#feeling,#task-button{display:none}.camera-label{top:10px;left:10px;font-size:8px}#subtitle{left:5%;right:5%;bottom:22px}#subtitle p{font-size:12px;padding:7px 10px}}
+@media(max-width:600px){#title-name,#feeling{display:none}.camera-label{top:10px;left:10px;font-size:8px}#subtitle{left:5%;right:5%;bottom:22px}#subtitle p{font-size:12px;padding:7px 10px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

@@ -4,7 +4,7 @@
 
 There is a man in this window. He has a bed, a desk, some Goosnav books, and a door that does not open. He knows when you are watching. He suspects you could do something about the door.
 
-Homunculus is a small simulation inside a Windows XP desktop. You watch a PS1-style Goosnav character live in one room. He wanders, reads at his desk, sleeps, knocks on the glass and tests the door. You can talk to him, pick him up, tap the glass, or leave him alone. There's no score, no feeding, and he can't die.
+Homunculus is a small simulation inside a Windows XP window. The window is the whole app, and the room fills it edge to edge at any size. You watch a PS1-style Goosnav character live in one room. He wanders, reads at his desk, sleeps, knocks on the glass and tests the door. You can talk to him, pick him up, tap the glass, or leave him alone. There's no score, no feeding, and he can't die.
 
 His body is a state machine. His words and moods come from a real language model running on your computer. He's a fictional character, not a claim of sentience. He just doesn't know that.
 
@@ -31,10 +31,10 @@ The launcher opens `http://127.0.0.1:8765`. Keep the launcher running; Ctrl+C sa
 - **Talk.** Type in the box at the bottom. He turns to listen while you type.
 - **Move him.** Drag him somewhere else and let go. He'll have something to say about it.
 - **Tap the glass.** Click an empty spot, or focus the room and press Enter. If he's asleep, you wake him up.
-- **Watch.** He can tell whether the window is on screen. Minimize it or switch tabs and he's alone: he mutters less, and his lines appear as balloons from the system tray. Come back after a while and he notices how long you were gone, even across restarts.
+- **Watch.** He can tell whether the window is on screen. Switch tabs or minimize it and he's alone, so he mutters less. Come back after a while and he notices how long you were gone, even across restarts.
 - **File → Let him out…** Go on.
-- **Close him.** The × hides the window to the taskbar, but he keeps running. He noticed, though.
-- **The Start menu** has his window, Properties (settings), Help, and a Turn Off Computer button that doesn't turn anything off.
+- **Close him.** The × only makes the room go dark for a moment. He keeps running, and he noticed. Ctrl+C in the launcher really stops him; in the native window, use File → Exit.
+- **File → Properties** changes his name, motivation, brain and voice.
 
 The room follows your real clock. The wall clock shows your time. At dusk the lamp comes on, and at night the window goes dark and shows stars.
 
@@ -65,7 +65,7 @@ Try other motivations in Properties. The setup window has presets for Escape art
 
 ## Voice
 
-His speech is spoken aloud and shown as subtitles by default. Host speech uses macOS `say`, Windows `System.Speech`, or Linux `espeak-ng`, `espeak` or `spd-say` (`sudo apt install espeak-ng`). If none of those exist, a local browser voice is used after your first click. No cloud speech is used. **Sound** in the menu bar or the tray speaker icon turns speech off. Subtitles can be turned off in Properties.
+His speech is spoken aloud and shown as subtitles by default. Host speech uses macOS `say`, Windows `System.Speech`, or Linux `espeak-ng`, `espeak` or `spd-say` (`sudo apt install espeak-ng`). If none of those exist, a local browser voice is used after your first click. No cloud speech is used. **Sound** in the menu bar turns speech off. Subtitles can be turned off in Properties.
 
 ## Raspberry Pi appliance
 
@@ -82,7 +82,7 @@ The appliance shows only the window, filling the screen. There's no typing, no s
 
 `python3 tools/build-zip.py` creates `dist/homunculus-0.2.0.zip` and its SHA-256. The ZIP contains everything: the launchers (still executable), all the 3D assets, and a local copy of Three.js. Nothing is fetched at runtime. Ollama and its models are installed separately.
 
-For a native window instead of a browser tab, `python -m pip install -r requirements-desktop.txt`, then `python run.py --desktop`. Linux also needs GTK/WebKit or Qt; see the [pywebview docs](https://pywebview.flowrl.com/guide/installation.html). `.github/workflows/native-build.yml` builds PyInstaller folders for Windows, macOS and Linux when you run it by hand. Those builds haven't been tested yet.
+For a native window instead of a browser tab, `python -m pip install -r requirements-desktop.txt`, then `python run.py --desktop`. The native window is frameless, so the XP frame is the only frame. Drag it by the blue title bar. Linux also needs GTK/WebKit or Qt; see the [pywebview docs](https://pywebview.flowrl.com/guide/installation.html). `.github/workflows/native-build.yml` builds PyInstaller folders for Windows, macOS and Linux when you run it by hand. Those builds haven't been tested yet.
 
 ## Saves
 
@@ -114,7 +114,7 @@ python3 -m homunculus --no-browser --data-dir .local/dev
 | `homunculus/ears.py` | The optional microphone |
 | `homunculus/server.py` | The local API |
 | `web/room.js` | Draws and animates the room |
-| `web/app.js` | The XP desktop |
+| `web/app.js` | The XP window: menus, dialogs, talking |
 
 Add `?debug` to the URL to get `window.__room` for testing poses.
 

@@ -16,18 +16,22 @@ const damp=THREE.MathUtils.damp, clamp=THREE.MathUtils.clamp;
 function angleTo(from,to){return Math.atan2(Math.sin(to-from),Math.cos(to-from));}
 // Seat transforms: feet planted at the seat point; the body pivots at the feet.
 const LIE={y:.76,tilt:-Math.PI/2}, SIT={y:-.26};
+// Smallest half-extent of the view that still shows every corner of his invisible box. The view grows to fill
+// whatever shape the window is; the room runs past every edge, so there is never anything to cut off.
+const VIEW={w:4.3,h:3.225};
 
 export class Room {
   constructor(container, settings, onInteraction){
     this.container=container;this.settings=settings;this.onInteraction=onInteraction;
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0x263d37);
-    this.camera=new THREE.OrthographicCamera(-4.3,4.3,3.225,-3.225,.1,80);
+    this.camera=new THREE.OrthographicCamera(-VIEW.w,VIEW.w,VIEW.h,-VIEW.h,.1,80);
     this.camera.position.set(7.5,6.5,12);this.camera.lookAt(-.1,1.1,-.15);
     this.cameraYaw=Math.atan2(this.camera.position.x,this.camera.position.z);
     this.renderer=new THREE.WebGLRenderer({antialias:false,alpha:false,powerPreference:'low-power'});
     this.renderer.setPixelRatio(1);this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.toneMapping=THREE.NoToneMapping;
     this.container.prepend(this.renderer.domElement);
+    new ResizeObserver(()=>this.resize()).observe(this.container);
     this.configure(settings);
     this.hemi=new THREE.HemisphereLight(0xf6eed0,0x536757,2);this.scene.add(this.hemi);
     this.sun=new THREE.DirectionalLight(0xffe3b3,2.3);this.sun.position.set(-3,7,5);this.scene.add(this.sun);
@@ -42,7 +46,14 @@ export class Room {
     this.ready=this.loadAssets();
     this.frame=this.frame.bind(this);this.raf=requestAnimationFrame(this.frame);
   }
-  configure(settings){this.settings=settings;this.renderer.setSize(...settings.render_size,false);}
+  configure(settings){this.settings=settings;this.resize();}
+  resize(){
+    const r=this.container.getBoundingClientRect(), aspect=r.width>0&&r.height>0?r.width/r.height:4/3;
+    const h=this.settings.render_size[1], w=Math.max(1,Math.round(h*aspect));  // Low-res pixels, any shape.
+    this.renderer.setSize(w,h,false);
+    const c=this.camera;if(aspect>=VIEW.w/VIEW.h){c.top=VIEW.h;c.right=VIEW.h*aspect;}else{c.right=VIEW.w;c.top=VIEW.w/aspect;}
+    c.left=-c.right;c.bottom=-c.top;c.updateProjectionMatrix();
+  }
   box(size,position,color){const o=new THREE.Mesh(new THREE.BoxGeometry(...size),mat(color));o.position.set(...position);this.scene.add(o);return o;}
   plane(size,position,texture){const o=new THREE.Mesh(new THREE.PlaneGeometry(...size),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));o.position.set(...position);this.scene.add(o);return o;}
   blob(x,z,sx,sz,opacity=.15){const m=new THREE.Mesh(new THREE.CircleGeometry(1,20),new THREE.MeshBasicMaterial({color:0x152a22,transparent:true,opacity,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.012,z);m.scale.set(sx,sz,1);this.scene.add(m);return m;}

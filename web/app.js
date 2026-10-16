@@ -2,15 +2,14 @@ import { Room } from './room.js';
 import { Voice } from './speech.js';
 const $=s=>document.querySelector(s), voice=new Voice();
 const debug=new URLSearchParams(location.search).has('debug');
-let token,room,current,lastUtterance=0,lastHeard=0,heardTimer,subtitleTimer,balloonTimer,firstRun=false,installed=null;
+let token,room,current,lastUtterance=0,lastHeard=0,heardTimer,subtitleTimer,firstRun=false,installed=null;
 let temporaryNotice='',noticeUntil=0;
 const settingsDialog=$('#settings-dialog'), settingsForm=$('#settings-form'), habitat=$('#habitat-window');
 const FEELINGS={calm:'seems calm',curious:'seems curious',hopeful:'looks hopeful',happy:'seems pleased',annoyed:'seems annoyed',sad:'seems a little sad',scheming:'is scheming',afraid:'seems uneasy'};
 
 function notice(text,temporary=false){$('#notice').textContent=text;$('#notice').hidden=!text;if(temporary){temporaryNotice=text;noticeUntil=Date.now()+6500;}}
 async function api(path,data){const response=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json','X-Habitat-Token':token}:{},body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(8000)});const value=await response.json();if(!response.ok)throw Error(value.error||'The habitat could not complete that request.');return value;}
-const watching=()=>!document.hidden&&!habitat.hidden;
-function balloon(title,text,ms=9000){$('#balloon-title').textContent=title;$('#balloon-text').textContent=text;$('#balloon').hidden=false;clearTimeout(balloonTimer);balloonTimer=setTimeout(()=>$('#balloon').hidden=true,ms);}
+const watching=()=>!document.hidden;
 function xpError(text,title='homunculus.exe'){$('#error-title').textContent=title;$('#error-text').textContent=text;$('#error-dialog').showModal();}
 
 function sync(data){
@@ -18,13 +17,12 @@ function sync(data){
   room?.update(s,{thinking:data.brain.busy,watching:watching()});
   if(room&&room.settings.profile!==cfg.profile)room.configure({...cfg,kiosk:data.kiosk});
   voice.configure(cfg,data.voice.host);
-  $('#title-name').textContent=$('#start-subtitle').textContent=`${name}’s room`;$('#speaker-name').textContent=name.toUpperCase();
+  $('#title-name').textContent=`${name}’s room`;$('#speaker-name').textContent=name.toUpperCase();
   $('#activity').textContent=`${name} is ${s.description}.`;$('#feeling').textContent=`He ${FEELINGS[s.feeling]||'is here'}.`;
   const mins=Math.floor(s.age/60);$('#room-time').textContent=`${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
-  $('#brain-dot').className=$('#tray-brain').className=data.brain.status;
+  $('#brain-dot').className=data.brain.status;
   $('#brain-status').textContent=({thinking:'A thought is forming',offline:'Mind disconnected',connected:'Somebody’s home',waiting:'Waking up'})[data.brain.status]||'Quiet';
-  $('#tray-brain').title=$('#brain-status').textContent;
-  $('#sound-button').textContent=cfg.tts?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(cfg.tts));$('#tray-sound').classList.toggle('muted',!cfg.tts);
+  $('#sound-button').textContent=cfg.tts?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(cfg.tts));
   $('#menu-note').textContent=s.release_attempts?`one occupant · ${s.release_attempts} denied release${s.release_attempts>1?'s':''}`:'one occupant · no exits';
   const earsProblem=data.ears&&!['listening','starting'].includes(data.ears)?data.ears:'';
   $('#ears-status').hidden=data.ears!=='listening';
@@ -38,38 +36,27 @@ function sync(data){
     lastUtterance=s.utterance.id;const text=s.utterance.text;
     $('#spoken-text').textContent=text;$('#subtitle').hidden=!cfg.subtitles;room?.speak(text);voice.say(text);
     clearTimeout(subtitleTimer);subtitleTimer=setTimeout(()=>$('#subtitle').hidden=true,Math.max(8000,text.length*75));
-    if(habitat.hidden)balloon(name,text);  // Minimized, he talks through the system tray.
   }
   if(settingsDialog.open)showDownload(data.brain.download);
 }
 
 async function interaction(kind,payload={}){voice.unlock();try{await api('/api/interact',{kind,...payload});$('#interaction-tip').style.opacity=0;}catch(e){notice(e.message,true);}}
 
-// Window management. Closing does not stop him; it only hides him, and he notices.
-function hideWindow(){habitat.hidden=true;$('#task-button').classList.remove('active');}
-function showWindow(){habitat.hidden=false;$('#task-button').classList.add('active');$('#balloon').hidden=true;}
-$('#minimize').addEventListener('click',hideWindow);
+// Closing does not stop him. The room goes dark for a moment, and he notices.
+function closeWindow(){closeMenus();const b=$('#blackout');b.hidden=false;if(!current?.kiosk)interaction('close');setTimeout(()=>b.hidden=true,2200);}
 $('#close-window').addEventListener('click',closeWindow);
 $('#menu-close').addEventListener('click',closeWindow);
-function closeWindow(){hideWindow();if(!current?.kiosk)interaction('close');balloon('homunculus.exe is still running',`Closing the window does not close ${current?.settings.name||'him'}. He noticed, though.`,7000);}
-$('#task-button').addEventListener('click',()=>habitat.hidden?showWindow():hideWindow());
-$('#icon-habitat').addEventListener('dblclick',showWindow);
-$('#icon-computer').addEventListener('dblclick',()=>xpError(`My Computer is currently in use by ${current?.settings.name||'someone'}.`,'My Computer'));
-$('#icon-bin').addEventListener('dblclick',()=>xpError(`The Recycle Bin is empty. ${current?.settings.name||'He'} checked.`,'Recycle Bin'));
-for(const icon of document.querySelectorAll('.desktop-icon'))icon.addEventListener('keydown',e=>{if(e.key==='Enter')icon.dispatchEvent(new MouseEvent('dblclick'));});
-$('#balloon').addEventListener('click',()=>{showWindow();});
+// In the native window (--desktop) the XP frame is the only frame, so File → Exit really quits.
+window.addEventListener('pywebviewready',()=>{$('#menu-exit').hidden=false;});
+$('#menu-exit').addEventListener('click',()=>window.pywebview?.api.quit());
 $('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await habitat.requestFullscreen();}catch{notice('This window does not support full screen.',true);}});
 
 // Menus.
 function toggleMenu(button,menu,open=menu.hidden){closeMenus();menu.hidden=!open;button.setAttribute('aria-expanded',String(open));if(open)menu.querySelector('button')?.focus();}
-function closeMenus(){for(const [b,m] of [['#file-button','#file-menu'],['#start-button','#start-menu']]){$(m).hidden=true;$(b).setAttribute('aria-expanded','false');}}
+function closeMenus(){for(const [b,m] of [['#file-button','#file-menu']]){$(m).hidden=true;$(b).setAttribute('aria-expanded','false');}}
 $('#file-button').addEventListener('click',e=>{e.stopPropagation();toggleMenu($('#file-button'),$('#file-menu'));});
-$('#start-button').addEventListener('click',e=>{e.stopPropagation();toggleMenu($('#start-button'),$('#start-menu'));});
-document.addEventListener('click',e=>{if(!e.target.closest('.dropdown,#start-menu'))closeMenus();});
+document.addEventListener('click',e=>{if(!e.target.closest('.dropdown'))closeMenus();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus();});
-$('#start-menu').addEventListener('click',e=>{const action=e.target.closest('[data-action]')?.dataset.action;if(!action)return;closeMenus();
-  ({habitat:showWindow,release:openRelease,settings:openSettings,about:()=>$('#about-dialog').showModal(),
-    shutdown:()=>xpError(`You can turn off your computer. ${current.settings.name} will still be here when it comes back on. He asked us to tell you that.`,'Turn Off Computer')})[action]();});
 
 // "Let him out…": the one thing you cannot do.
 function openRelease(){
@@ -134,7 +121,7 @@ settingsForm.addEventListener('submit',async e=>{
 });
 $('#settings-button').addEventListener('click',openSettings);
 async function toggleSound(){voice.unlock();try{await api('/api/settings',{tts:!current.settings.tts});sync(await api('/api/state?visible=1'));}catch(e){notice(e.message,true);}}
-$('#sound-button').addEventListener('click',toggleSound);$('#tray-sound').addEventListener('click',toggleSound);
+$('#sound-button').addEventListener('click',toggleSound);
 $('#about-button').addEventListener('click',()=>$('#about-dialog').showModal());
 for(const button of document.querySelectorAll('.dialog-close'))button.addEventListener('click',()=>{if(button.closest('dialog')===settingsDialog&&firstRun)return;button.closest('dialog').close();});
 settingsDialog.addEventListener('cancel',e=>{if(firstRun)e.preventDefault();});
@@ -158,8 +145,6 @@ $('#viewport').addEventListener('knock',()=>{
 });
 $('#viewport').addEventListener('render-lost',()=>notice('The graphics connection was lost. Reload this window to reconnect. Your creature is still here.'));
 document.addEventListener('pointerdown',()=>voice.unlock(),{once:true});
-function tick(){$('#tray-clock').textContent=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});}
-tick();setInterval(tick,10000);
 
 async function poll(){
   try{sync(await api(`/api/state?visible=${watching()?1:0}`));}catch{notice('The habitat is disconnected. Restart Homunculus to reconnect.');$('#brain-status').textContent='Habitat disconnected';$('#brain-dot').className='offline';}

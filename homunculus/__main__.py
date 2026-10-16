@@ -49,8 +49,12 @@ def main():
                 webbrowser.open(url)
                 while not stop.wait(.5): pass
             else:
-                webview.create_window('Homunculus', url, width=1000, height=820,
-                                      min_size=(640, 560), background_color='#182326')
+                class Api:  # File → Exit in the page. The XP frame is the only frame, so it needs its own way out.
+                    def quit(self):
+                        window.destroy()
+                window = webview.create_window('Homunculus', url, width=900, height=760, min_size=(480, 420),
+                                               frameless=True, easy_drag=False, js_api=Api(),
+                                               background_color='#0754d3')
                 webview.start()
         else:
             if not args.no_browser:

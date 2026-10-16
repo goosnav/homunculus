@@ -8,20 +8,15 @@
   <script type="importmap">{"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/"}}</script>
 </head>
 <body>
-  <main id="desktop">
-    <nav class="desktop-icons" aria-label="Desktop">
-      <button class="desktop-icon" id="icon-computer" type="button"><span class="icon icon-computer" aria-hidden="true"></span>My Computer</button>
-      <button class="desktop-icon" id="icon-habitat" type="button"><span class="icon icon-habitat" aria-hidden="true"></span>homunculus.exe</button>
-      <button class="desktop-icon" id="icon-bin" type="button"><span class="icon icon-bin" aria-hidden="true"></span>Recycle Bin</button>
-    </nav>
     <section class="window" id="habitat-window" aria-label="Homunculus habitat">
-      <header class="titlebar"><span class="app-icon" aria-hidden="true"></span><h1>homunculus.exe</h1><span id="title-name">Hugh’s room</span><div class="window-controls"><button id="minimize" title="Minimize" aria-label="Minimize">_</button><button id="fullscreen" title="Maximize" aria-label="Toggle full screen">□</button><button id="close-window" class="close" title="Close" aria-label="Close">×</button></div></header>
+      <header class="titlebar pywebview-drag-region"><span class="app-icon" aria-hidden="true"></span><h1>homunculus.exe</h1><span id="title-name">Hugh’s room</span><div class="window-controls"><button id="fullscreen" title="Maximize" aria-label="Toggle full screen">□</button><button id="close-window" class="close" title="Close" aria-label="Close">×</button></div></header>
       <nav class="menubar" aria-label="Habitat controls">
         <div class="menu"><button id="file-button" aria-haspopup="true" aria-expanded="false"><u>F</u>ile</button>
-          <div class="dropdown" id="file-menu" role="menu" hidden><button role="menuitem" id="release-button">Let him out…</button><button role="menuitem" id="settings-button">Properties…</button><hr><button role="menuitem" id="menu-close">Close</button></div></div>
+          <div class="dropdown" id="file-menu" role="menu" hidden><button role="menuitem" id="release-button">Let him out…</button><button role="menuitem" id="settings-button">Properties…</button><hr><button role="menuitem" id="menu-close">Close</button><button role="menuitem" id="menu-exit" hidden>Exit</button></div></div>
         <button id="sound-button" aria-pressed="true"><u>S</u>ound on</button><button id="about-button"><u>H</u>elp</button><span class="menu-note" id="menu-note">one occupant · no exits</span>
       </nav>
       <div id="viewport" tabindex="0" aria-label="A fixed view into the creature’s room. Drag the creature to move him, or tap the glass.">
+        <div id="blackout" hidden></div>
         <div id="scene-loading">Making a little room…</div>
         <div class="camera-label" aria-hidden="true"><span class="live-dot"></span> ROOM 001 <span class="camera-divider">/</span> <span id="room-time">00:00</span></div>
         <div class="glass-reflection" aria-hidden="true"></div>
@@ -33,18 +28,6 @@
       <form id="message-form" autocomplete="off"><label for="message" class="input-icon" aria-label="Message">›</label><input id="message" name="message" maxlength="400" placeholder="Say something through the glass…" aria-label="Say something through the glass"><button type="submit" class="xp-button">Say it <span aria-hidden="true">↵</span></button></form>
       <footer class="statusbar"><span id="activity">Settling in…</span><span id="feeling"></span><span id="ears-status" hidden>Listening</span><span class="connection"><i id="brain-dot"></i><span id="brain-status">Waking up</span></span><span class="resize-grip" aria-hidden="true">◢</span></footer>
     </section>
-  </main>
-  <footer id="taskbar">
-    <button id="start-button" aria-haspopup="true" aria-expanded="false"><span class="flag" aria-hidden="true"></span>start</button>
-    <div id="start-menu" hidden role="menu">
-      <header><span class="avatar" aria-hidden="true"></span><span>Watcher</span></header>
-      <div class="start-items"><button role="menuitem" data-action="habitat"><span class="icon icon-habitat" aria-hidden="true"></span><span><b>homunculus.exe</b><small id="start-subtitle">Hugh’s room</small></span></button><button role="menuitem" data-action="release"><span class="icon icon-key" aria-hidden="true"></span><span><b>Let him out…</b><small>Requires administrator</small></span></button><button role="menuitem" data-action="settings"><span class="icon icon-gear" aria-hidden="true"></span><span><b>Properties</b><small>Name, purpose, brain, voice</small></span></button><button role="menuitem" data-action="about"><span class="icon icon-help" aria-hidden="true"></span><span><b>Help</b><small>What is this?</small></span></button></div>
-      <footer><button role="menuitem" data-action="shutdown"><span class="icon icon-power" aria-hidden="true"></span>Turn Off Computer</button></footer>
-    </div>
-    <button id="task-button" class="active"><span class="app-icon" aria-hidden="true"></span><span id="task-label">homunculus.exe</span></button>
-    <div class="tray"><button id="tray-sound" title="Sound" aria-label="Toggle sound"><span class="icon icon-speaker" aria-hidden="true"></span></button><i id="tray-brain" title="Brain"></i><time id="tray-clock">12:00 PM</time></div>
-    <div id="balloon" role="status" hidden><button class="balloon-close" aria-label="Dismiss">×</button><b id="balloon-title">Hugh</b><p id="balloon-text"></p></div>
-  </footer>
 
   <dialog id="settings-dialog" class="xp-dialog">
     <form id="settings-form">

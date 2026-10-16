@@ -6,7 +6,7 @@ import time
 from dataclasses import asdict
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from .brain import SILENCE, OllamaBrain, RepeatError
+from .brain import SILENCE, OllamaBrain
 from .config import Settings
 from .simulation import Simulation
 from .speech import Speaker
@@ -186,23 +186,21 @@ class Runtime:
                               if exc.code == 404 else f'Ollama returned HTTP {exc.code}.')
             except (URLError, TimeoutError, OSError):
                 self._failure(generation, 'Cannot reach the brain. Start Ollama and check the address in Settings.')
-            except RepeatError:
-                with self.lock:  # Not a failure: he simply thought better of saying it. Try again soon.
-                    self.status = 'connected'
-                    self.next_thought = min(self.next_thought, time.monotonic() + 8)
             except (ValueError, KeyError, TypeError):
-                self._failure(generation, 'The model lost its train of thought. It will try again.', retry=10)
+                with self.lock:  # Repeats, help-desk lines, garbled JSON: the brain is fine; he lost the thought.
+                    self.status, self.error = 'connected', ''
+                    self.next_thought = min(self.next_thought, time.monotonic() + 8)
             except Exception:  # A truncated or odd HTTP reply must never kill the brain thread.
                 self._failure(generation, 'The brain connection dropped mid-thought. It will try again.')
             finally:
                 with self.lock:
                     self.busy = False
 
-    def _failure(self, generation, message, retry=None):
+    def _failure(self, generation, message):
         with self.lock:
             if generation == self.generation:
                 self.status, self.error = 'offline', message
-                self.next_thought = time.monotonic() + (retry or self.settings.thought_interval)
+                self.next_thought = time.monotonic() + self.settings.thought_interval
 
     # Brain management: what is installed, and fetching a model without a terminal.
     def installed_models(self):
