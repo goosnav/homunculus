@@ -4,11 +4,11 @@ import shutil
 import subprocess
 
 parser = argparse.ArgumentParser(description='Download the small local brain for Homunculus.')
-parser.add_argument('--tiny', action='store_true', help='Use the smaller 271 MB SmolLM2 model')
+parser.add_argument('--tiny', action='store_true', help='The 0.4 GB brain for a Raspberry Pi (default: the 1.3 GB brain)')
 args = parser.parse_args()
 command = shutil.which('ollama')
 if not command:
     parser.exit(1, 'Install Ollama from https://ollama.com/download, then run this again.\n')
-model = 'smollm2:360m-instruct-q4_K_M' if args.tiny else 'qwen2.5:0.5b'
-print(f'Downloading {model}. Start Ollama first. Choose this model in Homunculus Settings.', flush=True)
+model = 'qwen2.5:0.5b' if args.tiny else 'llama3.2:1b'
+print(f'Downloading {model}. Start Ollama first. (You can also download brains from inside Homunculus.)', flush=True)
 raise SystemExit(subprocess.call([command, 'pull', model]))

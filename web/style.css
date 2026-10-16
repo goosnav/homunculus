@@ -166,13 +166,9 @@ summary{font-size:11px;cursor:pointer;color:#52605d}
 
 /* Appliance: just the window, filling the screen. No desktop, taskbar, menus or typing. */
 .kiosk{background:#000}
-.kiosk #taskbar,.kiosk .desktop-icons,.kiosk .menubar,.kiosk #message-form,.kiosk .window-controls,.kiosk #heard{position:absolute;top:34px;right:16px;max-width:45%;text-align:right;pointer-events:none}
-#heard span{font:9px monospace;letter-spacing:2px;color:#9fd0f3;background:#1c2629e8;padding:4px 7px 2px;display:inline-block}
-#heard p{margin:0;font-size:12px;color:#dfeefa;background:#1c2629d0;padding:6px 10px;font-style:italic}
-#ears-status{color:#3a7d34;border-right:1px solid #c5c4b4;padding-right:8px}
-#interaction-tip{display:none}
+.kiosk #taskbar,.kiosk .desktop-icons,.kiosk .menubar,.kiosk #message-form,.kiosk .window-controls,.kiosk #interaction-tip{display:none}
 .kiosk #desktop{height:100vh;padding:0}
-.kiosk .window{width:min(100vw,calc((100vh - 52px)*1.333 + 6px))}
+.kiosk .window{width:min(100vw,calc((100vh - 86px)*1.333 + 10px))}
 .kiosk #viewport canvas{cursor:default}
 :fullscreen{background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center}
 :fullscreen #viewport{width:min(100%,calc((100vh - 120px)*1.333));flex-shrink:0}
