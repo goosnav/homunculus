@@ -4,7 +4,7 @@ Checked on 2026-10-15 on the development machine. It's a Dell with an i7-6700 (4
 
 ## Automated
 
-`python3 -m unittest discover -s tests -v` passes 44 tests. They cover:
+`python3 -m unittest discover -s tests -v` passes 42 tests. They cover:
 
 - **Body:**
   - needs stay within limits over 30 simulated minutes, and he never ends up somewhere he can't stand (or he's on the bed or chair)
