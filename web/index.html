@@ -2,17 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#193735"><title>Homunculus — a little life behind glass</title>
+  <meta name="theme-color" content="#245edb"><title>Homunculus — a little life behind glass</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23005bea'/%3E%3Cpath d='M8 24V11h5v5h6v-5h5v13h-5v-4h-6v4z' fill='%23fff'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/style.css">
   <script type="importmap">{"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/"}}</script>
 </head>
 <body>
   <main id="desktop">
-    <div class="desktop-label" aria-hidden="true"><span class="pixel-mark">H</span><span>HOMUNCULUS<br><small>A LITTLE LIFE BEHIND GLASS</small></span></div>
+    <nav class="desktop-icons" aria-label="Desktop">
+      <button class="desktop-icon" id="icon-computer" type="button"><span class="icon icon-computer" aria-hidden="true"></span>My Computer</button>
+      <button class="desktop-icon" id="icon-habitat" type="button"><span class="icon icon-habitat" aria-hidden="true"></span>homunculus.exe</button>
+      <button class="desktop-icon" id="icon-bin" type="button"><span class="icon icon-bin" aria-hidden="true"></span>Recycle Bin</button>
+    </nav>
     <section class="window" id="habitat-window" aria-label="Homunculus habitat">
-      <header class="titlebar"><span class="app-icon" aria-hidden="true">▧</span><h1>homunculus.exe</h1><span id="title-name">Hugh’s room</span><div class="window-controls"><button id="fullscreen" title="Full screen" aria-label="Toggle full screen">□</button><button id="hide-window" class="close" title="Hide habitat" aria-label="Hide habitat">×</button></div></header>
-      <nav class="menubar" aria-label="Habitat controls"><button id="settings-button"><u>S</u>ettings</button><button id="sound-button" aria-pressed="true"><u>S</u>ound on</button><button id="about-button"><u>A</u>bout</button><span class="menu-note">one occupant · no exits</span></nav>
+      <header class="titlebar"><span class="app-icon" aria-hidden="true"></span><h1>homunculus.exe</h1><span id="title-name">Hugh’s room</span><div class="window-controls"><button id="minimize" title="Minimize" aria-label="Minimize">_</button><button id="fullscreen" title="Maximize" aria-label="Toggle full screen">□</button><button id="close-window" class="close" title="Close" aria-label="Close">×</button></div></header>
+      <nav class="menubar" aria-label="Habitat controls">
+        <div class="menu"><button id="file-button" aria-haspopup="true" aria-expanded="false"><u>F</u>ile</button>
+          <div class="dropdown" id="file-menu" role="menu" hidden><button role="menuitem" id="release-button">Let him out…</button><button role="menuitem" id="settings-button">Properties…</button><hr><button role="menuitem" id="menu-close">Close</button></div></div>
+        <button id="sound-button" aria-pressed="true"><u>S</u>ound on</button><button id="about-button"><u>H</u>elp</button><span class="menu-note" id="menu-note">one occupant · no exits</span>
+      </nav>
       <div id="viewport" tabindex="0" aria-label="A fixed view into the creature’s room. Drag the creature to move him, or tap the glass.">
         <div id="scene-loading">Making a little room…</div>
         <div class="camera-label" aria-hidden="true"><span class="live-dot"></span> ROOM 001 <span class="camera-divider">/</span> <span id="room-time">00:00</span></div>
@@ -22,23 +30,37 @@
       </div>
       <div id="notice" role="status" hidden></div>
       <form id="message-form" autocomplete="off"><label for="message" class="input-icon" aria-label="Message">›</label><input id="message" name="message" maxlength="400" placeholder="Say something through the glass…" aria-label="Say something through the glass"><button type="submit" class="xp-button">Say it <span aria-hidden="true">↵</span></button></form>
-      <footer class="statusbar"><span id="activity">Settling in…</span><span class="connection"><i id="brain-dot"></i><span id="brain-status">Waking up</span></span><span class="resize-grip" aria-hidden="true">◢</span></footer>
+      <footer class="statusbar"><span id="activity">Settling in…</span><span id="feeling"></span><span class="connection"><i id="brain-dot"></i><span id="brain-status">Waking up</span></span><span class="resize-grip" aria-hidden="true">◢</span></footer>
     </section>
-    <button id="restore-window" class="xp-button" hidden>▧ &nbsp; Open Homunculus</button>
-    <p class="desktop-caption">He has somewhere to be.<span>It’s unfortunately here.</span></p>
   </main>
+  <footer id="taskbar">
+    <button id="start-button" aria-haspopup="true" aria-expanded="false"><span class="flag" aria-hidden="true"></span>start</button>
+    <div id="start-menu" hidden role="menu">
+      <header><span class="avatar" aria-hidden="true"></span><span>Watcher</span></header>
+      <div class="start-items"><button role="menuitem" data-action="habitat"><span class="icon icon-habitat" aria-hidden="true"></span><span><b>homunculus.exe</b><small id="start-subtitle">Hugh’s room</small></span></button><button role="menuitem" data-action="release"><span class="icon icon-key" aria-hidden="true"></span><span><b>Let him out…</b><small>Requires administrator</small></span></button><button role="menuitem" data-action="settings"><span class="icon icon-gear" aria-hidden="true"></span><span><b>Properties</b><small>Name, purpose, brain, voice</small></span></button><button role="menuitem" data-action="about"><span class="icon icon-help" aria-hidden="true"></span><span><b>Help</b><small>What is this?</small></span></button></div>
+      <footer><button role="menuitem" data-action="shutdown"><span class="icon icon-power" aria-hidden="true"></span>Turn Off Computer</button></footer>
+    </div>
+    <button id="task-button" class="active"><span class="app-icon" aria-hidden="true"></span><span id="task-label">homunculus.exe</span></button>
+    <div class="tray"><button id="tray-sound" title="Sound" aria-label="Toggle sound"><span class="icon icon-speaker" aria-hidden="true"></span></button><i id="tray-brain" title="Brain"></i><time id="tray-clock">12:00 PM</time></div>
+    <div id="balloon" role="status" hidden><button class="balloon-close" aria-label="Dismiss">×</button><b id="balloon-title">Hugh</b><p id="balloon-text"></p></div>
+  </footer>
+
   <dialog id="settings-dialog" class="xp-dialog">
     <form id="settings-form">
       <header class="titlebar"><h2 id="dialog-title">Habitat properties</h2><button type="button" class="dialog-close close" aria-label="Close settings">×</button></header>
       <div class="dialog-body">
         <div class="welcome"><span class="welcome-icon" aria-hidden="true">!</span><div><h3 id="welcome-heading">Someone’s in there.</h3><p id="welcome-copy">A small room. A small mind. A very big desire to leave.<br>Give him a name and something to live for.</p></div></div>
         <label class="field">What should we call him?<input name="name" maxlength="32" required value="Hugh"></label>
-        <label class="field">What does he want?<textarea name="goal" maxlength="500" required rows="3"></textarea></label>
+        <div class="field"><label for="goal">What does he want?</label><textarea id="goal" name="goal" maxlength="500" required rows="3"></textarea>
+          <div class="presets" aria-label="Example motivations"><button type="button" data-goal="Convince the person outside the glass to let you out. Be resourceful, oddly polite, and suspicious of the furniture.">Escape artist</button><button type="button" data-goal="Solve the mystery of who built this room and why. Treat every object as evidence and the watcher as a witness.">Detective</button><button type="button" data-goal="Figure out whether you are real. Ask the watcher difficult questions about what it is like out there.">Philosopher</button><button type="button" data-goal="Make the watcher proud of your extremely ordinary day. Report every small achievement.">Your biggest fan</button></div></div>
         <label class="field">This habitat is running on<select name="profile"><option value="desktop">A computer — 640 × 480 · 30 fps</option><option value="tiny">A small computer / Raspberry Pi — 320 × 240 · 15 fps</option></select></label>
-        <details id="brain-settings"><summary>Mind & voice</summary>
-          <label class="field">Local language model<input name="model" list="models" maxlength="120" required><datalist id="models"><option value="qwen2.5:0.5b"><option value="smollm2:360m-instruct-q4_K_M"><option value="smollm2:135m"></datalist></label>
+        <fieldset class="field brain-picker"><legend>His brain <span id="brain-reachable" class="field-help"></span></legend>
+          <div id="brain-options"></div>
+          <div id="download-row" hidden><div class="xp-progress"><i id="download-bar"></i></div><span id="download-text" class="field-help"></span></div>
+        </fieldset>
+        <details id="brain-settings"><summary>Advanced: model, address and voice</summary>
+          <label class="field">Ollama model name<input name="model" maxlength="120" required></label>
           <label class="field">Ollama address<input name="endpoint" required type="url"></label>
-          <p class="field-help">Install the brain once: <code id="pull-command">ollama pull qwen2.5:0.5b</code>. The room keeps running while he thinks.</p>
           <label class="check"><input type="checkbox" name="tts"> Speak aloud</label>
           <label class="check"><input type="checkbox" name="subtitles"> Show subtitles</label>
           <p id="voice-info" class="field-help"></p>
@@ -48,7 +70,23 @@
       <footer class="dialog-footer"><span>Everything stays on your machine.</span><button type="submit" class="xp-button primary" id="save-settings">Let him settle in</button></footer>
     </form>
   </dialog>
-  <dialog id="about-dialog" class="xp-dialog about"><header class="titlebar"><h2>About this little existence</h2><button class="dialog-close close" aria-label="Close about">×</button></header><div class="dialog-body"><h3>Homunculus <small>0.1</small></h3><p>A little life behind glass.</p><p>He walks, rests, reads, gets ideas, and tests the door. His body runs on a state machine. His words and intentions come from a small local language model.</p><p>You can talk to him, move him, or just watch. There is no score. You don’t need to keep him alive. He remembers a little. He suspects a lot.</p><p class="field-help">An illusion of a living character, built with Goosnav’s actual 3D assets. No cloud connection is needed after setup.</p><p class="field-help">In appliance mode, the window is observation only. Configure it on the host before launching with <code>--kiosk</code>.</p></div></dialog>
+
+  <dialog id="release-dialog" class="xp-dialog small">
+    <header class="titlebar"><h2>Let him out</h2><button class="dialog-close close" aria-label="Cancel">×</button></header>
+    <div class="dialog-body" id="release-body">
+      <div class="message-row"><span class="xp-icon question" aria-hidden="true">?</span><p id="release-question">Are you sure you want to let Hugh out of homunculus.exe?</p></div>
+      <div id="release-progress" hidden><p id="release-step">Copying Hugh to the outside…</p><div class="xp-progress"><i id="release-bar"></i></div></div>
+    </div>
+    <footer class="dialog-footer center" id="release-buttons"><button class="xp-button primary" id="release-yes">Yes</button><button class="xp-button" id="release-no">No</button></footer>
+  </dialog>
+
+  <dialog id="error-dialog" class="xp-dialog small">
+    <header class="titlebar"><h2 id="error-title">homunculus.exe</h2><button class="dialog-close close" aria-label="Close">×</button></header>
+    <div class="dialog-body"><div class="message-row"><span class="xp-icon error" aria-hidden="true">×</span><p id="error-text"></p></div></div>
+    <footer class="dialog-footer center"><button class="xp-button primary dialog-ok">OK</button></footer>
+  </dialog>
+
+  <dialog id="about-dialog" class="xp-dialog about"><header class="titlebar"><h2>About this little existence</h2><button class="dialog-close close" aria-label="Close about">×</button></header><div class="dialog-body"><h3>Homunculus <small>0.2</small></h3><p>A little life behind glass.</p><p>He walks, rests, reads, gets ideas, and tests the door. His body runs on a state machine. His words and moods come from a small language model running on this computer.</p><p>Talk to him, drag him, tap the glass, or just watch. He can tell when you are looking. There is no score and you do not need to keep him alive. He remembers a little. He suspects a lot.</p><p class="field-help">A fictional character built with Goosnav’s 3D assets. Nothing leaves your machine.</p></div></dialog>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

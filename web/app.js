@@ -1,70 +1,169 @@
 import { Room } from './room.js';
 import { Voice } from './speech.js';
 const $=s=>document.querySelector(s), voice=new Voice();
-let token,room,current,lastUtterance=0,subtitleTimer,firstRun=false;
+const debug=new URLSearchParams(location.search).has('debug');
+let token,room,current,lastUtterance=0,subtitleTimer,balloonTimer,firstRun=false,installed=null;
 let temporaryNotice='',noticeUntil=0;
-const settingsDialog=$('#settings-dialog'), settingsForm=$('#settings-form');
+const settingsDialog=$('#settings-dialog'), settingsForm=$('#settings-form'), habitat=$('#habitat-window');
+const FEELINGS={calm:'seems calm',curious:'seems curious',hopeful:'looks hopeful',happy:'seems pleased',annoyed:'seems annoyed',sad:'seems a little sad',scheming:'is scheming',afraid:'seems uneasy'};
+
 function notice(text,temporary=false){$('#notice').textContent=text;$('#notice').hidden=!text;if(temporary){temporaryNotice=text;noticeUntil=Date.now()+6500;}}
 async function api(path,data){const response=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json','X-Habitat-Token':token}:{},body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(8000)});const value=await response.json();if(!response.ok)throw Error(value.error||'The habitat could not complete that request.');return value;}
+const watching=()=>!document.hidden&&!habitat.hidden;
+function balloon(title,text,ms=9000){$('#balloon-title').textContent=title;$('#balloon-text').textContent=text;$('#balloon').hidden=false;clearTimeout(balloonTimer);balloonTimer=setTimeout(()=>$('#balloon').hidden=true,ms);}
+function xpError(text,title='homunculus.exe'){$('#error-title').textContent=title;$('#error-text').textContent=text;$('#error-dialog').showModal();}
+
 function sync(data){
-  current=data;const s=data.simulation,cfg=data.settings;
-  room?.update(s);if(room&&(room.settings.profile!==cfg.profile))room.configure({...cfg,kiosk:data.kiosk});
+  current=data;const s=data.simulation,cfg=data.settings,name=cfg.name;
+  room?.update(s,{thinking:data.brain.busy,watching:watching()});
+  if(room&&room.settings.profile!==cfg.profile)room.configure({...cfg,kiosk:data.kiosk});
   voice.configure(cfg,data.voice.host);
-  $('#title-name').textContent=`${cfg.name}’s room`;$('#speaker-name').textContent=cfg.name.toUpperCase();
-  $('#activity').textContent=`${cfg.name} is ${s.description}.`;
+  $('#title-name').textContent=$('#start-subtitle').textContent=`${name}’s room`;$('#speaker-name').textContent=name.toUpperCase();
+  $('#activity').textContent=`${name} is ${s.description}.`;$('#feeling').textContent=`He ${FEELINGS[s.feeling]||'is here'}.`;
   const mins=Math.floor(s.age/60);$('#room-time').textContent=`${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
-  $('#brain-dot').className=data.brain.status;
+  $('#brain-dot').className=$('#tray-brain').className=data.brain.status;
   $('#brain-status').textContent=({thinking:'A thought is forming',offline:'Mind disconnected',connected:'Somebody’s home',waiting:'Waking up'})[data.brain.status]||'Quiet';
-  $('#sound-button').textContent=cfg.tts?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(cfg.tts));
+  $('#tray-brain').title=$('#brain-status').textContent;
+  $('#sound-button').textContent=cfg.tts?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(cfg.tts));$('#tray-sound').classList.toggle('muted',!cfg.tts);
+  $('#menu-note').textContent=s.release_attempts?`one occupant · ${s.release_attempts} denied release${s.release_attempts>1?'s':''}`:'one occupant · no exits';
   if(Date.now()<noticeUntil)notice(temporaryNotice);else notice(data.brain.error||data.warning||data.voice.error);
   if(!cfg.subtitles)$('#subtitle').hidden=true;
   if(s.utterance.id>lastUtterance){
-    lastUtterance=s.utterance.id;$('#spoken-text').textContent=s.utterance.text;
-    $('#subtitle').hidden=!cfg.subtitles;room?.speak(s.utterance.text);voice.say(s.utterance.text);
-    clearTimeout(subtitleTimer);subtitleTimer=setTimeout(()=>$('#subtitle').hidden=true,Math.max(8000,s.utterance.text.length*75));
+    lastUtterance=s.utterance.id;const text=s.utterance.text;
+    $('#spoken-text').textContent=text;$('#subtitle').hidden=!cfg.subtitles;room?.speak(text);voice.say(text);
+    clearTimeout(subtitleTimer);subtitleTimer=setTimeout(()=>$('#subtitle').hidden=true,Math.max(8000,text.length*75));
+    if(habitat.hidden)balloon(name,text);  // Minimized, he talks through the system tray.
   }
+  if(settingsDialog.open)showDownload(data.brain.download);
 }
-async function interaction(kind,payload){voice.unlock();try{await api('/api/interact',{kind,...payload});$('#interaction-tip').style.opacity=0;}catch(e){notice(e.message,true);}}
+
+async function interaction(kind,payload={}){voice.unlock();try{await api('/api/interact',{kind,...payload});$('#interaction-tip').style.opacity=0;}catch(e){notice(e.message,true);}}
+
+// Window management. Closing does not stop him; it only hides him, and he notices.
+function hideWindow(){habitat.hidden=true;$('#task-button').classList.remove('active');}
+function showWindow(){habitat.hidden=false;$('#task-button').classList.add('active');$('#balloon').hidden=true;}
+$('#minimize').addEventListener('click',hideWindow);
+$('#close-window').addEventListener('click',closeWindow);
+$('#menu-close').addEventListener('click',closeWindow);
+function closeWindow(){hideWindow();if(!current?.kiosk)interaction('close');balloon('homunculus.exe is still running',`Closing the window does not close ${current?.settings.name||'him'}. He noticed, though.`,7000);}
+$('#task-button').addEventListener('click',()=>habitat.hidden?showWindow():hideWindow());
+$('#icon-habitat').addEventListener('dblclick',showWindow);
+$('#icon-computer').addEventListener('dblclick',()=>xpError(`My Computer is currently in use by ${current?.settings.name||'someone'}.`,'My Computer'));
+$('#icon-bin').addEventListener('dblclick',()=>xpError(`The Recycle Bin is empty. ${current?.settings.name||'He'} checked.`,'Recycle Bin'));
+for(const icon of document.querySelectorAll('.desktop-icon'))icon.addEventListener('keydown',e=>{if(e.key==='Enter')icon.dispatchEvent(new MouseEvent('dblclick'));});
+$('#balloon').addEventListener('click',()=>{showWindow();});
+$('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await habitat.requestFullscreen();}catch{notice('This window does not support full screen.',true);}});
+
+// Menus.
+function toggleMenu(button,menu,open=menu.hidden){closeMenus();menu.hidden=!open;button.setAttribute('aria-expanded',String(open));if(open)menu.querySelector('button')?.focus();}
+function closeMenus(){for(const [b,m] of [['#file-button','#file-menu'],['#start-button','#start-menu']]){$(m).hidden=true;$(b).setAttribute('aria-expanded','false');}}
+$('#file-button').addEventListener('click',e=>{e.stopPropagation();toggleMenu($('#file-button'),$('#file-menu'));});
+$('#start-button').addEventListener('click',e=>{e.stopPropagation();toggleMenu($('#start-button'),$('#start-menu'));});
+document.addEventListener('click',e=>{if(!e.target.closest('.dropdown,#start-menu'))closeMenus();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus();});
+$('#start-menu').addEventListener('click',e=>{const action=e.target.closest('[data-action]')?.dataset.action;if(!action)return;closeMenus();
+  ({habitat:showWindow,release:openRelease,settings:openSettings,about:()=>$('#about-dialog').showModal(),
+    shutdown:()=>xpError(`You can turn off your computer. ${current.settings.name} will still be here when it comes back on. He asked us to tell you that.`,'Turn Off Computer')})[action]();});
+
+// "Let him out…": the one thing you cannot do.
+function openRelease(){
+  closeMenus();$('#release-question').textContent=`Are you sure you want to let ${current.settings.name} out of homunculus.exe?`;
+  $('#release-progress').hidden=true;$('#release-buttons').hidden=false;$('#release-dialog .message-row').hidden=false;$('#release-dialog').showModal();
+}
+$('#release-button').addEventListener('click',openRelease);
+$('#release-no').addEventListener('click',()=>$('#release-dialog').close());
+$('#release-yes').addEventListener('click',async()=>{
+  voice.unlock();$('#release-buttons').hidden=true;$('#release-dialog .message-row').hidden=true;$('#release-progress').hidden=false;
+  const name=current.settings.name, steps=[`Copying ${name} to the outside…`,'Unpacking limbs…','Checking the door…','Requesting permission…'];
+  for(let i=0;i<=99;i+=3){$('#release-bar').style.width=`${i}%`;$('#release-step').textContent=steps[Math.min(steps.length-1,Math.floor(i/26))];await new Promise(r=>setTimeout(r,55+(i>80?90:0)));}
+  await new Promise(r=>setTimeout(r,1400));$('#release-dialog').close();$('#release-dialog .message-row').hidden=false;
+  xpError(`Access is denied.\n\n${name} is not permitted to leave this computer. Contact your system administrator.`,'Error');
+  if(!current.kiosk)interaction('release');
+});
+$('#error-dialog .dialog-ok').addEventListener('click',()=>$('#error-dialog').close());
+
+// Settings and first-run questions.
+function brainOptions(){
+  const cfg=current.settings,box=$('#brain-options');box.replaceChildren();
+  const models=[...cfg.models];if(!models.some(m=>m.name===settingsForm.elements.model.value))models.push({name:settingsForm.elements.model.value,label:'Custom brain',size:'',note:'Set in Advanced.'});
+  for(const m of models){
+    const have=installed?.models.some(n=>n===m.name||n===`${m.name}:latest`);
+    const row=document.createElement('label');row.className='brain-option';
+    row.innerHTML=`<input type="radio" name="brain"><span><b></b> <small></small><br><span class="field-help"></span></span><button type="button" class="xp-button small-button">Download</button>`;
+    const radio=row.querySelector('input');radio.value=m.name;radio.checked=m.name===settingsForm.elements.model.value;
+    radio.addEventListener('change',()=>{settingsForm.elements.model.value=m.name;});
+    row.querySelector('b').textContent=m.label;row.querySelector('small').textContent=[m.size,have?'✓ installed':installed?.reachable?'not installed':''].filter(Boolean).join(' · ');
+    row.querySelector('.field-help').textContent=m.note;
+    const button=row.querySelector('button');button.hidden=have||!installed?.reachable;
+    button.addEventListener('click',async()=>{try{await api('/api/pull',{model:m.name});radio.checked=true;settingsForm.elements.model.value=m.name;showDownload({model:m.name,status:'downloading',progress:0,detail:'Starting'});}catch(e){$('#settings-error').textContent=e.message;$('#settings-error').hidden=false;}});
+    box.append(row);
+  }
+  $('#brain-reachable').textContent=installed===null?'checking…':installed.reachable?'':'— Ollama is not running. Install it from ollama.com, start it, then reopen this window.';
+}
+function showDownload(d){
+  $('#download-row').hidden=!d;if(!d)return;
+  $('#download-bar').style.width=`${Math.round((d.progress||0)*100)}%`;
+  $('#download-text').textContent=d.status==='done'?`${d.model} installed.`:d.status==='failed'?`Download failed: ${d.detail}`:`Downloading ${d.model}… ${Math.round((d.progress||0)*100)}% ${d.detail||''}`;
+  if(d.status==='done'&&installed&&!installed.models.includes(d.model)){installed.models.push(d.model);brainOptions();}
+}
+async function refreshModels(){installed=null;brainOptions();try{installed=await api('/api/models');}catch{installed={reachable:false,models:[]};}
+  if(firstRun&&installed.reachable){const prefer=settingsForm.elements.profile.value==='tiny'?['qwen2.5:0.5b']:['llama3.2:1b','qwen2.5:0.5b'];const pick=prefer.find(n=>installed.models.some(m=>m===n||m===`${n}:latest`));if(pick)settingsForm.elements.model.value=pick;}
+  brainOptions();}
 function fillSettings(){
   const cfg=current.settings;for(const name of ['name','goal','profile','model','endpoint'])settingsForm.elements[name].value=cfg[name];
   for(const name of ['tts','subtitles'])settingsForm.elements[name].checked=cfg[name];
-  $('#pull-command').textContent=`ollama pull ${cfg.model}`;
   $('#voice-info').textContent=current.voice.host?'Using this computer’s system voice.':'Using an installed local browser voice when available. Subtitles work without a voice.';
-  $('#settings-error').hidden=true;
+  $('#settings-error').hidden=true;showDownload(current.brain.download);refreshModels();
 }
-function openSettings(){fillSettings();$('#dialog-title').textContent=firstRun?'Welcome to Homunculus':'Habitat properties';$('#save-settings').textContent=firstRun?'Let him settle in':'Apply';$('.welcome').hidden=!firstRun;settingsDialog.showModal();}
-settingsForm.elements.model.addEventListener('input',()=>$('#pull-command').textContent=`ollama pull ${settingsForm.elements.model.value}`);
+function openSettings(){closeMenus();fillSettings();$('#dialog-title').textContent=firstRun?'Welcome to Homunculus':'Habitat properties';$('#save-settings').textContent=firstRun?'Let him settle in':'Apply';$('.welcome').hidden=!firstRun;settingsDialog.showModal();}
+for(const b of document.querySelectorAll('[data-goal]'))b.addEventListener('click',()=>{settingsForm.elements.goal.value=b.dataset.goal;});
+settingsForm.elements.profile.addEventListener('change',()=>{if(firstRun)refreshModels();});
+settingsForm.elements.model.addEventListener('change',brainOptions);
 settingsForm.addEventListener('submit',async e=>{
   e.preventDefault();voice.unlock();const button=$('#save-settings');button.disabled=true;
   const patch={configured:true};for(const name of ['name','goal','profile','model','endpoint'])patch[name]=settingsForm.elements[name].value;
   for(const name of ['tts','subtitles'])patch[name]=settingsForm.elements[name].checked;
-  try{await api('/api/settings',patch);firstRun=false;settingsDialog.close();sync(await api('/api/state'));}
+  try{await api('/api/settings',patch);firstRun=false;settingsDialog.close();sync(await api('/api/state?visible=1'));}
   catch(error){$('#settings-error').textContent=error.message;$('#settings-error').hidden=false;}finally{button.disabled=false;}
 });
 $('#settings-button').addEventListener('click',openSettings);
-$('#sound-button').addEventListener('click',async()=>{voice.unlock();try{await api('/api/settings',{tts:!current.settings.tts});sync(await api('/api/state'));}catch(e){notice(e.message,true);}});
+async function toggleSound(){voice.unlock();try{await api('/api/settings',{tts:!current.settings.tts});sync(await api('/api/state?visible=1'));}catch(e){notice(e.message,true);}}
+$('#sound-button').addEventListener('click',toggleSound);$('#tray-sound').addEventListener('click',toggleSound);
 $('#about-button').addEventListener('click',()=>$('#about-dialog').showModal());
 for(const button of document.querySelectorAll('.dialog-close'))button.addEventListener('click',()=>{if(button.closest('dialog')===settingsDialog&&firstRun)return;button.closest('dialog').close();});
 settingsDialog.addEventListener('cancel',e=>{if(firstRun)e.preventDefault();});
+
+// Talking through the glass. While you type, he turns to listen.
+const input=$('#message');
+input.addEventListener('input',()=>room&&(room.listening=input.value.trim().length>0));
+input.addEventListener('blur',()=>room&&(room.listening=false));
 $('#message-form').addEventListener('submit',async e=>{
-  e.preventDefault();voice.unlock();const input=$('#message'),text=input.value.trim();if(!text)return;const button=e.submitter;button.disabled=true;
-  try{await api('/api/interact',{kind:'message',text});input.value='';notice('Your voice reached the room.',true);$('#interaction-tip').style.opacity=0;}
+  e.preventDefault();voice.unlock();const text=input.value.trim();if(!text)return;const button=e.submitter;button.disabled=true;
+  try{await api('/api/interact',{kind:'message',text});input.value='';if(room)room.listening=false;$('#interaction-tip').style.opacity=0;}
   catch(error){notice(error.message,true);}finally{button.disabled=false;input.focus();}
 });
-$('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('#habitat-window').requestFullscreen();}catch{notice('This window does not support full screen.',true);}});
-$('#hide-window').addEventListener('click',()=>{$('#habitat-window').hidden=true;$('#restore-window').hidden=false;$('#restore-window').focus();});
-$('#restore-window').addEventListener('click',()=>{$('#habitat-window').hidden=false;$('#restore-window').hidden=true;$('#message').focus();});
+
+// Knocking on the glass: a small synthesized thud and a tremble. No audio files.
+let audio;
+$('#viewport').addEventListener('knock',()=>{
+  const v=$('#viewport');v.classList.remove('tremble');void v.offsetWidth;v.classList.add('tremble');
+  if(!current?.settings.tts||!voice.unlocked||!watching())return;
+  try{audio??=new AudioContext();const t=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type='triangle';o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(70,t+.09);g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+.13);}catch{}
+});
 $('#viewport').addEventListener('render-lost',()=>notice('The graphics connection was lost. Reload this window to reconnect. Your creature is still here.'));
 document.addEventListener('pointerdown',()=>voice.unlock(),{once:true});
+function tick(){$('#tray-clock').textContent=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});}
+tick();setInterval(tick,10000);
+
 async function poll(){
-  try{sync(await api('/api/state'));}catch{notice('The habitat is disconnected. Restart Homunculus to reconnect.');$('#brain-status').textContent='Habitat disconnected';$('#brain-dot').className='offline';}
+  try{sync(await api(`/api/state?visible=${watching()?1:0}`));}catch{notice('The habitat is disconnected. Restart Homunculus to reconnect.');$('#brain-status').textContent='Habitat disconnected';$('#brain-dot').className='offline';}
   setTimeout(poll,document.hidden?2000:250);
 }
 async function start(){
   try{
     const data=await api('/api/bootstrap');token=data.token;current=data;lastUtterance=data.simulation.utterance.id;
     document.body.classList.toggle('kiosk',data.kiosk);
-    try{room=new Room($('#viewport'),{...data.settings,kiosk:data.kiosk},interaction);await room.ready;$('#scene-loading').hidden=true;}
+    try{room=new Room($('#viewport'),{...data.settings,kiosk:data.kiosk},interaction);if(debug)window.__room=room;await room.ready;$('#scene-loading').hidden=true;}
     catch(error){$('#scene-loading').textContent='The room could not be drawn. This device needs WebGL 2. Try a current browser with graphics acceleration.';console.error(error);}
     sync(data);firstRun=!data.settings.configured&&!data.kiosk;if(firstRun)openSettings();
     setTimeout(()=>$('#interaction-tip').style.opacity=0,24000);poll();
