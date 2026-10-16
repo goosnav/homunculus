@@ -106,7 +106,7 @@ class SourceArchiveTests(unittest.TestCase):
             with log.open('w') as output:
                 process = subprocess.Popen([sys.executable, 'run.py', '--no-browser', '--browser-speech', '--port', '0', '--data-dir', str(target / 'save')], cwd=app, stdout=output, stderr=output)
                 try:
-                    deadline = time.monotonic() + 10
+                    deadline = time.monotonic() + 30  # Cold CI machines are slow to start Python.
                     while 'Homunculus: http://' not in log.read_text() and process.poll() is None and time.monotonic() < deadline:
                         time.sleep(.05)
                     lines = log.read_text().splitlines()

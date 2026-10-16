@@ -2,6 +2,7 @@
 import json
 import mimetypes
 import secrets
+import socketserver
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -103,6 +104,12 @@ class Handler(BaseHTTPRequestHandler):
 class LocalServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+
+    def server_bind(self):
+        # HTTPServer.server_bind does a reverse-DNS lookup (socket.getfqdn) that can stall startup for many
+        # seconds on macOS. We only ever serve 127.0.0.1, so skip it.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
 
 def make_server(runtime, port=8765):
