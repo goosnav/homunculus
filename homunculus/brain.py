@@ -48,6 +48,10 @@ EXAMPLES = [
 ]
 EXAMPLE_LINES = [e[1] for e in EXAMPLES]
 
+SILENCE = 'watches you silently'
+# Tiny models fall back to their training: a help desk. That breaks the illusion, so it is never spoken.
+ASSISTANT = re.compile(r"\b(as an ai|an ai\b|artificial intelligence|language model|assistant|assist you|"
+                       r"how can i help|happy to help|provide more context|i do not have (?:personal|feelings))", re.I)
 WORDS = re.compile(r"[a-z']+")
 
 
@@ -109,15 +113,21 @@ def build_messages(settings, state, trigger, rng=random):
     for heard, said, action, feeling in examples:
         messages += [{'role': 'user', 'content': heard},
                      {'role': 'assistant', 'content': json.dumps({'say': said, 'action': action, 'feeling': feeling})}]
-    for m in state['dialogue'][-4:]:
+    said = trigger.startswith('The watcher says:')
+    history = state['dialogue'][-5:]
+    if said and history and history[-1]['role'] == 'user':
+        history = history[:-1]  # The new message is the final turn; do not send it twice.
+    for m in history[-4:]:
         messages.append(m if m['role'] == 'user' else
                         {'role': 'assistant', 'content': json.dumps({'say': m['content'], 'action': 'watch', 'feeling': 'calm'})})
-    if trigger.startswith('The watcher says:'):
+    if said:
         ask = trigger[len('The watcher says:'):].strip()
+    elif trigger != SILENCE:  # Something actually happened: react to it, no distractions.
+        ask = f'({trigger}) React to what just happened. Speak to me.'
     elif not state.get('watched', True):
-        ask = f'(The user is away. You are alone, muttering to yourself. On your mind: {topic})'
+        ask = f'(I am away. You are alone, muttering to yourself. On your mind: {topic})'
     else:
-        ask = f'*{trigger}* (On your mind: {topic})'
+        ask = f'*watches you silently* (On your mind: {topic})'
     messages.append({'role': 'user', 'content': ask})
     return messages
 
@@ -141,6 +151,8 @@ class OllamaBrain:
         recent = [m['content'] for m in state['dialogue'] if m['role'] == 'assistant'][-6:]
         if any(similar(thought['say'], old) > .7 for old in recent + EXAMPLE_LINES):
             raise RepeatError('He started to repeat himself and thought better of it.')
+        if ASSISTANT.search(thought['say']):
+            raise RepeatError('He started to sound like a help desk and thought better of it.')
         return thought
 
 

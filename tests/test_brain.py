@@ -37,6 +37,11 @@ class BrainTests(unittest.TestCase):
             with self.assertRaises(RepeatError):
                 OllamaBrain().think(Settings().update({'endpoint': url}), state, 'watches you silently')
 
+    def test_help_desk_voice_is_never_spoken(self):
+        reply = '{"say":"I am sorry, but as an artificial intelligence I cannot taste food.","action":"read","feeling":"calm"}'
+        with stub_ollama(reply) as url, self.assertRaises(RepeatError):
+            OllamaBrain().think(Settings().update({'endpoint': url}), Simulation().snapshot(), 'watches you silently')
+
     def test_real_http_ollama_contract(self):
         captured = []
         class Handler(BaseHTTPRequestHandler):

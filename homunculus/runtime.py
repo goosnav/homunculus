@@ -6,14 +6,13 @@ import time
 from dataclasses import asdict
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from .brain import OllamaBrain, RepeatError
+from .brain import SILENCE, OllamaBrain, RepeatError
 from .config import Settings
 from .simulation import Simulation
 from .speech import Speaker
 from .storage import Store
 
 MIND = ('name', 'goal', 'model', 'endpoint')  # Changing these invalidates pending thoughts.
-SILENCE = 'watches you silently'
 PRESENCE_TIMEOUT = 6  # Seconds without a visible poll before he decides nobody is watching.
 
 
