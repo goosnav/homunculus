@@ -77,10 +77,11 @@ Run with Ollama on this CPU:
 - **Forced poses:** eating (hand to mouth, facing the glass), reading the book at the desk, inspecting (hand to chin), knocking on the door.
 - **30 seconds of live play in built-in mode:** he walks to the desk, sits and reads, and makes remarks. No console errors.
 - **Ollama mode with `llama3.2:1b`:** a typed message got a model reply in 7.4 s.
+- **GitHub Actions CI is green** on Ubuntu (Python 3.10 and 3.12), Windows and macOS. That covers the full Python suite, the room's JavaScript tests, and building the ZIP, extracting it and serving the app from the extracted copy. The macOS run found a reverse-DNS stall when the server starts. It's fixed.
 
 ## Not verified
 
-- The frameless native window (`--desktop`). Windows and macOS launchers, voices and PyInstaller builds. The CI workflow exists but hasn't been run.
+- The frameless native window (`--desktop`). Double-clicking the Windows and macOS launchers (the app itself is tested on both in CI), voices and PyInstaller builds. The CI workflow exists but hasn't been run.
 - Raspberry Pi performance and Chromium kiosk on a real Pi. Real microphone recognition: the 40 MB Vosk model download failed on this network, so the ears were only tested with a fake recognizer.
 - Real WebGL on a GPU (only SwiftShader was used). Real browser audio.
 - How it holds up after hours of continuous running.
