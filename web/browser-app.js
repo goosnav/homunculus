@@ -27,7 +27,7 @@ function showNotes(title,paragraphs){
 async function spawn(){
   if(spawning)return;spawning=true;const run=++generation;disposed=false;busy=false;life=null;silence();controls(false);notice('');
   mind?.dispose();mind=new BrowserMind();$('#spawn-error').hidden=true;$('#spawn-button').hidden=true;$('#spawn-progress').hidden=false;$('#spawn-panel').hidden=false;
-  $('#spawn-meter').value=0;$('#spawn-status').textContent='Preparing a place for a thought…';$('#activity').textContent='No process running.';$('#brain-status').textContent='Loading a real mind…';document.body.classList.remove('dead');
+  $('#spawn-meter').value=0;$('#spawn-status').textContent='Preparing a place for a thought…';$('#activity').textContent='The room is empty.';$('#brain-status').textContent='Spawning…';document.body.classList.remove('dead');
   try{
     if(!room)room=new BrowserRoom($('#viewport'),settings,interaction);
     else if(roomFailed){roomFailed=false;room.ready=room.loadAssets();}
@@ -38,13 +38,13 @@ async function spawn(){
     if(run!==generation)return;
     $('#spawn-meter').value=1;room.materialize(1);life=new Life();nextThought=life.age+1;lastSpeech=0;
     room.update(life.snapshot());$('#title-name').textContent=`${life.name}’s room`;
-    $('#spawn-panel').hidden=true;$('#brain-status').textContent='Mind running locally';controls(true);$('#message').focus();
+    $('#spawn-panel').hidden=true;$('#brain-status').textContent='';controls(true);$('#message').focus();
     if(debug)Object.assign(window.__habitat,{life,mind});
   }catch(error){
-    if(run!==generation)return;mind.dispose();$('#spawn-error').textContent=`Could not spawn: ${error.message}`;$('#spawn-error').hidden=false;$('#spawn-button').textContent='Try again';$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#brain-status').textContent='No mind loaded';
+    if(run!==generation)return;mind.dispose();$('#spawn-error').textContent=`Could not spawn: ${error.message}`;$('#spawn-error').hidden=false;$('#spawn-button').textContent='Try again';$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#brain-status').textContent='';
   }finally{if(run===generation)spawning=false;}
 }
-function cancelSpawn(){generation++;mind?.dispose();spawning=false;$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#brain-status').textContent='No mind loaded';$('#spawn-status').textContent='';}
+function cancelSpawn(){generation++;mind?.dispose();spawning=false;$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#brain-status').textContent='';$('#spawn-status').textContent='';}
 function interaction(kind,payload={}){
   if(!life)return;
   if(kind==='read'){payload.pages=comicReader.select();const images=$('#reading-pages');images.replaceChildren();for(const page of payload.pages){const image=new Image();image.src=page.image;image.alt=`Book 2, page ${page.page}`;images.append(image);}}
@@ -72,7 +72,7 @@ async function think(){
     if(!applied&&event?.kind==='read'&&!life.retryEvent(event))notice('No words came back from that reading.');
     nextThought=life.age+(event?20:45);
   }catch(error){if(life===current&&mind===brain&&life.alive){life.retryEvent(event);notice(`${error.message} Open File to reload the mind.`);$('#brain-status').textContent='Mind stopped';}}
-  finally{if(life===current&&mind===brain){busy=false;if(life?.alive&&mind?.ready)$('#brain-status').textContent='Mind running locally';}}
+  finally{if(life===current&&mind===brain){busy=false;if(life?.alive&&mind?.ready)$('#brain-status').textContent='';}}
 }
 function frame(now){
   requestAnimationFrame(frame);const dt=Math.min(.2,(now-lastFrame)/1000);lastFrame=now;
@@ -92,12 +92,12 @@ $('#close-window').addEventListener('click',()=>{if(spawning)cancelSpawn();else 
 $('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{notice('Full screen is unavailable.');}});
 $('#sound-button').addEventListener('click',()=>{sound=!sound;$('#sound-button').textContent=sound?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(sound));if(!sound)speechSynthesis.cancel();});
 $('#journal-button').addEventListener('click',()=>showNotes(life?`${life.name.toLowerCase()}.txt - Notepad`:'File',life?[...life.journal.map(n=>`${n.title}\n${n.text}`),...life.dialogue.slice(-8).map(m=>`${m.role==='user'?'Outside':life.name}: ${m.content}`)].concat(life.journal.length||life.dialogue.length?[]:['Nothing written.']):['There is nobody in here.']));
-$('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','A real small language model runs inside your browser. It chooses what he works on and supplies his words. He will often be quiet.','The buttons change his circumstances. An anvil kills him. Closing or reloading this page ends this individual. A new spawn is someone else.','Model files load from this site and are cached by your browser. Your messages stay here. The character is fictional.']));
+$('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','Click the glass to knock.']));
 $('#notes .close').addEventListener('click',()=>$('#notes').close());
 $('#new-life').addEventListener('click',()=>{$('#notes').close();$('#spawn-button').textContent='Spawn homunculus';$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#spawn-panel').hidden=false;});
 $('#reload-mind').addEventListener('click',async()=>{
   $('#notes').close();if(!life?.alive)return;notice('Reloading the mind…');const current=life;mind?.dispose();mind=new BrowserMind();busy=false;
-  try{await mind.load();if(life!==current||!current.alive){mind.dispose();return;}notice('');nextThought=life.age;disposed=false;$('#brain-status').textContent='Mind running locally';}catch(e){notice(e.message);}
+  try{await mind.load();if(life!==current||!current.alive){mind.dispose();return;}notice('');nextThought=life.age;disposed=false;$('#brain-status').textContent='';}catch(e){notice(e.message);}
 });
 window.addEventListener('pagehide',()=>{generation++;life?.interact('close');mind?.dispose();silence();});
 window.addEventListener('pageshow',event=>{if(event.persisted){if(life)endMind();else cancelSpawn();}});

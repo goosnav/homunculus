@@ -9,7 +9,6 @@
 .spawn-card h2{font-size:14px;font-weight:normal;margin:10px 0}.spawn-card p{line-height:1.6}
 .spawn-icon{color:#57574a;font:32px Tahoma;margin:0}
 #spawn-button{margin:12px 0 8px;min-width:170px}
-.spawn-fine{font-size:10px;color:#59594d;margin-top:20px}.spawn-warning{font-size:10px;margin-bottom:0}
 #spawn-progress{margin:20px 0 0}#spawn-progress label{display:block;font-size:12px}#spawn-meter{display:block;width:100%;height:18px;margin:12px 0 8px;border:1px solid #7f9db9;background:#fff;padding:2px;appearance:none}
 #spawn-meter::-webkit-progress-bar{background:#fff}#spawn-meter::-webkit-progress-value{background:repeating-linear-gradient(90deg,#36b835 0 8px,transparent 8px 10px)}#spawn-meter::-moz-progress-bar{background:#36b835}
 #spawn-status{font-size:10px;min-height:16px}#spawn-error{font-size:11px;color:#a52618;overflow-wrap:anywhere}
@@ -18,8 +17,8 @@
 #confinement b{font-size:48px;font-weight:normal;letter-spacing:-3px;margin:15px}#confinement small{font-size:9px}
 .dead .glass-reflection{background:#11111112}.dead #viewport canvas{cursor:default}
 #notes-body p{white-space:pre-wrap}#notes-body h3{font:12px 'Lucida Console',monospace}
-@media(max-width:500px){.aperture{border-width:8px;border-bottom-width:14px}#interventions{padding-left:8px;gap:4px}#interventions .xp-button{padding:4px 7px;font-size:10px}.spawn-card{padding:14px}.spawn-fine{margin-top:12px}.spawn-icon{display:none}#brain-status{max-width:130px}#subtitle{bottom:20px}.spawn-warning{font-size:9px}}
-@media(max-height:550px){.spawn-card{padding:10px 16px}.spawn-icon,.spawn-fine{display:none}.spawn-card h2{margin:4px}#spawn-progress{margin:6px 0}#spawn-panel{place-items:center}}
+@media(max-width:500px){.aperture{border-width:8px;border-bottom-width:14px}#interventions{padding-left:8px;gap:4px}#interventions .xp-button{padding:4px 7px;font-size:10px}.spawn-card{padding:14px}.spawn-icon{display:none}#brain-status{max-width:130px}#subtitle{bottom:20px}}
+@media(max-height:550px){.spawn-card{padding:10px 16px}.spawn-icon{display:none}.spawn-card h2{margin:4px}#spawn-progress{margin:6px 0}#spawn-panel{place-items:center}}
 #reading-pages{position:absolute;inset:14px 14px 22px;z-index:2;pointer-events:none;overflow:hidden;background:#a8ac9540;display:flex;align-items:center;justify-content:center;gap:12px}
 #reading-pages img{width:42%;max-height:60%;object-fit:contain;opacity:.78;transform:rotate(-6deg);box-shadow:0 5px 30px #0008;animation:paper-drift 4s ease-in-out infinite alternate}
 #reading-pages img+img{transform:rotate(7deg);animation-delay:-2s}

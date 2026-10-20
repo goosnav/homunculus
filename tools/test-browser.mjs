@@ -5,11 +5,12 @@ import assert from 'node:assert/strict';
 const browser=await chromium.launch({executablePath:process.env.BROWSER_EXECUTABLE||undefined,headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
 try{
 const site=new URL(process.env.BROWSER_TEST_URL||'http://127.0.0.1:4173');
-const context=await browser.newContext({viewport:{width:1100,height:820}}),page=await context.newPage(),errors=[],oldAPI=[],weights=[],external=[];
+const context=await browser.newContext({viewport:{width:1100,height:820}}),page=await context.newPage(),errors=[],oldAPI=[],weights=[],external=[],hostingTelemetry=[];
 page.on('pageerror',e=>errors.push(e.message));context.on('request',r=>{if(/\/api\/(state|interact|bootstrap)|:11434/.test(r.url()))oldAPI.push(r.url());if(/\/models\/.*\.bin$/.test(r.url()))weights.push(r.url());});
 page.on('console',m=>{if(m.type()==='error')console.log('console-error',m.text().slice(0,500));});
 await context.route(/\/api\/(state|interact|bootstrap)|:11434/,route=>route.abort());
-await context.route('**/*',route=>{const url=new URL(route.request().url());if(/^https?:$/.test(url.protocol)&&url.origin!==site.origin){external.push(url.href);return route.abort();}return route.fallback();});
+await context.route('**/*',route=>{const url=new URL(route.request().url());if(/^https?:$/.test(url.protocol)&&url.origin!==site.origin){const knownHostingScript=process.env.BROWSER_EXPECT_CLOUDFLARE_BEACON==='1'&&url.hostname==='static.cloudflareinsights.com'&&/^\/beacon\.min\.js(?:\/|$)/.test(url.pathname)&&route.request().resourceType()==='script';
+ (knownHostingScript?hostingTelemetry:external).push(url.href);return route.abort();}return route.fallback();});
 await page.goto(new URL('/?debug',site).href);assert.equal(weights.length,0);await page.screenshot({path:'.local/browser-qa/dist-spawn.png'});
 let failedAsset=false;
 await context.route('**/assets/resident.glb',route=>{if(!failedAsset){failedAsset=true;return route.abort();}return route.continue();});
@@ -33,5 +34,5 @@ const before=weights.length;await page.reload();assert.equal(await page.locator(
 await page.waitForFunction(()=>!!window.__habitat.life,{},{timeout:120000});console.log('cached_model_requests',weights.length-before,'original_name',name,'new_name',await page.evaluate(()=>window.__habitat.life.name));assert.equal(weights.length,before);
 await page.locator('#close-window').click();assert.equal(await page.evaluate(()=>window.__habitat.life.alive),false);
 await page.setViewportSize({width:390,height:720});await page.waitForTimeout(700);await page.screenshot({path:'.local/browser-qa/dist-mobile.png'});
-assert.equal(await page.locator('#viewport canvas').count(),1);assert.deepEqual(oldAPI,[]);assert.deepEqual(external,[]);assert.deepEqual(errors,[]);console.log('PASS: production spawn, real model action, OCR reading and speech, anvil/death silence, cache reuse, refresh and close; no external requests, old API or console errors.');
+assert.equal(await page.locator('#viewport canvas').count(),1);assert.deepEqual(oldAPI,[]);assert.deepEqual(external,[]);assert.deepEqual(errors,[]);console.log('blocked_hosting_telemetry',hostingTelemetry.length);console.log('PASS: production spawn, real model action, OCR reading and speech, anvil/death silence, cache reuse, refresh and close; no application off-site requests, old API or page errors; all off-site traffic blocked.');
 }finally{await browser.close();}

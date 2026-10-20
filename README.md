@@ -52,7 +52,7 @@ Use **Cloudflare Pages** with production branch **main**, repository root as the
 
 The existing connected Cloudflare project is **Workers Builds**. It uses the same static output via `wrangler.jsonc`, with build command `npm run build` and deploy command `npx wrangler deploy`. No Worker application code or inference service is deployed. The repository pins Wrangler and CI checks its deployment dry-run. A Pages project can publish the identical `dist/` folder using the settings above.
 
-The intended custom domain is **homunculus.goosnav.shop**. The production deployment and domain attachment have not been verified yet. The existing Shopify apex domain does not need to change.
+The intended custom domain is **homunculus.goosnav.shop**. The live HTTPS deployment serves the static app and complete browser model. Its build and deploy checks pass; real inference, reading, death, refresh and cached-model reuse have been exercised on the public site. The existing Shopify apex domain does not need to change.
 
 ## Development and verification
 
@@ -63,7 +63,7 @@ npm run check:build
 python3 -m unittest discover -s tests -v
 ```
 
-For an optional real-model browser smoke test, keep `npm run preview` running and run `BROWSER_EXECUTABLE=/path/to/chrome npm run test:browser` (set the environment variable using your shell’s syntax). This reads the bundled model on a fresh cache and blocks every off-site request. Set `BROWSER_TEST_URL` when using another port.
+For an optional real-model browser smoke test, keep `npm run preview` running and run `BROWSER_EXECUTABLE=/path/to/chrome npm run test:browser` (set the environment variable using your shell’s syntax). This reads the bundled model on a fresh cache and blocks every off-site request. Set `BROWSER_TEST_URL` when using another port or the live HTTPS site. For Cloudflare deployments that inject Web Analytics, set `BROWSER_EXPECT_CLOUDFLARE_BEACON=1`; the test still blocks that script and every off-site request, reporting injected telemetry separately from unexpected application traffic.
 
 The Python command tests the preserved desktop edition and creates its separate source ZIP. Run the Vite build again afterward before deploying `dist/`, so that folder contains only the website.
 

@@ -14,7 +14,9 @@
 - Cloudflare itself built the complete static site successfully, then its **Workers Builds** deploy command failed while auto-detecting `vite.config.js`. Reproduced that exact failure locally; an explicit assets-only `wrangler.jsonc` fixes `npx wrangler deploy --dry-run`. Wrangler 4.151.2 is pinned. No server-side application code or bindings.
 - Independent read-only code review found no release blocker. The build checker was separately run by the reviewer and passed.
 
-Remaining checks: actual Cloudflare deployment/custom-domain HTTPS, physical Windows/macOS/Android/iOS browser runs, long-duration performance and further game refinement. Unit/CI OS runs and narrow-viewport screenshots do not substitute for physical-device browser tests.
+Remaining checks: physical Windows/macOS/Android/iOS browser runs, long-duration performance and further game refinement. Unit/CI OS runs and narrow-viewport screenshots do not substitute for physical-device browser tests.
+
+Live deployment: Cloudflare's `Workers Builds: homunculus` check for `8ea3356` succeeded, as did all four GitHub jobs, including the new real-browser inference test. `https://homunculus.goosnav.shop` now serves the app. Public Chrome test completed real inference (15.9-second initial spawn, 4.6-second first action), Book II dialogue, permanent death and refresh/cache reuse with all off-site traffic blocked. Cloudflare injects its Web Analytics script: the initial strict no-off-site-attempt assertion reported that optional host script after all gameplay assertions passed. The harness now has an explicit Cloudflare-hosting mode that still blocks it and reports it separately; unexpected application requests remain failures.
 
 The October 19 record below describes the earlier milestone; model hosting, pinning, archive contents and test counts are superseded by the complete static release above.
 

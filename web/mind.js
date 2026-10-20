@@ -20,7 +20,7 @@ export class DownloadProgress{
     // Weight-file estimate prevents a completed tiny tokenizer from filling the bar.
     const fraction=Math.min(.9,loaded/Math.max(total,135658354)*.9);
     this.high=Math.max(this.high,fraction);
-    return {progress:this.high,text:loaded>0?`Reading ${Math.round(loaded/1048576)} MB into existence…`:'Preparing a place for a thought…'};
+    return {progress:this.high,text:loaded>0?'Taking shape…':'Preparing a place for a thought…'};
   }
 }
 export class BrowserMind{
