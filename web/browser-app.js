@@ -111,8 +111,9 @@ function frame(now){
 $('#spawn-button').addEventListener('click',spawn);$('#cancel-spawn').addEventListener('click',cancelSpawn);
 $('#message-form').addEventListener('submit',e=>{e.preventDefault();const text=$('#message').value.trim();if(!text)return;interaction('message',{text});$('#message').value='';});
 for(const button of document.querySelectorAll('[data-action]'))button.addEventListener('click',()=>interaction(button.dataset.action));
-$('#close-window').addEventListener('click',()=>{if(spawning)cancelSpawn();else interaction('close');});
-$('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{notice('Full screen is unavailable.');}});
+function exitProgram(){if(spawning)cancelSpawn();else interaction('close');silence();}
+$('#close-window').addEventListener('click',()=>{exitProgram();location.assign('https://www.goosnav.shop/');});
+$('#restart-program').addEventListener('click',()=>{exitProgram();location.reload();});
 $('#journal-button').addEventListener('click',()=>showNotes(life?`${life.name.toLowerCase()}.txt - Notepad`:'File',life?[...life.journal.map(n=>`${n.title}\n${n.text}`),...life.dialogue.slice(-8).map(m=>`${m.role==='user'?'Outside':life.name}: ${m.content}`)].concat(life.journal.length||life.dialogue.length?[]:['Nothing written.']):['There is nobody in here.']));
 $('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','Click the glass to knock.']));
 $('#notes .close').addEventListener('click',()=>$('#notes').close());

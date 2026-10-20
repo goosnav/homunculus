@@ -40,7 +40,14 @@ await page.locator('#message').fill('Hello?');await page.locator('#say-button').
 assert.equal(await page.evaluate(()=>window.__habitat.life.utterance.text),'');
 const before=weights.length;await page.reload();assert.equal(await page.locator('#spawn-button').isVisible(),true);assert.equal(await page.evaluate(()=>!!window.__habitat.life),false);await page.locator('#spawn-button').click();
 await page.waitForFunction(()=>!!window.__habitat.life,{},{timeout:120000});console.log('cached_model_requests',weights.length-before,'original_name',name,'new_name',await page.evaluate(()=>window.__habitat.life.name));assert.equal(weights.length,before);
-await page.locator('#close-window').click();assert.equal(await page.evaluate(()=>window.__habitat.life.alive),false);
 await page.setViewportSize({width:390,height:720});await page.waitForTimeout(700);await page.screenshot({path:'.local/browser-qa/dist-mobile.png'});
-assert.equal(await page.locator('#viewport canvas').count(),1);assert.deepEqual(oldAPI,[]);assert.deepEqual(external,[]);assert.deepEqual(errors,[]);console.log('blocked_hosting_telemetry',hostingTelemetry.length);console.log('PASS: production spawn, real model action, OCR reading and speech, anvil/death silence, cache reuse, refresh and close; no application off-site requests, old API or page errors; all off-site traffic blocked.');
+assert.equal(await page.locator('#viewport canvas').count(),1);
+assert.equal(await page.locator('#restart-program').textContent(),'○');
+await Promise.all([page.waitForEvent('load'),page.locator('#restart-program').click()]);
+assert.equal(await page.locator('#spawn-button').isVisible(),true);
+assert.equal(await page.evaluate(()=>!!window.__habitat.life),false);
+// Verify the intentional exit destination without loading the external storefront.
+await context.route('https://www.goosnav.shop/',route=>route.fulfill({contentType:'text/html',body:'<title>Exit destination</title>'}));
+await page.locator('#close-window').click();await page.waitForURL('https://www.goosnav.shop/');
+assert.deepEqual(oldAPI,[]);assert.deepEqual(external,[]);assert.deepEqual(errors,[]);console.log('blocked_hosting_telemetry',hostingTelemetry.length);console.log('PASS: production spawn, real model action, OCR reading and speech, anvil/death silence, cache reuse, restart and shop exit; no application off-site requests except intentional exit, old API or page errors; all other off-site traffic blocked.');
 }finally{await browser.close();}
