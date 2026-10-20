@@ -2,7 +2,7 @@
 
 ## Browser edition — October 19, 2026
 
-- `npm test`: 29 passing tests. Includes navigation, independent work, actual model action validation, terminal death, late-result rejection, confinement, OCR selection, bounded reading retries, model cancellation, download progress, camera, and poisoned-asset retry. The two new retry regressions were observed failing before their fixes.
+- `npm test`: 30 passing tests. Includes navigation, independent work, actual model action validation, terminal death, late-result rejection, confinement, OCR selection, bounded reading retries, model cancellation, download progress, camera, and poisoned-asset retry. The two new retry regressions were observed failing before their fixes. Windows CI caught a CRLF bug in the test harness; the harness now explicitly tests both LF and CRLF source.
 - `python3 -m unittest discover -s tests -v`: 74 passing legacy tests, including an extracted desktop source package. The desktop root now serves `desktop.html`.
 - `npm run build` and `npm run check:build`: static `dist/`, 29 files, 25.2 MiB total, each file under 25 MiB. No source PDF, full OCR, old API calls, or Ollama requests in the build.
 - Real Linux Chrome with SwiftShader, served by Vite preview: actual CPU WASM SmolLM2 inference, about 8.7 seconds to spawn on this machine/network and 4.2 seconds for a silent action selection. These are observations, not device guarantees.

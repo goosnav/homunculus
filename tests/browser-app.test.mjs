@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { Life } from '../web/life.js';
 
-test('a transient room asset failure can be retried on the existing renderer',async()=>{
+for(const ending of ['\n','\r\n'])test(`a transient room asset failure can be retried (${ending.length===1?'LF':'CRLF'} source)`,async()=>{
   const nodes=new Map();
   const node=selector=>{
     if(!nodes.has(selector))nodes.set(selector,{hidden:false,dataset:{},addEventListener(){},focus(){},replaceChildren(){},append(){}});
@@ -24,7 +24,7 @@ test('a transient room asset failure can be retried on the existing renderer',as
     BrowserRoom:FakeRoom,BrowserMind:FakeMind,ComicReader:{load:async()=>({})},Life,
     parseThought(){},mindMessages(){},
   });
-  const source=readFileSync(new URL('../web/browser-app.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'');
+  const source=readFileSync(new URL('../web/browser-app.js',import.meta.url),'utf8').replace(/\r?\n/g,ending).replace(/^import .*;\r?\n/gm,'');
   vm.runInContext(source,context);
   await context.window.__habitat.spawn();
   assert.match(node('#spawn-error').textContent,/503/);
