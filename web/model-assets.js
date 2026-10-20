@@ -1,6 +1,6 @@
-// Transformers.js custom cache: expose a logical model file as a stream of
-// verified same-origin parts. Each part fits the static host's file limit.
-export function createModelCache({baseURL,manifest,fetcher=fetch,cache=null}){
+// Expose a model file as a stream of verified same-origin parts.
+// Verify and cache one part at a time; never join all weights in a JS buffer.
+export function createModelCache({baseURL,manifest,fetcher=fetch,cache=null,onProgress=()=>{}}){
  const base=new URL(baseURL);
  return {
   async match(key){
@@ -9,7 +9,7 @@ export function createModelCache({baseURL,manifest,fetcher=fetch,cache=null}){
    if(url.origin!==base.origin||!url.pathname.startsWith(base.pathname))return undefined;
    const file=manifest.files[url.pathname.slice(base.pathname.length)];
    if(!file)return undefined;
-   let index=0;
+   let index=0,loaded=0;
    const stream=new ReadableStream({
     async pull(controller){
      if(index===file.parts.length){controller.close();return;}
@@ -27,6 +27,7 @@ export function createModelCache({baseURL,manifest,fetcher=fetch,cache=null}){
        throw Error('Model part integrity check failed. Retry spawning.');
       }
       if(!cached)try{await cache?.put(partURL,new Response(bytes));}catch{/* Quota failures must not disable inference. */}
+      loaded+=bytes.byteLength;onProgress({file:url.pathname,loaded,total:file.size});
       controller.enqueue(new Uint8Array(bytes));
      }catch(error){controller.error(error);}
     }
@@ -36,10 +37,10 @@ export function createModelCache({baseURL,manifest,fetcher=fetch,cache=null}){
   async put(){/* Parts are cached individually after verification. */}
  };
 }
-export async function localModelCache(baseURL){
+export async function localModelCache(baseURL,onProgress){
  const response=await fetch(new URL('manifest.json',baseURL));
  if(!response.ok)throw Error('The bundled model is missing. Run npm run build again.');
  const manifest=await response.json();let cache=null;
  try{cache=await caches.open('homunculus-model-parts-v1');}catch{/* Still usable without persistent storage. */}
- return createModelCache({baseURL,manifest,cache});
+ return createModelCache({baseURL,manifest,cache,onProgress});
 }

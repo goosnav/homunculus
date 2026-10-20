@@ -1,11 +1,17 @@
-import { chromium } from 'playwright-core';
-import { mkdir } from 'node:fs/promises';
+import { chromium, webkit } from 'playwright-core';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 await mkdir('.local/browser-qa',{recursive:true});
 import assert from 'node:assert/strict';
-const browser=await chromium.launch({executablePath:process.env.BROWSER_EXECUTABLE||undefined,headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
+const engine=process.env.BROWSER_ENGINE==='webkit'?webkit:chromium;
+// WPE WebKit's ephemeral context clears CacheStorage on reload. Use a fresh
+// disk-backed profile when checking normal persistent browser-cache behavior.
+const profile=engine===webkit?await mkdtemp(`${tmpdir()}/homunculus-webkit-`):null;
+const options={executablePath:process.env.BROWSER_EXECUTABLE||undefined,headless:true,args:engine===chromium?['--no-sandbox','--enable-unsafe-swiftshader']:[]};
+const browser=profile?await engine.launchPersistentContext(profile,{...options,viewport:{width:1100,height:820}}):await engine.launch(options);
 try{
 const site=new URL(process.env.BROWSER_TEST_URL||'http://127.0.0.1:4173');
-const context=await browser.newContext({viewport:{width:1100,height:820}}),page=await context.newPage(),errors=[],oldAPI=[],weights=[],external=[],hostingTelemetry=[];
+const context=profile?browser:await browser.newContext({viewport:{width:1100,height:820}}),page=await context.newPage(),errors=[],oldAPI=[],weights=[],external=[],hostingTelemetry=[];
 page.on('pageerror',e=>errors.push(e.message));context.on('request',r=>{if(/\/api\/(state|interact|bootstrap)|:11434/.test(r.url()))oldAPI.push(r.url());if(/\/models\/.*\.bin$/.test(r.url()))weights.push(r.url());});
 page.on('console',m=>{if(m.type()==='error')console.log('console-error',m.text().slice(0,500));});
 await context.route(/\/api\/(state|interact|bootstrap)|:11434/,route=>route.abort());
@@ -19,13 +25,14 @@ await page.locator('#spawn-error').waitFor({state:'visible',timeout:20000});
 assert.equal(failedAsset,true);console.log('asset_failure_visible',await page.locator('#spawn-error').textContent());
 await page.locator('#spawn-button').click();const started=Date.now();
 await page.waitForFunction(()=>!!window.__habitat?.life,{},{timeout:120000});console.log('spawn_ms',Date.now()-started);
+assert.deepEqual(await page.evaluate(()=>window.__habitat.mind.context),{size:512,batch:64,threads:1});
 await page.waitForFunction(()=>!!window.__habitat.lastThought,{},{timeout:90000});console.log('decision',await page.evaluate(()=>window.__habitat.lastThought));assert.ok(weights.length>0,'fresh browser must load actual bundled model parts');
-assert.ok(await page.evaluate(()=>Number.isInteger(window.__habitat.lastThought.inputTokens.decision)&&window.__habitat.lastThought.inputTokens.decision<=384),'real decision prefill must stay bounded');
+assert.ok(await page.evaluate(()=>Number.isInteger(window.__habitat.lastThought.inputTokens.decision)&&window.__habitat.lastThought.inputTokens.decision<=256),'real decision prefill must stay bounded');
 const name=await page.evaluate(()=>window.__habitat.life.name);await page.locator('[data-action="read"]').click();
 assert.match(await page.evaluate(()=>window.__habitat.life.memories.at(-1)),/Page \d+:/);
 await page.screenshot({path:'.local/browser-qa/dist-reading.png'});
-await page.waitForFunction(()=>window.__habitat.life.utterance.id>0,{},{timeout:90000});console.log('comment',await page.evaluate(()=>window.__habitat.life.utterance));
-assert.ok(await page.evaluate(()=>Number.isInteger(window.__habitat.lastThought.inputTokens.speech)&&window.__habitat.lastThought.inputTokens.speech<=384),'real reading prefill must stay bounded');
+try{await page.waitForFunction(()=>window.__habitat.life.utterance.id>0,{},{timeout:90000});}catch(error){console.log('reading_failure',await page.evaluate(()=>({notice:document.querySelector('#notice')?.textContent,ready:window.__habitat.mind.ready,pending:!!window.__habitat.mind.pending,lastThought:window.__habitat.lastThought,life:window.__habitat.life.snapshot(),events:window.__habitat.life.events})));throw error;}console.log('comment',await page.evaluate(()=>window.__habitat.life.utterance));
+assert.ok(await page.evaluate(()=>Number.isInteger(window.__habitat.lastThought.inputTokens.speech)&&window.__habitat.lastThought.inputTokens.speech<=256),'real reading prefill must stay bounded');
 await page.screenshot({path:'.local/browser-qa/dist-comment.png'});
 await page.waitForFunction(()=>window.__habitat.voice.lastAudio?.samples>0,{},{timeout:30000});
 assert.equal(await page.evaluate(()=>window.__habitat.voice.context.state),'running');
@@ -50,4 +57,4 @@ assert.equal(await page.evaluate(()=>!!window.__habitat.life),false);
 await context.route('https://www.goosnav.shop/',route=>route.fulfill({contentType:'text/html',body:'<title>Exit destination</title>'}));
 await page.locator('#close-window').click();await page.waitForURL('https://www.goosnav.shop/');
 assert.deepEqual(oldAPI,[]);assert.deepEqual(external,[]);assert.deepEqual(errors,[]);console.log('blocked_hosting_telemetry',hostingTelemetry.length);console.log('PASS: production spawn, real model action, OCR reading and speech, anvil/death silence, cache reuse, restart and shop exit; no application off-site requests except intentional exit, old API or page errors; all other off-site traffic blocked.');
-}finally{await browser.close();}
+}finally{await browser.close();if(profile)await rm(profile,{recursive:true,force:true});}

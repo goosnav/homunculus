@@ -47,7 +47,7 @@ function showNotes(title,paragraphs){
 async function spawn(){
   if(spawning)return;spawning=true;const run=++generation;disposed=false;busy=false;life=null;silence();controls(false);notice('');
   voice.setEnabled(true);
-  mind?.dispose();mind=new BrowserMind();$('#spawn-error').hidden=true;$('#spawn-button').hidden=true;$('#spawn-progress').hidden=false;$('#spawn-panel').hidden=false;
+  mind?.dispose();mind=new BrowserMind({debug});$('#spawn-error').hidden=true;$('#spawn-button').hidden=true;$('#spawn-progress').hidden=false;$('#spawn-panel').hidden=false;
   $('#spawn-meter').value=0;$('#spawn-status').textContent='Preparing a place for a thought…';$('#activity').textContent='The room is empty.';$('#brain-status').textContent='Spawning…';document.body.classList.remove('dead');
   try{
     if(!room)room=new BrowserRoom($('#viewport'),settings,interaction);
@@ -80,6 +80,7 @@ function endMind(){
   document.querySelectorAll('[data-action]').forEach(b=>{b.disabled=b.dataset.action!=='anvil';});
 }
 async function think(){
+  if(debug&&window.__habitat?.pauseAutonomy)return;
   if(!life?.alive||life.arrival||!mind?.ready||busy||spawning||document.hidden)return;
   let event=life.takeEvent();while(event&&event.epoch!==life.epoch)event=life.takeEvent();
   if(!event&&life.age<nextThought)return;
@@ -119,11 +120,11 @@ $('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',
 $('#notes .close').addEventListener('click',()=>$('#notes').close());
 $('#new-life').addEventListener('click',()=>{$('#notes').close();$('#spawn-button').textContent='Spawn homunculus';$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#spawn-panel').hidden=false;});
 $('#reload-mind').addEventListener('click',async()=>{
-  $('#notes').close();if(!life?.alive)return;notice('Reloading the mind…');const current=life;mind?.dispose();mind=new BrowserMind();busy=false;
+  $('#notes').close();if(!life?.alive)return;notice('Reloading the mind…');const current=life;mind?.dispose();mind=new BrowserMind({debug});busy=false;
   try{await mind.load();if(life!==current||!current.alive){mind.dispose();return;}notice('');nextThought=life.age;disposed=false;$('#brain-status').textContent='';}catch(e){notice(e.message);}
 });
 window.addEventListener('pagehide',()=>{generation++;life?.interact('close');mind?.dispose();silence();});
 window.addEventListener('pageshow',event=>{if(event.persisted){if(life)endMind();else cancelSpawn();}});
 $('#viewport').addEventListener('render-lost',()=>{generation++;life?.interact('close');mind?.dispose();notice('The view was lost. This existence ended. Reload the page to spawn someone new.');});
-if(debug)window.__habitat={get room(){return room;},get spawning(){return spawning;},voice,interaction,spawn,parseThought};
+if(debug)window.__habitat={get room(){return room;},get spawning(){return spawning;},voice,interaction,spawn,parseThought,mindMessages};
 requestAnimationFrame(frame);

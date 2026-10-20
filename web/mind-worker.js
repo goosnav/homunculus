@@ -1,51 +1,62 @@
-import { pipeline, env, LogitsProcessor, LogitsProcessorList } from './vendor/transformers/transformers.min.js';
+import { Wllama } from '@wllama/wllama';
 import { MODEL, DownloadProgress } from './mind.js';
 import { localModelCache } from './model-assets.js';
-import { ACTIONS, shortLine } from './life.js';
-import { LABELS, maskChoices, decisionMessages } from './decision.js';
-import { boundMessages, inputTokenCount, MAX_INPUT_TOKENS } from './inference-budget.js';
-class ChoicesOnly extends LogitsProcessor {
-  constructor(ids){super();this.ids=ids;}
-  _call(inputIds,logits){for(let i=0;i<inputIds.length;i++)maskChoices(logits[i].data,this.ids);return logits;}
-}
-const generatedText=output=>{const text=output[0].generated_text;return typeof text==='string'?text:text.at(-1).content;};
-// WASM runs inside this worker. Single-threading also works on static hosts without COOP/COEP.
-env.allowLocalModels=true;
-env.allowRemoteModels=false;
-env.localModelPath='/models/';
-env.useBrowserCache=false;
-env.useCustomCache=true;
-env.backends.onnx.wasm.numThreads=1;
-env.backends.onnx.wasm.wasmPaths=new URL('/vendor/transformers/',self.location.origin).href;
-let generator=null,busy=false;
+import { decisionMessages, speechMessages, parseDecisionLine } from './decision.js';
+import { MAX_INPUT_TOKENS, boundMessages, inputTokenCount } from './inference-budget.js';
+
+// Pin the wasm32 CPU runtime: no WebGPU, automatic context sizing or thread pool.
+const wasmURL=new URL('../node_modules/@wllama/wllama/esm/single-thread/wllama.wasm',import.meta.url).href;
+// wllama 2.3.7's URL helper reads document.baseURI even for absolute URLs.
+// Supply only that base in this worker; rendering and DOM work remain on the page.
+globalThis.document={baseURI:self.location.href};
+const CONTEXT={n_ctx:512,n_batch:64,n_threads:1};
+// This is the exact ChatML template of the pinned SmolLM2 GGUF.
+const prompt=messages=>messages.map(m=>`<|im_start|>${m.role}\n${m.content}<|im_end|>\n`).join('')+'<|im_start|>assistant\n';
+let generator=null,tokenizer=null,busy=false;
 self.onmessage=async({data})=>{
   if(busy)return;busy=true;
   try{
     if(data.type==='load'){
       const progress=new DownloadProgress();
-      env.customCache=await localModelCache(new URL(`/models/${MODEL}/`,self.location.origin).href);
-      generator=await pipeline('text-generation',MODEL,{device:'wasm',dtype:'q8',local_files_only:true,progress_callback:event=>self.postMessage({type:'progress',...progress.update(event)})});
-      generator.tokenizer.model_max_length=MAX_INPUT_TOKENS;
-      self.postMessage({type:'ready'});
+      const base=new URL(`/models/${MODEL}/`,self.location.origin).href;
+      const cache=await localModelCache(base,event=>self.postMessage({type:'progress',...progress.update(event)}));
+      const response=await cache.match(new URL('model.gguf',base).href);
+      if(!response)throw Error('The bundled mind is missing. Reload the page.');
+      // Blob-backed loading avoids an additional full model ArrayBuffer in this worker.
+      let blob=await response.blob();
+      generator=new Wllama({'single-thread/wllama.wasm':wasmURL},{suppressNativeLog:true,logger:{debug(){},log(){},warn(){},error:console.error}});
+      await generator.loadModel([blob],CONTEXT);blob=null;
+      tokenizer={
+        encode:text=>generator.tokenize(text,false),
+        decode:tokens=>generator.detokenize(tokens,true),
+        apply_chat_template:messages=>generator.tokenize(prompt(messages),true),
+      };
+      const info=generator.getLoadedContextInfo();
+      self.postMessage({type:'ready',context:{size:info.n_ctx,batch:info.n_batch,threads:generator.getNumThreads()}});
     }else if(data.type==='think'&&generator){
       const started=performance.now();
-      const ids=LABELS.map(label=>generator.tokenizer.encode(label,{add_special_tokens:false}));
-      if(ids.some(tokens=>tokens.length!==1))throw Error('This tokenizer cannot encode the action choices.');
-      const processors=new LogitsProcessorList();processors.push(new ChoicesOnly(ids.map(tokens=>tokens[0])));
-      const decision=boundMessages(generator.tokenizer,decisionMessages(data.messages[0].content,data.messages.at(-1).content));
-      const inputTokens={decision:inputTokenCount(generator.tokenizer,decision)};
-      const choice=await generator(decision,{max_new_tokens:1,do_sample:true,temperature:.85,top_p:1,logits_processor:processors});
-      const letter=generatedText(choice).trim(),action=ACTIONS[LABELS.indexOf(letter)];
-      if(!action)throw Error('The model could not choose an action.');
-      let say='';
+      const decision=await boundMessages(tokenizer,decisionMessages(data.messages[0].content,data.messages.at(-1).content,{speak:data.speak,contextParts:data.messages[0].budgetParts,eventParts:data.messages.at(-1).budgetParts}),MAX_INPUT_TOKENS-(data.speak?4:0));
+      const count=await inputTokenCount(tokenizer,decision);
+      const inputTokens={decision:count};
+      // Constrain only the action token. Speech reuses the common context
+      // prefix, replacing the action menu with a plain spoken-reply request.
+      const start=prompt(decision);
+      const letter=await generator.createCompletion(start,{nPredict:1,useCache:false,sampling:{temp:.65,grammar:'root ::= [A-J]'}});
+      let output=letter,speech;
       if(data.speak){
-        const speech=boundMessages(generator.tokenizer,data.messages);
-        inputTokens.speech=inputTokenCount(generator.tokenizer,speech);
-        const output=await generator(speech,{max_new_tokens:22,do_sample:true,temperature:.65,top_p:.9,repetition_penalty:1.15});
-        say=shortLine(generatedText(output));
+        speech=speechMessages(decision);
+        const continuation=prompt(speech);
+        inputTokens.speech=(await generator.tokenize(continuation,true)).length;
+        if(inputTokens.speech>MAX_INPUT_TOKENS)throw Error('This thought could not fit.');
+        const words=await generator.createCompletion(continuation,{nPredict:22,useCache:true,sampling:{temp:.65,top_p:.9,penalty_repeat:1.15}});
+        output=letter+'\n'+words.trim().split(/\r?\n/)[0];
       }
+      if(data.debug)console.debug('Bounded mind output',output);
+      const {action,say}=parseDecisionLine(output,{speak:data.speak});
+      // Never retain a conversational KV cache between deliberations.
+      await generator.kvClear();
       const text=JSON.stringify({action,feeling:action==='upload'?'scheming':action==='hammer'?'annoyed':'sad',say});
-      self.postMessage({type:'result',id:data.id,text,elapsed:performance.now()-started,inputTokens});
+      self.postMessage({type:'result',id:data.id,text,elapsed:performance.now()-started,inputTokens,...(data.debug?{prompts:{decision,...(data.speak?{speech}:{})}}:{})});
     }
   }catch(error){self.postMessage({type:'error',id:data.id,error:String(error.message||error)});}
   finally{busy=false;}

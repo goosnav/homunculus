@@ -2,7 +2,5 @@
   Cache-Control: public, max-age=31536000, immutable
 /models/smollm2-135m/manifest.json
   Cache-Control: no-cache
-/vendor/transformers/*
-  Cache-Control: public, max-age=0, must-revalidate
 /*
   X-Content-Type-Options: nosniff

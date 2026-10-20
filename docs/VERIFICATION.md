@@ -1,5 +1,18 @@
 # Verification record
 
+## Early mobile restart investigation — October 20, 2026
+
+The reported physical iPhone/Safari process termination is still not directly reproduced. Controlled desktop measurements isolate a substantial inference-memory cost: the current ONNX build peaks at 1,175 MiB renderer RSS at spawn and stays around 1,057 MiB after play; a diagnostic build with the model disabled stays near 426 MiB. This supports memory pressure as the likely cause of the abrupt browser reloads, rather than an application restart loop. Desktop RSS is not an iOS memory limit or a promise of stability on every device.
+
+- Replaced the ONNX runtime with pinned wasm32 wllama 2.3.7, single thread, 512-token context and 64-token batches. The same SmolLM2 135M model now uses a checksum-pinned Q4_0 GGUF (91,893,088 bytes). Q4_K_M was evaluated but rejected for excessive latency on this CPU. The build includes every model part and the WASM runtime; no inference service is introduced.
+- Inputs are counted by the actual GGUF tokenizer and limited to 256 tokens, including the speech continuation. Action and speech reuse their common prompt context. KV state is cleared between thoughts. Weight loading uses a Blob assembled from verified parts instead of an additional full JavaScript ArrayBuffer.
+- The prompt composer supplies trusted budget sections. Player text containing repeated action/page markers can no longer create unshrinkable sections and stop the mind. Both selected Book II pages retain real excerpt text. Initialization timeout terminates an unresponsive worker rather than leaving spawning hung indefinitely.
+- `tools/test-stability.mjs` performs repeated real reading/message inference with rendering, physics and local voice active, then idle play and terminal worker cleanup. Its optional Linux RSS gate is a regression check, not an iPhone threshold. CI runs a shorter version in addition to the full lifecycle test.
+- 55 JavaScript tests, pinned-reference tokenizer checks, static build integrity, mobile keyboard-layout checks and Wrangler deployment dry run pass. The build contains 41 files totaling 116.7 MiB, including the complete local model and male voice. Independent review found and verified fixes for untrusted budget markers and a stress-test rendering omission; no important finding remains.
+- Real Chromium and WebKit 26.5 lifecycle tests pass: generated speech through the local male voice, Book II input, permanent death, zero model-part requests on cached respawn, circle restart and shop exit. All application off-site requests are blocked. WPE WebKit required a fresh persistent profile for cache testing: its ephemeral context cleared CacheStorage on reload. This was isolated separately from application behavior.
+- Final eight-cycle soak plus two minutes of autonomous idle play passed with rendering and PCM audio active, no page errors or restart, all inputs at most 256 tokens, and zero surviving workers after death. Peak renderer RSS was 701 MiB (about 40% below the previous 1,175 MiB peak). The final idle renderer sample was 588 MiB. These measurements cover minutes, not hours or physical iPhone memory limits.
+- A first combined action-and-speech prompt sometimes returned empty speech. The final implementation replaces the action menu with a separate speech request and reuses only the common cached prefix; both input counts are checked independently. Replies remain imperfect, and inference on this older desktop CPU takes tens of seconds.
+
 ## Male voice and room events — October 20, 2026
 
 The user confirmed audio and inference worked after the stability release, so the existing SmolLM2 model remains unchanged.

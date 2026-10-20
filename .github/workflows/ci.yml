@@ -68,6 +68,7 @@ jobs:
             sleep 1
           done
           npm run test:browser
+          SOAK_CYCLES=2 SOAK_IDLE_MS=5000 npm run test:stability
           node tools/test-mobile.mjs
           node tools/test-room-events.mjs
       - name: Upload browser edition

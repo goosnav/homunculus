@@ -28,6 +28,11 @@ test('worker failures reject load and can be retried with a new worker',async()=
   assert.equal(workers[0].terminated,true);
   const retry=mind.load(()=>{});workers[1].emit({type:'ready'});await retry;assert.equal(mind.ready,true);mind.dispose();
 });
+test('a silent runtime initialization failure times out and terminates without reloading the page',async()=>{
+  const worker=new FakeWorker(),mind=new BrowserMind({workerFactory:()=>worker,loadTimeout:10});
+  await assert.rejects(mind.load(),/timed out/);
+  assert.equal(worker.terminated,true);assert.equal(mind.ready,false);assert.equal(mind.loading,null);
+});
 test('progress is monotonic across files and does not claim ready during compilation',()=>{
   const progress=new DownloadProgress();
   const a=progress.update({status:'progress',file:'model.onnx',loaded:50,total:100});
@@ -48,4 +53,12 @@ test('constrained action decoding preserves model scores only for valid choices'
   assert.equal(scores[1],4);assert.equal(scores[3],-1);assert.equal(scores[2],-Infinity);
   const prompt=decisionMessages('The door is jammed.','You have a hammer.');
   assert.match(prompt.at(-1).content,/hammer/);assert.match(prompt.at(-1).content,/letter/);
+});
+test('a single model response supplies only a valid action and bounded optional speech',async()=>{
+  const {parseDecisionLine}=await import('../web/decision.js');
+  assert.deepEqual(parseDecisionLine('A'),{action:'hammer',say:''});
+  assert.deepEqual(parseDecisionLine('B\nThat handle is useless.',{speak:true}),{action:'escape',say:'That handle is useless.'});
+  for(const text of ['Z\nHello','B\nHello\nAgain','watch','A more text'])assert.throws(()=>parseDecisionLine(text,{speak:true}));
+  assert.throws(()=>parseDecisionLine('B\nHello'));
+  assert.equal(parseDecisionLine('C\n'+('word '.repeat(100)),{speak:true}).say.split(/\s+/).length,14);
 });

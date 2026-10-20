@@ -14,7 +14,6 @@ export default defineConfig({
       await mkdir(resolve(root,'dist/vendor'),{recursive:true});
       await cp(resolve(root,'web/models'),resolve(root,'dist/models'),{recursive:true});
       await cp(resolve(root,'web/assets'),resolve(root,'dist/assets'),{recursive:true});
-      await cp(resolve(root,'web/vendor/transformers'),resolve(root,'dist/vendor/transformers'),{recursive:true});
       await mkdir(resolve(root,'dist/licenses'),{recursive:true});
       await copyFile(resolve(root,'web/vendor/THREE-LICENSE.txt'),resolve(root,'dist/licenses/three.txt'));
       await copyFile(resolve(root,'web/vendor/SMOLLM2-LICENSE.txt'),resolve(root,'dist/licenses/smollm2.txt'));
@@ -23,6 +22,7 @@ export default defineConfig({
       await copyFile(resolve(root,'LICENSE.md'),resolve(root,'dist/licenses/homunculus.md'));
       await copyFile(resolve(root,'node_modules/@echogarden/flite-wasi/COPYING'),resolve(root,'dist/licenses/flite.txt'));
       await copyFile(resolve(root,'node_modules/@bjorn3/browser_wasi_shim/LICENSE-MIT'),resolve(root,'dist/licenses/browser-wasi-shim.txt'));
+      await copyFile(resolve(root,'node_modules/@wllama/wllama/LICENCE'),resolve(root,'dist/licenses/wllama.txt'));
     }
   }]
 });

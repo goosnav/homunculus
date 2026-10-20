@@ -1,19 +1,7 @@
 {
-  "model": "onnx-community/SmolLM2-135M-Instruct-ONNX",
-  "revision": "b8a5c0f183b78c55955a5364f610c36668b5e681",
+  "model": "bartowski/SmolLM2-135M-Instruct-GGUF",
+  "revision": "09816acd5d99df7be770d85ea30822623dab342c",
   "files": [
-    {
-      "name": "config.json",
-      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX/resolve/b8a5c0f183b78c55955a5364f610c36668b5e681/config.json",
-      "size": 976,
-      "sha256": "88f5d2bbac13e61d28787184fa1aa13b7f81f7bda7c3869ece8a8930c27cc5ed"
-    },
-    {
-      "name": "generation_config.json",
-      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX/resolve/b8a5c0f183b78c55955a5364f610c36668b5e681/generation_config.json",
-      "size": 132,
-      "sha256": "3a6555a034b32bf2fc6d35cc16207dc95c8af520b2d45febe48a1ad6cb46ff63"
-    },
     {
       "name": "tokenizer.json",
       "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX/resolve/b8a5c0f183b78c55955a5364f610c36668b5e681/tokenizer.json",
@@ -27,16 +15,10 @@
       "sha256": "7b85619980209ca801effcd87e5df7084a21abc3d8b8d27003a6b4ffcce170ef"
     },
     {
-      "name": "special_tokens_map.json",
-      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX/resolve/b8a5c0f183b78c55955a5364f610c36668b5e681/special_tokens_map.json",
-      "size": 655,
-      "sha256": "2b7379f3ae813529281a5c602bc5a11c1d4e0a99107aaa597fe936c1e813ca52"
-    },
-    {
-      "name": "onnx/model_quantized.onnx",
-      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX/resolve/b8a5c0f183b78c55955a5364f610c36668b5e681/onnx/model_quantized.onnx",
-      "size": 135658354,
-      "sha256": "0fab87142e3eb1fcacb881f8282e7473e62ad66920c347b81f088da6fda2da37"
+      "name": "model.gguf",
+      "url": "https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/09816acd5d99df7be770d85ea30822623dab342c/SmolLM2-135M-Instruct-Q4_0.gguf",
+      "size": 91893088,
+      "sha256": "bcc3af2849ad6095af57e9b5cd43775256efdc66e306acb529172f92d0c04b03"
     }
   ]
 }

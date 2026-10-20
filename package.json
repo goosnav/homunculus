@@ -10,9 +10,11 @@
     "test": "node --test tests/*.test.mjs",
     "check:build": "node tools/check-build.mjs",
     "test:browser": "node tools/test-browser.mjs",
-    "predev": "node tools/prepare-model.mjs"
+    "predev": "node tools/prepare-model.mjs",
+    "test:stability": "node tools/test-stability.mjs"
   },
   "devDependencies": {
+    "@huggingface/transformers": "3.8.1",
     "playwright-core": "1.62.1",
     "three": "0.186.1",
     "vite": "8.3.4",
@@ -21,7 +23,7 @@
   "dependencies": {
     "@bjorn3/browser_wasi_shim": "0.4.2",
     "@echogarden/flite-wasi": "0.1.1",
-    "@huggingface/transformers": "3.8.1"
+    "@wllama/wllama": "2.3.7"
   },
   "engines": {
     "node": ">=22.12.0"
