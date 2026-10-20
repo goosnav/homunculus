@@ -15,7 +15,8 @@
   "devDependencies": {
     "playwright-core": "1.62.1",
     "three": "0.186.1",
-    "vite": "8.3.4"
+    "vite": "8.3.4",
+    "wrangler": "4.151.2"
   },
   "dependencies": {
     "@huggingface/transformers": "3.8.1"

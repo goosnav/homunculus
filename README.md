@@ -46,9 +46,11 @@ python3 tools/package-browser.py
 
 Extract `build/homunculus-browser.zip` and run its **Start Homunculus** launcher. This simple local package requires Python 3.10+ solely to serve static files on localhost. The simulation and model still run in the browser. No Python packages are needed. Alternatively, serve `dist/` with any static HTTP server; opening `index.html` as a file is unsupported.
 
-## Cloudflare Pages
+## Cloudflare deployment
 
 Use **Cloudflare Pages** with production branch **main**, repository root as the root directory, build command `npm run build`, output directory `dist`, and Node 22.12+. The build checks enforce Cloudflare’s [25 MiB maximum per asset](https://developers.cloudflare.com/pages/platform/limits/). The model is included as checksum-verified chunks, each at most 20 MiB. `npm run build` prepares the model and automatically verifies the completed site. The build requires internet on a fresh checkout; subsequent local builds reuse `.cache/models/`. Single-threaded WASM does not require cross-origin isolation headers.
+
+The existing connected Cloudflare project is **Workers Builds**. It uses the same static output via `wrangler.jsonc`, with build command `npm run build` and deploy command `npx wrangler deploy`. No Worker application code or inference service is deployed. The repository pins Wrangler and CI checks its deployment dry-run. A Pages project can publish the identical `dist/` folder using the settings above.
 
 The intended custom domain is **homunculus.goosnav.shop**. The production deployment and domain attachment have not been verified yet. The existing Shopify apex domain does not need to change.
 
