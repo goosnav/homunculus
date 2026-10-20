@@ -49,8 +49,14 @@ export class Room {
   }
   configure(settings){this.settings=settings;this.resize();}
   resize(){
-    const r=this.container.getBoundingClientRect(), aspect=r.width>0&&r.height>0?r.width/r.height:4/3;
-    const h=this.settings.render_size[1], w=Math.max(1,Math.round(h*aspect));  // Low-res pixels, any shape.
+    const r=this.container.getBoundingClientRect();
+    this.surfaceTooSmall=r.width<16||r.height<16;
+    if(this.surfaceTooSmall)return;
+    const aspect=r.width/r.height;
+    // Keyboard/landscape resizing must never turn a short view into a huge
+    // framebuffer. Keep aspect while bounding dimensions and total pixels.
+    const h=Math.max(1,Math.floor(Math.min(this.settings.render_size[1],480,1280/aspect,Math.sqrt(640*480/aspect))));
+    const w=Math.max(1,Math.min(1280,Math.floor(h*aspect)));
     this.renderer.setSize(w,h,false);
     const c=this.camera;c.aspect=aspect;
     c.fov=Math.max(BASE_FOV,2*Math.atan(Math.tan(BOX_HALF_ANGLE)/aspect)*180/Math.PI);c.updateProjectionMatrix();
@@ -266,7 +272,7 @@ export class Room {
   }
   frame(now){
     this.raf=requestAnimationFrame(this.frame);
-    if(document.hidden||this.container.closest('[hidden]')){this.lastFrame=now;return;}
+    if(document.hidden||this.surfaceTooSmall||this.container.closest('[hidden]')){this.lastFrame=now;return;}
     if(now-this.lastFrame<1000/this.settings.fps)return;
     const dt=Math.min(.15,(now-this.lastFrame)/1000);this.lastFrame=now;
     if(!this.lastDaylight||now-this.lastDaylight>20000){this.lastDaylight=now;this.setDaylight(new Date());}

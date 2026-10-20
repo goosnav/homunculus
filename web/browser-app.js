@@ -3,16 +3,35 @@ import { Life, parseThought } from './life.js';
 import { ComicReader } from './comic.js';
 let comicReader;
 import { BrowserMind, mindMessages } from './mind.js';
+import { BrowserVoice } from './browser-voice.js';
 const $=s=>document.querySelector(s);
+const voice=new BrowserVoice();
+// Safari's keyboard changes the visual viewport, not necessarily layout height.
+// Leave pinch-zoom alone; only fit the window at the normal page scale.
+if(window.visualViewport){
+  let resizePending=false;
+  const fitWindow=()=>{
+    if(resizePending)return;resizePending=true;
+    requestAnimationFrame(()=>{
+      resizePending=false;const view=window.visualViewport;
+      if(Math.abs(view.scale-1)>.01)return;
+      document.documentElement.style.setProperty('--window-height',`${view.height}px`);
+      document.documentElement.style.setProperty('--window-top',`${view.offsetTop}px`);
+    });
+  };
+  window.visualViewport.addEventListener('resize',fitWindow);
+  window.visualViewport.addEventListener('scroll',fitWindow);
+  window.addEventListener('resize',fitWindow);fitWindow();
+}
 const settings={render_size:[640,480],fps:30,profile:'browser',kiosk:false};
-let room,mind,life,roomFailed=false,spawning=false,generation=0,busy=false,nextThought=0,lastFrame=performance.now(),lastSpeech=0,subtitleUntil=0,sound=false,disposed=false;
+let room,mind,life,roomFailed=false,spawning=false,generation=0,busy=false,nextThought=0,lastFrame=performance.now(),lastSpeech=0,subtitleUntil=0,disposed=false;
 const debug=new URLSearchParams(location.search).has('debug');
 function notice(text){$('#notice').textContent=text;$('#notice').hidden=!text;}
-function silence(){speechSynthesis.cancel();$('#subtitle').hidden=true;if(room)room.speakingUntil=0;}
+function silence(){voice.stop();$('#subtitle').hidden=true;if(room)room.speakingUntil=0;}
 function speak(text){
   if(!text){silence();return;}
   $('#speaker-name').textContent=life.name.toUpperCase();$('#spoken-text').textContent=text;$('#subtitle').hidden=false;subtitleUntil=performance.now()+6500;room.speak(text);
-  if(sound){const voice=speechSynthesis.getVoices().find(v=>v.localService&&v.lang.startsWith('en'));if(voice){const line=new SpeechSynthesisUtterance(text);line.voice=voice;line.rate=.82;line.pitch=.65;speechSynthesis.speak(line);}}
+  voice.say(text);
 }
 function controls(enabled){
   $('#message').disabled=!enabled;$('#say-button').disabled=!enabled;
@@ -26,6 +45,7 @@ function showNotes(title,paragraphs){
 }
 async function spawn(){
   if(spawning)return;spawning=true;const run=++generation;disposed=false;busy=false;life=null;silence();controls(false);notice('');
+  voice.setEnabled(true);
   mind?.dispose();mind=new BrowserMind();$('#spawn-error').hidden=true;$('#spawn-button').hidden=true;$('#spawn-progress').hidden=false;$('#spawn-panel').hidden=false;
   $('#spawn-meter').value=0;$('#spawn-status').textContent='Preparing a place for a thought…';$('#activity').textContent='The room is empty.';$('#brain-status').textContent='Spawning…';document.body.classList.remove('dead');
   try{
@@ -90,7 +110,6 @@ $('#message-form').addEventListener('submit',e=>{e.preventDefault();const text=$
 for(const button of document.querySelectorAll('[data-action]'))button.addEventListener('click',()=>interaction(button.dataset.action));
 $('#close-window').addEventListener('click',()=>{if(spawning)cancelSpawn();else interaction('close');});
 $('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{notice('Full screen is unavailable.');}});
-$('#sound-button').addEventListener('click',()=>{sound=!sound;$('#sound-button').textContent=sound?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(sound));if(!sound)speechSynthesis.cancel();});
 $('#journal-button').addEventListener('click',()=>showNotes(life?`${life.name.toLowerCase()}.txt - Notepad`:'File',life?[...life.journal.map(n=>`${n.title}\n${n.text}`),...life.dialogue.slice(-8).map(m=>`${m.role==='user'?'Outside':life.name}: ${m.content}`)].concat(life.journal.length||life.dialogue.length?[]:['Nothing written.']):['There is nobody in here.']));
 $('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','Click the glass to knock.']));
 $('#notes .close').addEventListener('click',()=>$('#notes').close());

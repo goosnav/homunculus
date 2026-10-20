@@ -23,6 +23,8 @@ The model is **SmolLM2 135M Instruct**, quantized ONNX, running on CPU WebAssemb
 
 This model is deliberately small. Its answers can be odd, generic, or wrong. Speech is short and unsolicited model decisions are silent. The model chooses from validated actions and cannot directly manipulate geometry or execute code.
 
+Inference input is capped at 384 tokens to limit memory during play. Older context is trimmed before the current event; forced reading keeps material from both selected excerpts. Mobile controls accommodate the on-screen keyboard. Audio is enabled by the Spawn tap; available voices depend on the device.
+
 ## Book II OCR
 
 `tools/ocr-book.py` is a quick Python wrapper around Poppler and Tesseract. It renders scanned PDF pages and writes raw OCR into JSON, with incremental checkpoints and resume. No manual transcript cleanup.

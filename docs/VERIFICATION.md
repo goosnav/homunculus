@@ -1,5 +1,19 @@
 # Verification record
 
+## Mobile stability patch — October 20, 2026
+
+User supplied an iPhone Safari repeated-page-failure screenshot and reported failures after time in the room and after messages. The exact iPhone process termination has not been reproduced on physical hardware; memory pressure is an evidenced risk, not a proven device crash diagnosis.
+
+- The shipped decoder returns float32 logits for every input position and all 49,152 vocabulary entries. Repeated real OCR produced 1,945-token decision prompts. Both decisions and speech now have a 384-token input budget, counted with the actual chat template. Previous examples and old memories yield before the current event; both selected pages retain real excerpt text and all ten action labels survive.
+- `tools/test-budget.mjs` uses the actual bundled tokenizer on twelve consecutive readings plus long Unicode messages. All inputs stay at or below 384 tokens. Real-tokenizer testing caught and fixed Tensor counting, empty decoding, and old-page memory classification mistakes before publishing.
+- Linux Chrome renderer RSS, same profile scenario: baseline reading peak 1,572 MiB; patched reading peak 1,083 MiB (about 31% lower). Idle after reading: 1,350 → 1,046 MiB. Initial spawn peak remains approximately 1,175 MiB. These are desktop process measurements, not iPhone memory guarantees. Disabling ONNX prepacking was experimentally evaluated and not adopted; it made no material additional improvement.
+- A 390×1 CSS room previously requested a 187,200×480 framebuffer. The new test reproduces this. Rendering now has bounds on dimensions and total pixels, and suspends for surfaces smaller than 16 pixels.
+- Mobile input font is 16px, pinch zoom remains enabled, and the app follows the visual viewport above the keyboard. `tools/test-mobile.mjs` verifies sizing, simulated keyboard viewport, and restoration; this is not physical Safari keyboard verification.
+- Audio now primes speech synchronously from the Spawn button, and allows an available English/default voice when there is no voice marked local. Per the user's follow-up, audio stays enabled and the sound toggle is removed. Missing speech APIs cannot break spawning. This follows [WebKit's speech gesture check](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/Modules/speech/SpeechSynthesis.cpp). Unit tests cover gesture priming, empty/non-local voice lists and cancellation; audible iPhone output remains to be confirmed.
+- 44 JavaScript tests pass. Build integrity passes. Full real-browser lifecycle test additionally checks actual decision and reading token counts. CI now includes the real-tokenizer and mobile-layout checks.
+
+The offline preview at commit `6781d35` was freshly extracted, all 50 files checked, and its complete real-model lifecycle passed with external requests blocked. It was published as `v0.5.0-browser-preview` before the subsequent iPhone report; it does not contain this mobile patch.
+
 ## Complete static release — October 20, 2026
 
 - Cloudflare's reported failure was reproduced from `origin/main/package.json`: only `vendor` existed there; the browser build had not been published to main.

@@ -20,10 +20,12 @@ assert.equal(failedAsset,true);console.log('asset_failure_visible',await page.lo
 await page.locator('#spawn-button').click();const started=Date.now();
 await page.waitForFunction(()=>!!window.__habitat?.life,{},{timeout:120000});console.log('spawn_ms',Date.now()-started);
 await page.waitForFunction(()=>!!window.__habitat.lastThought,{},{timeout:90000});console.log('decision',await page.evaluate(()=>window.__habitat.lastThought));assert.ok(weights.length>0,'fresh browser must load actual bundled model parts');
+assert.ok(await page.evaluate(()=>Number.isInteger(window.__habitat.lastThought.inputTokens.decision)&&window.__habitat.lastThought.inputTokens.decision<=384),'real decision prefill must stay bounded');
 const name=await page.evaluate(()=>window.__habitat.life.name);await page.locator('[data-action="read"]').click();
 assert.match(await page.evaluate(()=>window.__habitat.life.memories.at(-1)),/Page \d+:/);
 await page.screenshot({path:'.local/browser-qa/dist-reading.png'});
 await page.waitForFunction(()=>window.__habitat.life.utterance.id>0,{},{timeout:90000});console.log('comment',await page.evaluate(()=>window.__habitat.life.utterance));
+assert.ok(await page.evaluate(()=>Number.isInteger(window.__habitat.lastThought.inputTokens.speech)&&window.__habitat.lastThought.inputTokens.speech<=384),'real reading prefill must stay bounded');
 await page.screenshot({path:'.local/browser-qa/dist-comment.png'});
 await page.locator('[data-action="anvil"]').click();await page.waitForFunction(()=>window.__habitat.life.snapshot().skeleton,{},{timeout:10000});
 assert.equal(await page.evaluate(()=>window.__habitat.life.alive),false);assert.equal(await page.evaluate(()=>window.__habitat.mind.ready),false);

@@ -1,4 +1,6 @@
 #viewport{background:#080c10}
+#viewport{touch-action:manipulation}
+.window{bottom:auto;top:var(--window-top,0px);height:var(--window-height,100dvh)}
 #viewport canvas{cursor:default}
 .glass-reflection{z-index:3;background:linear-gradient(117deg,transparent 54%,#e4e2cf0a 54%,#e4e2cf0a 55%,transparent 55%);box-shadow:inset 0 0 90px #0407079c}
 .aperture{position:absolute;inset:0;z-index:4;pointer-events:none;border:14px solid #3b3a33;border-bottom:22px solid #5e5a4c;border-top-color:#272822;border-left-color:#45443b;box-shadow:inset 3px 5px 13px #000b,0 0 0 2px #191d18;background:linear-gradient(90deg,#0c151320,transparent 8%,transparent 92%,#0c151320)}
@@ -18,6 +20,7 @@
 .dead .glass-reflection{background:#11111112}.dead #viewport canvas{cursor:default}
 #notes-body p{white-space:pre-wrap}#notes-body h3{font:12px 'Lucida Console',monospace}
 @media(max-width:500px){.aperture{border-width:8px;border-bottom-width:14px}#interventions{padding-left:8px;gap:4px}#interventions .xp-button{padding:4px 7px;font-size:10px}.spawn-card{padding:14px}.spawn-icon{display:none}#brain-status{max-width:130px}#subtitle{bottom:20px}}
+@media(pointer:coarse),(max-width:700px){#message{font-size:16px;height:36px}#say-button{min-height:36px}#message-form,#interventions,.statusbar,.titlebar,.menubar{flex-shrink:0}}
 @media(max-height:550px){.spawn-card{padding:10px 16px}.spawn-icon{display:none}.spawn-card h2{margin:4px}#spawn-progress{margin:6px 0}#spawn-panel{place-items:center}}
 #reading-pages{position:absolute;inset:14px 14px 22px;z-index:2;pointer-events:none;overflow:hidden;background:#a8ac9540;display:flex;align-items:center;justify-content:center;gap:12px}
 #reading-pages img{width:42%;max-height:60%;object-fit:contain;opacity:.78;transform:rotate(-6deg);box-shadow:0 5px 30px #0008;animation:paper-drift 4s ease-in-out infinite alternate}

@@ -52,6 +52,7 @@ jobs:
         run: |
           npm run build
           npm run check:build
+          node tools/test-budget.mjs
           npx wrangler deploy --dry-run
           python tools/package-browser.py
       - name: Verify real browser inference using only bundled assets
@@ -67,6 +68,7 @@ jobs:
             sleep 1
           done
           npm run test:browser
+          node tools/test-mobile.mjs
       - name: Upload browser edition
         if: matrix.os == 'ubuntu-24.04' && matrix.python == '3.12'
         uses: actions/upload-artifact@v4

@@ -36,6 +36,18 @@ function roomFixture() {
   return { room, canvas, container, actions };
 }
 
+test('keyboard-sized viewports cannot allocate an enormous framebuffer',()=>{
+  const {room,container}=roomFixture();let size;
+  room.renderer.setSize=(width,height)=>{size=[width,height];};
+  for(const [width,height]of [[390,1],[844,8],[844,140],[2560,720],[1,844],[0,0]]){
+    container.getBoundingClientRect=()=>({width,height});room.resize();
+    if(size){
+      assert.ok(size[0]<=1280&&size[1]<=480,`${width}×${height} allocated ${size}`);
+      assert.ok(size[0]*size[1]<=640*480,`pixel budget exceeded: ${size}`);
+    }
+  }
+});
+
 test('a fixed window: he is a third of the view and his whole box stays visible at any shape', () => {
   const { room, container } = roomFixture();
   for (const [width, height] of [[360, 720], [800, 600], [2560, 720]]) {

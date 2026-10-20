@@ -5,5 +5,5 @@ export function maskChoices(scores,allowed){
   const keep=allowed.map(id=>scores[id]);scores.fill(-Infinity);allowed.forEach((id,i)=>{scores[id]=keep[i];});return scores;
 }
 export function decisionMessages(context,event=''){
-  return [{role:'system',content:'You are a trapped man deciding what to do in your room. You want to escape.'},{role:'user',content:`${context}\n${event}\nChoose your next action.\n${ACTIONS.map((a,i)=>`${LABELS[i]}: ${DESCRIPTIONS[i]}`).join('\n')}\nAnswer with the one letter of your choice.`}];
+  return [{role:'system',content:'You are a trapped man deciding what to do in your room. You want to escape.'},{role:'user',content:`${context}\nCurrent event:\n${event}\nChoose your next action.\n${ACTIONS.map((a,i)=>`${LABELS[i]}: ${DESCRIPTIONS[i]}`).join('\n')}\nAnswer with the one letter of your choice.`}];
 }

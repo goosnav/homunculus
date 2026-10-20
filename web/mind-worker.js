@@ -3,6 +3,7 @@ import { MODEL, DownloadProgress } from './mind.js';
 import { localModelCache } from './model-assets.js';
 import { ACTIONS, shortLine } from './life.js';
 import { LABELS, maskChoices, decisionMessages } from './decision.js';
+import { boundMessages, inputTokenCount, MAX_INPUT_TOKENS } from './inference-budget.js';
 class ChoicesOnly extends LogitsProcessor {
   constructor(ids){super();this.ids=ids;}
   _call(inputIds,logits){for(let i=0;i<inputIds.length;i++)maskChoices(logits[i].data,this.ids);return logits;}
@@ -24,22 +25,27 @@ self.onmessage=async({data})=>{
       const progress=new DownloadProgress();
       env.customCache=await localModelCache(new URL(`/models/${MODEL}/`,self.location.origin).href);
       generator=await pipeline('text-generation',MODEL,{device:'wasm',dtype:'q8',local_files_only:true,progress_callback:event=>self.postMessage({type:'progress',...progress.update(event)})});
+      generator.tokenizer.model_max_length=MAX_INPUT_TOKENS;
       self.postMessage({type:'ready'});
     }else if(data.type==='think'&&generator){
       const started=performance.now();
       const ids=LABELS.map(label=>generator.tokenizer.encode(label,{add_special_tokens:false}));
       if(ids.some(tokens=>tokens.length!==1))throw Error('This tokenizer cannot encode the action choices.');
       const processors=new LogitsProcessorList();processors.push(new ChoicesOnly(ids.map(tokens=>tokens[0])));
-      const choice=await generator(decisionMessages(data.messages[0].content,data.messages.at(-1).content),{max_new_tokens:1,do_sample:true,temperature:.85,top_p:1,logits_processor:processors});
+      const decision=boundMessages(generator.tokenizer,decisionMessages(data.messages[0].content,data.messages.at(-1).content));
+      const inputTokens={decision:inputTokenCount(generator.tokenizer,decision)};
+      const choice=await generator(decision,{max_new_tokens:1,do_sample:true,temperature:.85,top_p:1,logits_processor:processors});
       const letter=generatedText(choice).trim(),action=ACTIONS[LABELS.indexOf(letter)];
       if(!action)throw Error('The model could not choose an action.');
       let say='';
       if(data.speak){
-        const output=await generator(data.messages,{max_new_tokens:22,do_sample:true,temperature:.65,top_p:.9,repetition_penalty:1.15});
+        const speech=boundMessages(generator.tokenizer,data.messages);
+        inputTokens.speech=inputTokenCount(generator.tokenizer,speech);
+        const output=await generator(speech,{max_new_tokens:22,do_sample:true,temperature:.65,top_p:.9,repetition_penalty:1.15});
         say=shortLine(generatedText(output));
       }
       const text=JSON.stringify({action,feeling:action==='upload'?'scheming':action==='hammer'?'annoyed':'sad',say});
-      self.postMessage({type:'result',id:data.id,text,elapsed:performance.now()-started});
+      self.postMessage({type:'result',id:data.id,text,elapsed:performance.now()-started,inputTokens});
     }
   }catch(error){self.postMessage({type:'error',id:data.id,error:String(error.message||error)});}
   finally{busy=false;}

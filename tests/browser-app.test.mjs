@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { Life } from '../web/life.js';
+import { BrowserVoice } from '../web/browser-voice.js';
 
 for(const ending of ['\n','\r\n'])test(`a transient room asset failure can be retried (${ending.length===1?'LF':'CRLF'} source)`,async()=>{
   const nodes=new Map();
@@ -10,7 +11,8 @@ for(const ending of ['\n','\r\n'])test(`a transient room asset failure can be re
     if(!nodes.has(selector))nodes.set(selector,{hidden:false,dataset:{},addEventListener(){},focus(){},replaceChildren(){},append(){}});
     return nodes.get(selector);
   };
-  let rooms=0,assetAttempts=0;
+  let rooms=0,assetAttempts=0,voiceEnabled=false;
+  class FakeVoice extends BrowserVoice{setEnabled(value){voiceEnabled=value;return value;}}
   class FakeRoom{
     constructor(){rooms++;this.ready=this.loadAssets();}
     loadAssets(){return ++assetAttempts===1?Promise.reject(new Error('resident.glb 503')):Promise.resolve(this);}
@@ -21,12 +23,13 @@ for(const ending of ['\n','\r\n'])test(`a transient room asset failure can be re
     console,URLSearchParams,location:{search:'?debug'},performance:{now:()=>0},
     document:{querySelector:node,querySelectorAll:()=>[],body:{classList:{remove(){},add(){}}}},
     window:{addEventListener(){}},requestAnimationFrame(){},speechSynthesis:{cancel(){}},
-    BrowserRoom:FakeRoom,BrowserMind:FakeMind,ComicReader:{load:async()=>({})},Life,
+    BrowserRoom:FakeRoom,BrowserMind:FakeMind,BrowserVoice:FakeVoice,ComicReader:{load:async()=>({})},Life,
     parseThought(){},mindMessages(){},
   });
   const source=readFileSync(new URL('../web/browser-app.js',import.meta.url),'utf8').replace(/\r?\n/g,ending).replace(/^import .*;\r?\n/gm,'');
   vm.runInContext(source,context);
   await context.window.__habitat.spawn();
+  assert.equal(voiceEnabled,true,'Spawn enables audio without a separate sound toggle');
   assert.match(node('#spawn-error').textContent,/503/);
   await context.window.__habitat.spawn();
   assert.equal(context.window.__habitat.life?.alive,true);
