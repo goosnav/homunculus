@@ -1,5 +1,6 @@
 import { pipeline, env, LogitsProcessor, LogitsProcessorList } from './vendor/transformers/transformers.min.js';
 import { MODEL, DownloadProgress } from './mind.js';
+import { localModelCache } from './model-assets.js';
 import { ACTIONS, shortLine } from './life.js';
 import { LABELS, maskChoices, decisionMessages } from './decision.js';
 class ChoicesOnly extends LogitsProcessor {
@@ -8,8 +9,11 @@ class ChoicesOnly extends LogitsProcessor {
 }
 const generatedText=output=>{const text=output[0].generated_text;return typeof text==='string'?text:text.at(-1).content;};
 // WASM runs inside this worker. Single-threading also works on static hosts without COOP/COEP.
-env.allowLocalModels=false;
-env.useBrowserCache=true;
+env.allowLocalModels=true;
+env.allowRemoteModels=false;
+env.localModelPath='/models/';
+env.useBrowserCache=false;
+env.useCustomCache=true;
 env.backends.onnx.wasm.numThreads=1;
 env.backends.onnx.wasm.wasmPaths=new URL('/vendor/transformers/',self.location.origin).href;
 let generator=null,busy=false;
@@ -18,7 +22,8 @@ self.onmessage=async({data})=>{
   try{
     if(data.type==='load'){
       const progress=new DownloadProgress();
-      generator=await pipeline('text-generation',MODEL,{device:'wasm',dtype:'q8',progress_callback:event=>self.postMessage({type:'progress',...progress.update(event)})});
+      env.customCache=await localModelCache(new URL(`/models/${MODEL}/`,self.location.origin).href);
+      generator=await pipeline('text-generation',MODEL,{device:'wasm',dtype:'q8',local_files_only:true,progress_callback:event=>self.postMessage({type:'progress',...progress.update(event)})});
       self.postMessage({type:'ready'});
     }else if(data.type==='think'&&generator){
       const started=performance.now();

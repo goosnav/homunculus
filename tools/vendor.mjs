@@ -8,7 +8,7 @@ for (const [from, to] of [
   ['examples/jsm/utils/SkeletonUtils.js','utils/SkeletonUtils.js'],
   ['LICENSE','THREE-LICENSE.txt']
 ]) await copyFile(`node_modules/three/${from}`, `web/vendor/${to}`);
-// Pinned browser inference runtime. Model weights are downloaded and cached on spawn.
+// Pinned browser inference runtime. Model weights are prepared at build time; the browser caches local parts on spawn.
 await mkdir('web/vendor/transformers', {recursive:true});
 for (const file of ['transformers.min.js','ort-wasm-simd-threaded.jsep.mjs','ort-wasm-simd-threaded.jsep.wasm']) {
   await copyFile(`node_modules/@huggingface/transformers/dist/${file}`, `web/vendor/transformers/${file}`);

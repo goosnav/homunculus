@@ -5,11 +5,12 @@
   "scripts": {
     "vendor": "node tools/vendor.mjs",
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "node tools/prepare-model.mjs && vite build && node tools/check-build.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.mjs",
     "check:build": "node tools/check-build.mjs",
-    "test:browser": "node tools/test-browser.mjs"
+    "test:browser": "node tools/test-browser.mjs",
+    "predev": "node tools/prepare-model.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.62.1",

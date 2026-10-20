@@ -63,7 +63,7 @@ async function think(){
   if(!event&&life.age<nextThought)return;
   const current=life,brain=mind,epoch=life.epoch;busy=true;$('#brain-status').textContent='A thought is forming';
   try{
-    const result=await brain.think(mindMessages(life,event),{speak:!!event});
+    const result=await brain.think(mindMessages(life,event),{speak:!!event&&event.kind!=='world'});
     if(life!==current||mind!==brain||!life.alive||life.epoch!==epoch)return;
     const thought=parseThought(result.text);
     if(debug)window.__habitat.lastThought={...result,parsed:thought};
@@ -92,7 +92,7 @@ $('#close-window').addEventListener('click',()=>{if(spawning)cancelSpawn();else 
 $('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{notice('Full screen is unavailable.');}});
 $('#sound-button').addEventListener('click',()=>{sound=!sound;$('#sound-button').textContent=sound?'Sound on':'Sound off';$('#sound-button').setAttribute('aria-pressed',String(sound));if(!sound)speechSynthesis.cancel();});
 $('#journal-button').addEventListener('click',()=>showNotes(life?`${life.name.toLowerCase()}.txt - Notepad`:'File',life?[...life.journal.map(n=>`${n.title}\n${n.text}`),...life.dialogue.slice(-8).map(m=>`${m.role==='user'?'Outside':life.name}: ${m.content}`)].concat(life.journal.length||life.dialogue.length?[]:['Nothing written.']):['There is nobody in here.']));
-$('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','A real small language model runs inside your browser. It chooses what he works on and supplies his words. He will often be quiet.','The buttons change his circumstances. An anvil kills him. Closing or reloading this page ends this individual. A new spawn is someone else.','Model files are downloaded from Hugging Face and cached by your browser. Your messages stay here. The character is fictional.']));
+$('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','A real small language model runs inside your browser. It chooses what he works on and supplies his words. He will often be quiet.','The buttons change his circumstances. An anvil kills him. Closing or reloading this page ends this individual. A new spawn is someone else.','Model files load from this site and are cached by your browser. Your messages stay here. The character is fictional.']));
 $('#notes .close').addEventListener('click',()=>$('#notes').close());
 $('#new-life').addEventListener('click',()=>{$('#notes').close();$('#spawn-button').textContent='Spawn homunculus';$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#spawn-panel').hidden=false;});
 $('#reload-mind').addEventListener('click',async()=>{

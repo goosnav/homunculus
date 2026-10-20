@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the verified Vite build without model weights or the desktop backend."""
+"""Package the verified Vite build with bundled model weights and no desktop backend."""
 import hashlib
 from pathlib import Path
 import subprocess
@@ -18,8 +18,8 @@ Extract the entire ZIP, then run Start Homunculus for your operating system.
 Requires Python 3.10+ to serve files and a modern WebGL 2/WebAssembly browser.
 Alternatively: python3 launch.py
 Python only serves static files. The simulation and LLM run in your browser.
-Initial spawn downloads about 130 MiB of model weights from Hugging Face.
-Downloaded model weights can stay in the browser cache. This is not an offline bundle.
+Model weights are included. No internet connection or Ollama is needed.
+The browser loads the weights from the local file server and can cache them.
 Anvil, close, and refresh permanently end an individual. There are no saved lives.
 Keep the launcher window open; Ctrl+C stops it.
 """

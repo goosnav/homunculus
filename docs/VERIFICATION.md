@@ -1,5 +1,20 @@
 # Verification record
 
+## Complete static release — October 20, 2026
+
+- Cloudflare's reported failure was reproduced from `origin/main/package.json`: only `vendor` existed there; the browser build had not been published to main.
+- `npm ci` succeeds on Node 24.21.0 (the version in the reported Cloudflare log). The preserved desktop regression suite passes all 74 tests.
+- `npm test`: 37 tests pass. New packaging/cache tests verify ordered reconstruction, SHA256 integrity failures, repeat-cache reuse, cache-denial fallback and size-limited build output. New simulation tests cover tool pickup, strike-only wall damage, staged door work and bounded discoveries.
+- `npm run build`: prepares a pinned SmolLM2 135M q8 ONNX revision, verifies source hashes, splits weights into 20 MiB parts, bundles the game/runtime, and checks the finished `dist/`. 45 files, 157.9 MiB total; each file is below Pages' 25 MiB limit. The complete tokenizer/configuration/weights are included.
+- Real Linux Chrome/SwiftShader production test with **all off-site HTTP requests blocked**: spawn in 6.5 seconds, a real model action in 4.1 seconds, generated Book II dialogue, permanent anvil death/skeleton/silence, close and refresh lifecycle all passed. These timings are observations on this machine, not device guarantees. The tiny model's reading comment was generic; it is not a reliable comic interpreter.
+- Second spawn made **zero model-part network requests**. No Python API, Ollama or off-site request occurred. The transient GLB failure is intentionally injected by the test; retry succeeds. No JavaScript page errors.
+- The smoothed character GLB is in the browser build. Tool pickup/strike/pause, door work and seated computer transfer have authored phases; preferred escape method and private fixation vary per life. Bounded discoveries now include answering wall taps, a door into another room, a copied-room monitor, a backwards clock and a disappearing bowl.
+- Independent read-only code review found no release blocker. The build checker was separately run by the reviewer and passed.
+
+Remaining checks: actual Cloudflare deployment/custom-domain HTTPS, physical Windows/macOS/Android/iOS browser runs, long-duration performance and further game refinement. Unit/CI OS runs and narrow-viewport screenshots do not substitute for physical-device browser tests.
+
+The October 19 record below describes the earlier milestone; model hosting, pinning, archive contents and test counts are superseded by the complete static release above.
+
 ## Browser edition — October 19, 2026
 
 - `npm test`: 30 passing tests. Includes navigation, independent work, actual model action validation, terminal death, late-result rejection, confinement, OCR selection, bounded reading retries, model cancellation, download progress, camera, and poisoned-asset retry. The two new retry regressions were observed failing before their fixes. Windows CI caught a CRLF bug in the test harness; the harness now explicitly tests both LF and CRLF source.

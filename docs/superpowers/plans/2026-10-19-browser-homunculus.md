@@ -61,3 +61,12 @@ October 19: Current checkout has legacy desktop changes, retained. No new worktr
 Pre-flight: simulation snapshot matches Room.update's existing position/yaw/activity/feeling fields; worker output is validated before it reaches Life; UI owns worker shutdown on terminal state. Book prop pages are explicitly substitute artwork, so cannot satisfy Book 2 acceptance.
 
 October 19 browser milestone: Vite build and actual WASM inference verified. 30 JS and 74 Python tests pass. Custom quick OCR processed all 147 sheets; eight raw excerpts ship. Browser ZIP built/extracted and served. Independent review caught poisoned room-asset retries and lost reading events; both fixed and re-reviewed. See docs/VERIFICATION.md. Room includes physical aperture, hammer/computer/headset, cracks, frown overlay and terminal skeleton; expression readability and richer secrets remain in progress. No Cloudflare plugin found in connected catalog; no local Wrangler login found. Public deployment and device matrix are pending. Goal remains active.
+
+Next behavior/visual pass (builder decisions within the approved objective):
+- Stage escape work explicitly: fetch/pick up hammer, travel, strike/pause; handle/push/kick/listen at the door; connect/type/transfer at the computer. Feed phase and consequences to the LLM.
+- Give each spawn a preferred method and private fixation, affecting independent choices and mind context.
+- Add quiet, bounded discoveries with actual scene changes: answering knocks, an identical room behind the door, a copied room on the monitor, backwards clock and a briefly absent bowl. No achievement UI.
+- Make tired/fearful/angry/focused/suspicious/pained faces readable, preserving owner model geometry and default frown.
+- Verify interrupted sequences and death, deterministic secret triggers, visual poses and real browser compatibility before pushing.
+
+October 20 release instruction: user explicitly requests publishing the static conversion to main after Cloudflare built the old main and failed with “Missing script: build.” Package the complete pinned browser model into dist (including weights), verify same-origin-only real inference, then push main. Model chunks must fit Pages' 25 MiB asset limit. This supersedes the earlier runtime Hugging Face download decision. Continue the authorized behavior/animation work after delivering the build.

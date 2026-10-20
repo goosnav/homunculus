@@ -1,5 +1,5 @@
 import { ACTIONS } from './life.js';
-export const MODEL='onnx-community/SmolLM2-135M-Instruct-ONNX';
+export const MODEL='smollm2-135m';
 export function mindMessages(life,event){
   return [
     {role:'system',content:`You are an unhappy man trapped in a small room. You want out. Speak as this man, never as an assistant. Answer in one bitter sentence, under 10 words. No advice or greetings.\n${life.context()}`},

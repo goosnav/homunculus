@@ -8,3 +8,6 @@ build/
 .superpowers/
 .local/
 test-results/
+
+.cache/
+web/models/

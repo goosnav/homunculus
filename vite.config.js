@@ -12,10 +12,14 @@ export default defineConfig({
     transformIndexHtml:{order:'pre',handler:html=>html.replace(/<script type="importmap">[\s\S]*?<\/script>/,'')},
     async closeBundle(){
       await mkdir(resolve(root,'dist/vendor'),{recursive:true});
+      await cp(resolve(root,'web/models'),resolve(root,'dist/models'),{recursive:true});
       await cp(resolve(root,'web/assets'),resolve(root,'dist/assets'),{recursive:true});
       await cp(resolve(root,'web/vendor/transformers'),resolve(root,'dist/vendor/transformers'),{recursive:true});
       await mkdir(resolve(root,'dist/licenses'),{recursive:true});
       await copyFile(resolve(root,'web/vendor/THREE-LICENSE.txt'),resolve(root,'dist/licenses/three.txt'));
+      await copyFile(resolve(root,'web/vendor/SMOLLM2-LICENSE.txt'),resolve(root,'dist/licenses/smollm2.txt'));
+      await copyFile(resolve(root,'tools/model-lock.json'),resolve(root,'dist/licenses/model-sources.json'));
+      await copyFile(resolve(root,'web/_headers'),resolve(root,'dist/_headers'));
       await copyFile(resolve(root,'LICENSE.md'),resolve(root,'dist/licenses/homunculus.md'));
     }
   }]

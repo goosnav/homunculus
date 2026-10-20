@@ -2,7 +2,7 @@
 
 Used with the owner's instruction for Homunculus. These remain the owner's assets; no third-party redistribution license is granted here.
 
-- `resident.glb`: exported from `goosnav-3D-assets/assets/3D/ps1guy/ps1guy.blend` using `tools/export-character.py`. Existing rigid segments converted to a single skin; original geometry and materials retained. Runtime animation is procedural.
+- `resident.glb`: `goosnav-3D-assets/exports/ps1guy_v10_homunculus.glb`, built from the dedicated `characters/ps1guy_v10_homunculus.blend` variant on 2026-10-19. The original smile cavity and lip groove are replaced with continuous skin, so runtime mouth expressions do not sit over a second smile. Body geometry and skin weights retained; runtime animation is procedural. Source builder: `scripts/build_homunculus_variant.py` in the asset repository.
 - `book.glb`: `assets/3D/ps1/book2_goosnav_dilemma.glb`.
 - `pack.glb`: `assets/3D/ps1/goosklerf_booster_pack.glb`.
 - `zine.glb`: `assets/3D/ps1/goosnav_zine_09.glb`.

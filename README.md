@@ -19,7 +19,7 @@ npm run preview
 
 Open the local address Vite prints. `dist/` is the complete static website: no Python backend, Ollama, API key, database, or server-side inference. For development, run `npm run dev`.
 
-The model is **SmolLM2 135M Instruct**, quantized ONNX, running on CPU WebAssembly in a worker through Transformers.js. It downloads approximately 130 MiB from Hugging Face after you press Spawn. The browser cache reuses the weights when storage persists. Internet is required for the initial download; the downloadable game does not bundle the weights. WebGL 2 and WebAssembly are required. Failed initialization shows an error with retry/cancel; there is no scripted substitute mind.
+The model is **SmolLM2 135M Instruct**, quantized ONNX, running on CPU WebAssembly in a worker through Transformers.js. The build downloads a fixed, checksum-verified model revision from Hugging Face and includes its tokenizer, configuration and approximately 130 MiB of weights in `dist/`. Weights are split into 20 MiB files for Cloudflare Pages. On Spawn, the browser reads those files from the same website and caches them when storage persists. There are no runtime requests to Hugging Face or another inference service. The extracted browser ZIP also contains the model and works without internet when served on localhost. WebGL 2 and WebAssembly are required. Failed initialization shows an error with retry/cancel; there is no scripted substitute mind.
 
 This model is deliberately small. Its answers can be odd, generic, or wrong. Speech is short and unsolicited model decisions are silent. The model chooses from validated actions and cannot directly manipulate geometry or execute code.
 
@@ -48,7 +48,7 @@ Extract `build/homunculus-browser.zip` and run its **Start Homunculus** launcher
 
 ## Cloudflare Pages
 
-Connect this repository with build command `npm run build`, output directory `dist`, and Node 22.12+. The build checks enforce Cloudflare’s [25 MiB maximum per asset](https://developers.cloudflare.com/pages/platform/limits/). Model weights stay on Hugging Face. Single-threaded WASM does not require cross-origin isolation headers.
+Use **Cloudflare Pages** with production branch **main**, repository root as the root directory, build command `npm run build`, output directory `dist`, and Node 22.12+. The build checks enforce Cloudflare’s [25 MiB maximum per asset](https://developers.cloudflare.com/pages/platform/limits/). The model is included as checksum-verified chunks, each at most 20 MiB. `npm run build` prepares the model and automatically verifies the completed site. The build requires internet on a fresh checkout; subsequent local builds reuse `.cache/models/`. Single-threaded WASM does not require cross-origin isolation headers.
 
 The intended custom domain is **homunculus.goosnav.shop**. The production deployment and domain attachment have not been verified yet. The existing Shopify apex domain does not need to change.
 
@@ -61,7 +61,7 @@ npm run check:build
 python3 -m unittest discover -s tests -v
 ```
 
-For an optional real-model browser smoke test, keep `npm run preview` running and run `BROWSER_EXECUTABLE=/path/to/chrome npm run test:browser` (set the environment variable using your shell’s syntax). This downloads the model on a fresh cache. Set `BROWSER_TEST_URL` when using another port.
+For an optional real-model browser smoke test, keep `npm run preview` running and run `BROWSER_EXECUTABLE=/path/to/chrome npm run test:browser` (set the environment variable using your shell’s syntax). This reads the bundled model on a fresh cache and blocks every off-site request. Set `BROWSER_TEST_URL` when using another port.
 
 The Python command tests the preserved desktop edition and creates its separate source ZIP. Run the Vite build again afterward before deploying `dist/`, so that folder contains only the website.
 

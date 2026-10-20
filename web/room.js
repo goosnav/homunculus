@@ -114,7 +114,7 @@ export class Room {
     this.box([.64,.65,.6],[-2.44,.32,-1.6],0x7c8062);
     const pot=new THREE.Mesh(new THREE.CylinderGeometry(.19,.14,.29,7),mat(0x9a6b47));pot.position.set(-2.44,.82,-1.6);this.scene.add(pot);
     for(let i=0;i<5;i++){const leaf=new THREE.Mesh(new THREE.ConeGeometry(.14,.48,4),mat(i%2?0x647853:0x7c8a5a));leaf.position.set(-2.44+Math.sin(i*2.3)*.1,1.09+Math.cos(i)*.06,-1.6+Math.cos(i*2.3)*.1);leaf.rotation.z=Math.sin(i*2)*.5;this.scene.add(leaf);}
-    const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.21,.14,.12,10),mat(0xb9b594));bowl.position.set(-1.0,.07,-1.0);this.scene.add(bowl);
+    const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.21,.14,.12,10),mat(0xb9b594));bowl.position.set(-1.0,.07,-1.0);this.scene.add(bowl);this.bowl=bowl;
     const note=canvasTexture(128,128,(c)=>{c.fillStyle='#d8d0a9';c.fillRect(0,0,128,128);c.textAlign='center';c.fillStyle='#66715a';c.font='12px monospace';['PLEASE','REMAIN','INSIDE'].forEach((s,i)=>c.fillText(s,64,42+i*19));});
     this.plane([.63,.63],[2.35,2.3,-2.39],note);
     // The wall clock keeps the watcher's time. He has noticed.
@@ -176,7 +176,7 @@ export class Room {
   animate(t,dt){
     if(!this.state||!this.model)return;
     const s=this.state, f=s.feeling||'calm', moving=s.walking&&!this.dragging, w=Math.sin(t*(f==='annoyed'||f==='afraid'?10:7.5));
-    const lying=s.seated&&s.activity==='rest'&&!this.dragging, sitting=s.seated&&s.activity==='read'&&!this.dragging;
+    const lying=s.seated&&s.activity==='rest'&&!this.dragging, sitting=s.seated&&['read','upload','forced_read'].includes(s.activity)&&!this.dragging;
     const knocking=s.activity==='knock'&&!moving&&!s.seated&&!this.dragging, speaking=t<this.speakingUntil;
     // Where the body is, and which way it faces.
     if(!this.dragging){
@@ -235,7 +235,7 @@ export class Room {
         else if(g.kind==='shrug'){this.pose('upper_arm.R',.2*ease,0,-.35*ease);this.pose('upper_arm.L',.2*ease,0,.35*ease);this.pose('forearm.R',1*ease);this.pose('forearm.L',1*ease);x.tilt=.1*ease;}
         else if(g.kind==='look')x.look=Math.sin(p*Math.PI*2)*.9;}
     }
-    if(this.book)this.book.visible=sitting;
+    if(this.book)this.book.visible=sitting&&s.activity!=='upload';
     if(knocking){
       this.knockPhase+=dt*5.5;const k=Math.sin(this.knockPhase*Math.PI*2);
       this.pose('upper_arm.R',1.3,0,-.15);this.pose('forearm.R',.9-Math.max(0,k)*.45);

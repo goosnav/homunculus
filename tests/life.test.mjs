@@ -85,3 +85,33 @@ test('reading retries retain the pages, are bounded, and cannot cross a death',(
   assert.notEqual(life.activity,'forced_read');
   life.interact('close');assert.equal(life.retryEvent(event),false);
 });
+test('hammer work requires fetching a physical tool and damage occurs on strikes',()=>{
+  const life=new Life({random:()=>.1});life.choose('hammer');
+  assert.equal(life.snapshot().stage,'fetch');
+  run(life,1);assert.equal(life.wallDamage,0);
+  for(let i=0;i<250&&!life.hasHammer;i++)life.tick(.1);
+  assert.equal(life.hasHammer,true);assert.equal(life.wallDamage,0);
+  run(life,20);assert.ok(life.wallDamage>0);assert.ok(life.hammerStrikes>0);
+  life.choose('upload');assert.equal(life.hasHammer,false);
+  assert.ok(walkable(...life.toolPosition));
+});
+test('door work has distinct phases and an opening that cannot revive a dead resident',()=>{
+  const life=new Life({random:()=>.45});life.choose('escape');
+  const phases=new Set();
+  for(let i=0;i<900;i++){life.tick(.1);if(!life.path.length)phases.add(life.snapshot().stage);}
+  for(const phase of ['handle','push','kick','listen'])assert.ok(phases.has(phase),phase);
+  assert.ok(life.doorAttempts>=3);
+  assert.ok(life.secrets.has('door-room'));
+  life.interact('close');run(life,20);assert.equal(life.alive,false);
+});
+test('each life has a private tendency and discoveries enter real mind context',()=>{
+  const a=new Life({random:()=>.1}),b=new Life({random:()=>.9});
+  assert.notEqual(a.preferred,b.preferred);assert.notEqual(a.fixation,b.fixation);
+  for(let i=0;i<3;i++){a.interact('tap');run(a,.2);}
+  assert.ok(a.effects.answerUntil>a.age);assert.match(a.context(),/knock.*wall/i);
+  const notes=a.journal.length;
+  for(let i=0;i<20;i++)a.interact('tap');
+  assert.equal(a.journal.length,notes,'discoveries do not repeatedly spam the journal');
+  a.interact('message',{text:'there is no spoon'});assert.ok(a.effects.bowlUntil>a.age);
+  run(a,20);assert.ok(a.effects.bowlUntil<a.age);
+});
