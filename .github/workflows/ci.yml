@@ -69,6 +69,7 @@ jobs:
           done
           npm run test:browser
           node tools/test-mobile.mjs
+          node tools/test-room-events.mjs
       - name: Upload browser edition
         if: matrix.os == 'ubuntu-24.04' && matrix.python == '3.12'
         uses: actions/upload-artifact@v4

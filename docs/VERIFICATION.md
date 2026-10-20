@@ -1,5 +1,17 @@
 # Verification record
 
+## Male voice and room events — October 20, 2026
+
+The user confirmed audio and inference worked after the stability release, so the existing SmolLM2 model remains unchanged.
+
+- Replaced device-dependent Web Speech voices with bundled Flite KAL male speech. A worker synthesizes 8 kHz PCM; Web Audio filters it at 1,550 Hz to suggest glass. Spawn unlocks audio, no sound toggle is shown, and death terminates pending speech. The voice WASM is 21,530,456 bytes and fits the hosting asset limit. A synthesis instance starts with approximately 16.5 MiB WASM memory; this is not a total browser-memory estimate.
+- Real production-build Chrome test, all external traffic blocked: generated a Book II reply and played 39,386 PCM samples (4.92 seconds) through a running audio context and the glass filter. No OS voice or speech service was used. Anvil death cleared the voice worker and playback source. Model cache reuse made zero new model-part requests.
+- New spawn falls from above, hits the floor and recovers, with randomized landing position and spin. This is authored loose-limb animation, not a physics-engine ragdoll.
+- One rare large magenta/black Platonic solid can pass through at a time. The resident watches fearfully; hostile feints can startle and displace him. Review caught stale paths after knockback; route rebuilding now has a furniture-collision regression test. Seated residents recoil in place.
+- Black hole opens a single floor void. Walking over it causes terminal disappearance, without a skeleton, shadow or later replies. Browser tests exercise the actual button and death rendering.
+- 50 JavaScript tests pass, including actual bundled voice synthesis. Static build: 49 files, 178.5 MiB, complete model and voice, every asset under 25 MiB. Token-budget integration and mobile keyboard-layout checks pass. Deterministic browser screenshots cover falling, impact, getting up, visitor gaze/aggression, open hole and disappearance.
+- Independent review found no additional important audio or resource-lifetime issue. Physical iPhone testing of this new voice and long-duration mobile stability remains outstanding; desktop automated audio playback does not establish its subjective sound on that device.
+
 ## Mobile stability patch — October 20, 2026
 
 User supplied an iPhone Safari repeated-page-failure screenshot and reported failures after time in the room and after messages. The exact iPhone process termination has not been reproduced on physical hardware; memory pressure is an evidenced risk, not a proven device crash diagnosis.

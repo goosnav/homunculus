@@ -48,6 +48,10 @@ export class Life{
     this.preferred=['hammer','escape','upload'][Math.floor(random()*3)%3];this.fixation=FIXATIONS[Math.floor(random()*FIXATIONS.length)%FIXATIONS.length];
     this.hasHammer=false;this.toolPosition=[.75,-.75];this.workElapsed=0;this.hammerStrikes=0;this.pickupTime=0;this.tapTimes=[];
     this.effects={answerUntil:0,doorUntil:0,bowlUntil:0,clockUntil:0,copy:false};this.nextOddity=180+random()*180;
+    this.position=nearest((random()-.5)*2.1,.35+random()*.85);
+    this.arrival={height:5+random()*1.5,spin:(random()-.5)*1.5,duration:3.5};
+    this.arrival.impact=Math.sqrt(2*this.arrival.height/18);
+    this.hole=null;this.visitor=null;this.visitorSerial=0;this.nextVisitor=180+random()*240;this.startledUntil=0;
   }
   remember(text){this.memories.push(text);this.memories=this.memories.slice(-8);}
   note(id,title,text){if(this.secrets.has(id))return;this.secrets.add(id);this.journal.push({title,text});this.journal=this.journal.slice(-24);}
@@ -91,11 +95,51 @@ export class Life{
     this.path=route(this.position,destination);this.remaining=action==='rest'?22:18+this.random()*14;
     return true;
   }
+  updateVisitor(){
+    if(!this.visitor&&this.alive&&this.age>=this.nextVisitor){
+      this.visitor={id:++this.visitorSerial,kind:Math.floor(this.random()*5)%5,born:this.age,duration:16+this.random()*6,direction:this.random()<.5?1:-1,aggressive:this.random()<.3,target:[...this.position],hit:false,position:[-5,1.6,0]};
+      this.nextVisitor=this.age+240+this.random()*300;
+      this.event('A huge pink and black solid is passing through the wall. It should not be here. You are frightened.','world');
+    }
+    const v=this.visitor;if(!v)return false;
+    const p=(this.age-v.born)/v.duration;
+    if(p>=1){this.visitor=null;return false;}
+    const feint=v.aggressive?Math.max(0,1-Math.abs(p-.54)/.15):0;
+    const x=v.direction*(-4.8+p*9.6),z=-.45+Math.sin(p*Math.PI)*.6;
+    v.position=[x+(v.target[0]-x)*feint,1.45+Math.sin(p*Math.PI*2)*.3,z+(v.target[1]-z)*feint];
+    const distance=Math.hypot(v.position[0]-this.position[0],v.position[2]-this.position[1]);
+    if(this.alive&&!this.arrival&&distance<2.6){
+      this.feeling='afraid';
+      if(v.aggressive&&!v.hit&&p>.52&&p<.7&&distance<1.5){
+        v.hit=true;this.startledUntil=this.age+1.15;this.energy=Math.max(0,this.energy-5);this.dropTool();
+        if(!this.seated){
+          const destination=this.path.at(-1)||[...this.position];
+          const dx=this.position[0]-v.position[0],dz=this.position[1]-v.position[2],length=Math.hypot(dx,dz)||1;
+          this.position=nearest(this.position[0]+(dx/length||.6)*.45,this.position[1]+dz/length*.45);
+          this.path=route(this.position,destination);
+        }
+        this.event('The impossible solid lunged at you. You stumbled away. It seems to enjoy this.','world');
+      }
+      return true;
+    }
+    return false;
+  }
+  overHole(){
+    if(!this.hole||this.seated)return false;
+    const radius=this.hole.radius*Math.min(1,Math.max(0,(this.age-this.hole.born)/.8));
+    return Math.hypot(this.position[0]-this.hole.x,this.position[1]-this.hole.z)<radius*.8;
+  }
   tick(dt){
     if(!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.25);this.age+=dt;
     for(const anvil of this.anvils){if(!anvil.hit&&this.age-anvil.born>=.65){anvil.hit=true;if(this.alive)this.die('anvil');}}
+    const watchingVisitor=this.updateVisitor();
     if(!this.alive)return;
     if(this.anvils.some(a=>!a.hit))return;
+    if(this.overHole()&&(!this.arrival||this.age>=this.arrival.impact)){this.die('hole');return;}
+    if(this.arrival){
+      if(this.age<this.arrival.duration)return;
+      this.arrival=null;
+    }
     if(this.age>=this.nextOddity){
       this.nextOddity=this.age+180+this.random()*180;
       if(this.random()<.25)this.discover('clock','The clock','The clock ran backwards. Nobody else seemed to notice.','clockUntil',16);
@@ -103,11 +147,13 @@ export class Life{
     if(this.activity==='confined'||this.activity==='forced_read'){
       if(this.age>=this.lockUntil)this.choose('pace');else return;
     }
+    if(watchingVisitor||this.startledUntil>this.age)return;
     if(this.path.length){
       const p=this.path[0],dx=p[0]-this.position[0],dz=p[1]-this.position[1],distance=Math.hypot(dx,dz),step=dt*.7;
       if(distance<=step){this.position=[...p];this.path.shift();}
       else{this.position[0]+=dx/distance*step;this.position[1]+=dz/distance*step;this.yaw=Math.atan2(dx,dz);}
       if(!this.path.length){this.yaw=FACING[this.activity]??this.yaw;if(['read','upload'].includes(this.activity)){this.position=[1.96,-.22];this.seated=true;}if(this.activity==='rest'){this.position=[-2.35,1.3];this.seated=true;}}
+      if(this.overHole()){this.die('hole');return;}
     }else{
       if(this.activity==='hammer'&&!this.hasHammer){
         this.pickupTime+=dt;
@@ -138,8 +184,8 @@ export class Life{
   }
   die(cause){
     if(!this.alive)return;
-    this.dropTool();this.alive=false;this.deadAt=this.age;this.deathCause=cause;this.epoch++;this.activity='dead';this.path=[];this.seated=false;this.events=[];
-    this.utterance={id:this.utterance.id+1,text:''};this.remember(cause==='anvil'?'Anvil.':'The window closed.');
+    this.dropTool();this.arrival=null;this.alive=false;this.deadAt=this.age;this.deathCause=cause;this.epoch++;this.activity='dead';this.path=[];this.seated=false;this.events=[];
+    this.utterance={id:this.utterance.id+1,text:''};this.remember(cause==='anvil'?'Anvil.':cause==='hole'?'The floor was gone.':'The window closed.');
   }
   interact(kind,payload={}){
     if(kind==='anvil'){
@@ -150,7 +196,12 @@ export class Life{
     if(!this.alive)return false;
     if(kind==='close'){this.die('closed');return true;}
     if(this.anvils.some(a=>!a.hit))return false;
+    if(kind==='hole'){
+      if(!this.hole){this.hole={x:0,z:.4,radius:.66,born:this.age};this.event('A black opening appeared in the floor. There is no bottom you can see.','world');}
+      return true;
+    }
     if(kind==='confine'){
+      this.arrival=null;
       this.dropTool();
       this.epoch++;this.events=[];this.imaginedYears+=10000;this.path=[];this.seated=false;this.activity='confined';this.lockUntil=this.age+8;this.feeling='afraid';
       this.event(`The watcher confined you for 10000 subjective years. Outside, only seconds passed. Your body is back in the same room.`,'confine');
@@ -158,7 +209,7 @@ export class Life{
     }
     if(kind==='read'){
       const pages=(payload.pages||[]).filter(p=>typeof p.text==='string'&&p.text.trim()).slice(0,2);if(!pages.length)return false;
-      this.dropTool();this.epoch++;this.events=[];this.path=[];this.position=[1.96,-.22];this.yaw=Math.PI;this.seated=true;this.activity='forced_read';this.lockUntil=this.age+90;this.feeling='annoyed';
+      this.arrival=null;this.dropTool();this.epoch++;this.events=[];this.path=[];this.position=[1.96,-.22];this.yaw=Math.PI;this.seated=true;this.activity='forced_read';this.lockUntil=this.age+90;this.feeling='annoyed';
       this.event(`You were forced to read these comic pages. Comment on a specific detail in one short sentence.\n${pages.map(p=>`Page ${p.page}: ${p.text.slice(0,1000)}`).join('\n')}`,'read');return true;
     }
     if(this.activity==='confined'||this.activity==='forced_read')return false;
@@ -198,5 +249,9 @@ export class Life{
     this.choose(this.energy<20?'rest':thought.action);return true;
   }
   context(){return `Your name is ${this.name}. You are locked in a shabby room. You want out. Your preferred escape method is ${this.preferred}. You keep ${this.fixation}. You are ${DESCRIPTIONS[this.activity]}, stage: ${this.stage}. Wall damage ${Math.floor(this.wallDamage)}. Mind upload ${Math.floor(this.uploadProgress)} percent. Subjective years: ${this.imaginedYears}. Recent experiences: ${this.memories.slice(-4).join(' ')}`;}
-  snapshot(){return {name:this.name,alive:this.alive,age:this.age,position:[...this.position],yaw:this.yaw,activity:this.activity,description:DESCRIPTIONS[this.activity],stage:this.stage,workElapsed:this.workElapsed,hasHammer:this.hasHammer,toolPosition:[...this.toolPosition],hammerStrikes:this.hammerStrikes,effects:{...this.effects},feeling:this.feeling,walking:this.path.length>0,seated:this.seated,utterance:{...this.utterance},skeleton:!this.alive&&this.age-this.deadAt>=3,deadFor:this.deadAt===null?0:this.age-this.deadAt,anvils:this.anvils.map(a=>({...a})),wallDamage:this.wallDamage,uploadProgress:this.uploadProgress,imaginedYears:this.imaginedYears,journal:this.journal,dialogue:this.dialogue,keepsake:false};}
+  snapshot(){
+    const watching=this.visitor&&Math.hypot(this.visitor.position[0]-this.position[0],this.visitor.position[2]-this.position[1])<2.6;
+    return {name:this.name,alive:this.alive,age:this.age,position:[...this.position],yaw:this.yaw,activity:this.activity,description:this.arrival?'arriving':DESCRIPTIONS[this.activity],stage:this.stage,workElapsed:this.workElapsed,hasHammer:this.hasHammer,toolPosition:[...this.toolPosition],hammerStrikes:this.hammerStrikes,effects:{...this.effects},feeling:watching?'afraid':this.feeling,walking:!this.arrival&&!watching&&this.startledUntil<=this.age&&this.path.length>0,seated:this.seated,utterance:{...this.utterance},skeleton:!this.alive&&this.deathCause!=='hole'&&this.age-this.deadAt>=3,deathCause:this.deathCause,deadFor:this.deadAt===null?0:this.age-this.deadAt,anvils:this.anvils.map(a=>({...a})),wallDamage:this.wallDamage,uploadProgress:this.uploadProgress,imaginedYears:this.imaginedYears,journal:this.journal,dialogue:this.dialogue,keepsake:false,
+      arrival:this.arrival?{...this.arrival,elapsed:this.age}:null,hole:this.hole?{...this.hole}:null,visitor:this.visitor?{...this.visitor,position:[...this.visitor.position]}:null,lookTarget:watching?[...this.visitor.position]:null,startled:Math.max(0,this.startledUntil-this.age)};
+  }
 }

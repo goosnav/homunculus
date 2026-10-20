@@ -21,6 +21,8 @@ export default defineConfig({
       await copyFile(resolve(root,'tools/model-lock.json'),resolve(root,'dist/licenses/model-sources.json'));
       await copyFile(resolve(root,'web/_headers'),resolve(root,'dist/_headers'));
       await copyFile(resolve(root,'LICENSE.md'),resolve(root,'dist/licenses/homunculus.md'));
+      await copyFile(resolve(root,'node_modules/@echogarden/flite-wasi/COPYING'),resolve(root,'dist/licenses/flite.txt'));
+      await copyFile(resolve(root,'node_modules/@bjorn3/browser_wasi_shim/LICENSE-MIT'),resolve(root,'dist/licenses/browser-wasi-shim.txt'));
     }
   }]
 });

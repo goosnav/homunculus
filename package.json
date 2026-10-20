@@ -19,6 +19,8 @@
     "wrangler": "4.151.2"
   },
   "dependencies": {
+    "@bjorn3/browser_wasi_shim": "0.4.2",
+    "@echogarden/flite-wasi": "0.1.1",
     "@huggingface/transformers": "3.8.1"
   },
   "engines": {

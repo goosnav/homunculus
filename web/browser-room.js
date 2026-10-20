@@ -41,6 +41,18 @@ export class BrowserRoom extends Room{
     this.copyTarget=new THREE.WebGLRenderTarget(160,112,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
     this.doorTarget=new THREE.WebGLRenderTarget(96,192,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
     this.doorView.material.map=this.doorTarget.texture;
+    const missing=texture(64,64,c=>{
+      c.fillStyle='#e400e4';c.fillRect(0,0,64,64);c.fillStyle='#090009';
+      c.fillRect(0,0,32,32);c.fillRect(32,32,32,32);
+    });
+    this.visitorMaterial=new THREE.MeshBasicMaterial({map:missing,transparent:true});
+    this.visitorMeshes=[new THREE.TetrahedronGeometry(1.12),new THREE.BoxGeometry(1.55,1.55,1.55),new THREE.OctahedronGeometry(1.1),new THREE.DodecahedronGeometry(1.05),new THREE.IcosahedronGeometry(1.08)].map(geometry=>{
+      const mesh=new THREE.Mesh(geometry,this.visitorMaterial);mesh.visible=false;this.scene.add(mesh);return mesh;
+    });
+    this.holeDisk=new THREE.Mesh(new THREE.CircleGeometry(.66,40),new THREE.MeshBasicMaterial({color:0x000000}));
+    this.holeDisk.rotation.x=-Math.PI/2;this.holeDisk.visible=false;this.scene.add(this.holeDisk);
+    this.holeRim=new THREE.Mesh(new THREE.TorusGeometry(.67,.025,5,40),material(0x282c28));
+    this.holeRim.rotation.x=Math.PI/2;this.holeRim.visible=false;this.scene.add(this.holeRim);
     // A front edge belongs to the wall around the viewer, with CSS completing the inset.
     this.box([.11,.08,5.5],[-3.37,.13,.2],0x66705e);
   }
@@ -91,6 +103,18 @@ export class BrowserRoom extends Room{
   }
   updateOddities(){
     const s=this.state,e=s.effects||{},doorOpen=e.doorUntil>s.age;
+    if(this.holeDisk){
+      const hole=s.hole;this.holeDisk.visible=this.holeRim.visible=!!hole;
+      if(hole){const opening=Math.min(1,(s.age-hole.born)/.8);this.holeDisk.position.set(hole.x,.028,hole.z);this.holeRim.position.set(hole.x,.03,hole.z);this.holeDisk.scale.setScalar(opening);this.holeRim.scale.setScalar(opening);}
+    }
+    if(this.visitorMeshes)for(let i=0;i<this.visitorMeshes.length;i++){
+      const mesh=this.visitorMeshes[i],v=s.visitor;mesh.visible=!!v&&v.kind===i;
+      if(mesh.visible){
+        mesh.position.set(...v.position);const elapsed=s.age-v.born;
+        mesh.rotation.set(elapsed*.33,elapsed*.47,Math.sin(elapsed*.4)*.6);
+        this.visitorMaterial.opacity=Math.min(1,Math.max(0,(3.7-Math.abs(v.position[0]))/.45));
+      }
+    }
     if(this.floorHammer){this.floorHammer.visible=!s.hasHammer;this.floorHammer.position.set(s.toolPosition?.[0]??.75,.05,s.toolPosition?.[1]??-.75);}
     if(this.bowl)this.bowl.visible=!(e.bowlUntil>s.age);
     if(this.wallReply){
@@ -120,13 +144,21 @@ export class BrowserRoom extends Room{
     if(!s.alive){
       this.dragging=false;this.speakingUntil=0;this.overlay.hidden=true;
       if(this.hammer)this.hammer.visible=false;if(this.book)this.book.visible=false;if(this.headset)this.headset.visible=false;if(this.cable)this.cable.visible=false;
+      if(s.deathCause==='hole'){
+        if(this.shadow)this.shadow.visible=false;
+        this.body.position.set(0,-Math.min(4,s.deadFor*s.deadFor*3.5),0);this.body.rotation.set(s.deadFor*.3,0,s.deadFor*.12);
+        this.model.visible=s.deadFor<1.2;if(this.skeleton)this.skeleton.visible=false;
+        this.pose('upper_arm.R',2.5,0,-.4);this.pose('upper_arm.L',2.5,0,.4);
+        return;
+      }
       const fall=Math.min(1,s.deadFor*2.2);this.body.rotation.set(fall*Math.PI/2,0,fall*.12);this.body.position.y=.48*fall;this.resident.rotation.y=THREE.MathUtils.lerp(s.yaw||0,0,fall);
       this.model.visible=!s.skeleton;if(this.skeleton)this.skeleton.visible=s.skeleton;
       for(const [name,bone]of Object.entries(this.bones)){bone.quaternion.copy(this.rest[name].q);bone.position.copy(this.rest[name].p);}
       this.pose('upper_arm.R',.25,0,-.4);this.pose('upper_arm.L',.1,0,.5);return;
     }
-    if(this.skeleton)this.skeleton.visible=false;this.model.visible=this.formation===undefined||this.formation>=1;this.body.rotation.z=0;
+    if(this.skeleton)this.skeleton.visible=false;if(this.shadow)this.shadow.visible=true;this.model.visible=this.formation===undefined||this.formation>=1;this.body.rotation.z=0;
     super.animate(t,dt);
+    if(s.arrival){this.animateArrival(s.arrival);return;}
     const settled=!s.walking&&!this.dragging,hammering=settled&&s.activity==='hammer'&&s.stage==='strike',uploading=settled&&s.activity==='upload';
     if(this.hammer)this.hammer.visible=!!s.hasHammer&&s.activity==='hammer';
     if(this.headset)this.headset.visible=uploading&&s.workElapsed>2;
@@ -153,9 +185,42 @@ export class BrowserRoom extends Room{
     if(s.activity==='forced_read'){this.pose('upper_arm.R',.75,0,-.15);this.pose('forearm.R',.9);this.pose('upper_arm.L',.75,0,.15);this.pose('forearm.L',.9);this.pose('head',.28);if(this.book)this.book.visible=true;}
     if(this.openMouth){this.openMouth.visible=t<this.speakingUntil||face.mouth>0;this.openMouth.scale.y=t<this.speakingUntil?.4+Math.abs(Math.sin(t*12)):face.mouth;this.frown.visible=!this.openMouth.visible;}
     if(this.brows)for(let i=0;i<2;i++)this.brows[i].rotation.z=(i?1:-1)*(face.brow+(i?face.asymmetry||0:0));
+    if(s.lookTarget){
+      const dx=s.lookTarget[0]-s.position[0],dz=s.lookTarget[2]-s.position[1];
+      const angle=Math.atan2(Math.sin(Math.atan2(dx,dz)-s.yaw),Math.cos(Math.atan2(dx,dz)-s.yaw));
+      this.pose('head',-.08,THREE.MathUtils.clamp(angle,-1.1,1.1),0);
+      this.pose('upper_arm.R',.4,0,-.25);this.pose('upper_arm.L',.4,0,.25);
+    }
+    if(s.startled>0){
+      const recoil=Math.sin(Math.min(1,s.startled/1.15)*Math.PI);
+      this.pose('chest',-.4*recoil);this.pose('upper_arm.R',1.2*recoil,0,-.6);this.pose('upper_arm.L',1.2*recoil,0,.6);
+      this.pose('thigh.R',.4*recoil);this.pose('shin.R',-.65*recoil);
+    }
     if(this.cracks){this.cracks.visible=s.wallDamage>3;this.cracks.children.forEach((c,i)=>c.visible=s.wallDamage>i*3);}
     const monitorText=s.uploadProgress>=99?'COPY IS A ROOM':uploading?`COPYING ${Math.floor(s.uploadProgress)}%`:'NO CARRIER';
     if(this.monitorTexture&&this.lastMonitorText!==monitorText){this.lastMonitorText=monitorText;const c=this.monitorTexture.image.getContext('2d');c.fillStyle='#17251e';c.fillRect(0,0,128,96);c.fillStyle='#9fbd8d';c.font='10px monospace';c.fillText(monitorText,8,45);c.fillText(s.uploadProgress>=99?'ACCESS DENIED':'_',8,62);this.monitorTexture.needsUpdate=true;}
+  }
+  animateArrival(arrival){
+    const a=arrival.elapsed,impact=arrival.impact,after=Math.max(0,a-impact);
+    for(const [name,bone]of Object.entries(this.bones)){bone.quaternion.copy(this.rest[name].q);bone.position.copy(this.rest[name].p);}
+    this.resident.position.set(this.state.position[0],0,this.state.position[1]);
+    this.overlay.hidden=true;this.hammer.visible=false;this.headset.visible=false;this.cable.visible=false;
+    const standing=THREE.MathUtils.smoothstep(after,.65,arrival.duration-impact),loose=1-standing;
+    const bounce=after<.65?Math.abs(Math.sin(after*13))*Math.exp(-after*6)*.16:0;
+    const height=a<impact?Math.max(0,arrival.height-9*a*a):.48*loose+bounce;
+    this.body.position.set(0,height,0);
+    this.body.rotation.set(a<impact?Math.min(1.5,a*1.5):1.5*loose,0,a<impact?arrival.spin*a:arrival.spin*impact*loose);
+    this.resident.rotation.y=this.state.yaw+arrival.spin*loose;
+    const flail=a<impact?1:Math.exp(-after*5);
+    this.pose('upper_arm.R',.6*loose+Math.sin(a*13)*flail,0,-.8*loose);
+    this.pose('upper_arm.L',.6*loose+Math.cos(a*11)*flail,0,.8*loose);
+    this.pose('forearm.R',.5*loose+Math.abs(Math.sin(a*10))*.7*flail);
+    this.pose('forearm.L',.8*loose);
+    this.pose('thigh.R',.6*loose+Math.sin(a*9)*.4*flail);
+    this.pose('thigh.L',.2*loose-Math.sin(a*8)*.3*flail);
+    this.pose('shin.R',-.6*loose);this.pose('shin.L',-.3*loose);this.pose('head',.12*loose,0,Math.sin(a*8)*.2*flail);
+    if(this.openMouth)this.openMouth.visible=false;
+    if(this.frown)this.frown.visible=true;
   }
   bindPointer(){
     // Observer's glass: tapping is allowed, but never dragging a dead body or a half-loaded resident.

@@ -6,6 +6,7 @@ import { BrowserMind, mindMessages } from './mind.js';
 import { BrowserVoice } from './browser-voice.js';
 const $=s=>document.querySelector(s);
 const voice=new BrowserVoice();
+voice.onError=()=>notice('His voice did not reach the glass.');
 // Safari's keyboard changes the visual viewport, not necessarily layout height.
 // Leave pinch-zoom alone; only fit the window at the normal page scale.
 if(window.visualViewport){
@@ -69,6 +70,7 @@ function interaction(kind,payload={}){
   if(!life)return;
   if(kind==='read'){payload.pages=comicReader.select();const images=$('#reading-pages');images.replaceChildren();for(const page of payload.pages){const image=new Image();image.src=page.image;image.alt=`Book 2, page ${page.page}`;images.append(image);}}
   const accepted=life.interact(kind,payload);
+  if(accepted&&kind==='tap')voice.effect('tap');
   if(accepted&&['anvil','confine','close'].includes(kind))silence();
   if(accepted&&kind==='release')notice('Access is denied.');
   if(!life.alive)endMind();
@@ -78,7 +80,7 @@ function endMind(){
   document.querySelectorAll('[data-action]').forEach(b=>{b.disabled=b.dataset.action!=='anvil';});
 }
 async function think(){
-  if(!life?.alive||!mind?.ready||busy||spawning||document.hidden)return;
+  if(!life?.alive||life.arrival||!mind?.ready||busy||spawning||document.hidden)return;
   let event=life.takeEvent();while(event&&event.epoch!==life.epoch)event=life.takeEvent();
   if(!event&&life.age<nextThought)return;
   const current=life,brain=mind,epoch=life.epoch;busy=true;$('#brain-status').textContent='A thought is forming';
@@ -97,6 +99,7 @@ async function think(){
 function frame(now){
   requestAnimationFrame(frame);const dt=Math.min(.2,(now-lastFrame)/1000);lastFrame=now;
   if(!life)return;life.tick(dt);
+  voice.update(life.snapshot());
   if(!life.alive)endMind();room.update(life.snapshot(),{thinking:busy&&life.alive,watching:!document.hidden});
   $('#activity').textContent=`${life.name} is ${life.snapshot().description}.`;
   $('#reading-pages').hidden=life.activity!=='forced_read';
@@ -121,5 +124,5 @@ $('#reload-mind').addEventListener('click',async()=>{
 window.addEventListener('pagehide',()=>{generation++;life?.interact('close');mind?.dispose();silence();});
 window.addEventListener('pageshow',event=>{if(event.persisted){if(life)endMind();else cancelSpawn();}});
 $('#viewport').addEventListener('render-lost',()=>{generation++;life?.interact('close');mind?.dispose();notice('The view was lost. This existence ended. Reload the page to spawn someone new.');});
-if(debug)window.__habitat={get room(){return room;},get spawning(){return spawning;},interaction,spawn,parseThought};
+if(debug)window.__habitat={get room(){return room;},get spawning(){return spawning;},voice,interaction,spawn,parseThought};
 requestAnimationFrame(frame);

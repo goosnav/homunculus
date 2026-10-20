@@ -4,7 +4,9 @@ A little life behind glass, inside a Windows XP window.
 
 Press **Spawn homunculus**. A real tiny language model downloads into the browser while the room takes shape. The resident tries the door, works on the wall, and attempts to copy himself into a beige computer. His words and action choices come from the model; his body keeps moving while it thinks.
 
-The buttons beneath the message box change his circumstances. Force-read feeds him actual Book II OCR excerpts. An anvil kills him, then leaves a skeleton. Further messages get no reply. Refreshing or closing ends that individual; a new spawn creates someone else. Model files can remain cached separately.
+The buttons beneath the message box change his circumstances. Force-read feeds him actual Book II OCR excerpts. An anvil kills him, then leaves a skeleton. Black hole opens a floor void; stepping into it permanently removes him. Further messages get no reply. Refreshing or closing ends that individual; a new spawn creates someone else. Model files can remain cached separately.
+
+Each arrival drops from above with loose limbs, a floor impact and a slow recovery, at a slightly different position. Rare large checkerboard Platonic solids pass through the walls. He watches them fearfully; some lunge and make him stumble.
 
 ## Run the browser edition
 
@@ -23,7 +25,7 @@ The model is **SmolLM2 135M Instruct**, quantized ONNX, running on CPU WebAssemb
 
 This model is deliberately small. Its answers can be odd, generic, or wrong. Speech is short and unsolicited model decisions are silent. The model chooses from validated actions and cannot directly manipulate geometry or execute code.
 
-Inference input is capped at 384 tokens to limit memory during play. Older context is trimmed before the current event; forced reading keeps material from both selected excerpts. Mobile controls accommodate the on-screen keyboard. Audio is enabled by the Spawn tap; available voices depend on the device.
+Inference input is capped at 384 tokens to limit memory during play. Older context is trimmed before the current event; forced reading keeps material from both selected excerpts. Mobile controls accommodate the on-screen keyboard. Audio is enabled by the Spawn tap. A bundled Flite KAL male robot voice generates PCM in a worker, then passes through a 1,550 Hz low-pass filter for the glass effect. It uses no OS voice or speech service. Its approximately 21 MB runtime loads on the first spoken reply; effects use Web Audio. Browser/device audio restrictions and system volume still apply.
 
 ## Book II OCR
 
