@@ -13,8 +13,7 @@ FACING = {'rest': 0., 'read': math.pi, 'inspect': math.pi / 2, 'watch': 0., 'esc
           'eat': 0., 'knock': 0.}  # Eating faces the glass, so you can see it.
 
 
-# The shared project: thirteen things to find out about this room and the person outside it. Finding them
-# all is the only "win", and it leaves something behind. key: (journal title, what he writes and says)
+# Private observations accumulated while he lives here. key: (title, his own words)
 DISCOVERIES = {
     'door': ('The door', 'The door has no handle on this side. The plaque says OUTSIDE, probably.'),
     'book': ('The book', 'The man in panel four of the Goosnav book cannot leave his panel either.'),
@@ -152,8 +151,6 @@ class Simulation:
             self.remember('Read a Goosnav book. There are other people drawn inside it.', salient=False)
         elif action == 'inspect':
             self.remember('Examined the booster pack on the desk. It is not a key.', salient=False)
-        if action in ACTIVITY_DISCOVERY:
-            self.discover(ACTIVITY_DISCOVERY[action], notice=True)
 
     def observe(self, watched, away_seconds=0):
         """Presence comes from the window: visible, minimized, or a new session after a long absence."""
@@ -199,6 +196,8 @@ class Simulation:
             if not self.path and self.activity in SEATS:
                 self.position, self.seated = list(SEATS[self.activity]), True
         else:
+            if self.activity in ACTIVITY_DISCOVERY:
+                self.discover(ACTIVITY_DISCOVERY[self.activity], notice=True)
             self.remaining -= dt
             self.yaw = FACING.get(self.activity, self.yaw)
             if self.activity == 'rest':
@@ -289,4 +288,4 @@ class Simulation:
                               'attempts': self.attempts, 'release_attempts': self.release_attempts,
                               'trust': round(self.trust, 1), 'feeling': self.feeling, 'watched': self.watched,
                               'utterance': self.utterance, 'event': self.event,
-                              'journal': self.journal, 'journal_total': len(DISCOVERIES), 'keepsake': self.keepsake})
+                              'journal': [j | {'title': DISCOVERIES[j['key']][0], 'text': DISCOVERIES[j['key']][1]} for j in self.journal], 'journal_total': len(DISCOVERIES), 'keepsake': self.keepsake})

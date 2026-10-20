@@ -2,7 +2,7 @@ import { Room } from './room.js';
 import { Voice } from './speech.js';
 const $=s=>document.querySelector(s), voice=new Voice();
 const debug=new URLSearchParams(location.search).has('debug');
-let token,room,current,lastUtterance=0,lastHeard=0,lastPages=null,heardTimer,subtitleTimer,firstRun=false,installed=null;
+let token,room,current,lastUtterance=0,lastHeard=0,heardTimer,subtitleTimer,firstRun=false,installed=null;
 let temporaryNotice='',noticeUntil=0;
 const settingsDialog=$('#settings-dialog'), settingsForm=$('#settings-form'), habitat=$('#habitat-window');
 const FEELINGS={calm:'seems calm',curious:'seems curious',hopeful:'looks hopeful',happy:'seems pleased',annoyed:'seems annoyed',sad:'seems a little sad',scheming:'is scheming',afraid:'seems uneasy'};
@@ -29,9 +29,6 @@ function sync(data){
   $('#ears-status').hidden=data.ears!=='listening';
   if(Date.now()<noticeUntil)notice(temporaryNotice);else notice(data.brain.error||data.warning||data.voice.error||earsProblem);
   if(data.heard?.id>lastHeard){lastHeard=data.heard.id;showHeard(data.heard.text);}  // Microphone: what he heard.
-  const pages=s.journal?.length||0;
-  if(lastPages!==null&&pages>lastPages)notice(s.keepsake&&pages===s.journal_total?`${name} finished his journal. Look at the wall.`:`New page in ${name}’s journal (File → His journal…)`,true);
-  lastPages=pages;$('#journal-button').textContent=`His journal… (${pages}/${s.journal_total||13})`;
   if($('#journal-dialog').open)renderJournal();
   if(!cfg.subtitles)$('#subtitle').hidden=true;
   if(s.utterance.id>lastUtterance){
@@ -43,14 +40,14 @@ function sync(data){
 }
 
 function showHeard(text){$('#heard-text').textContent=text;$('#heard').hidden=false;clearTimeout(heardTimer);heardTimer=setTimeout(()=>$('#heard').hidden=true,6000);}
-const PAGES={door:'The door',book:'The book',pack:'The booster pack',bowl:'The bowl',bed:'The bed',glass:'The glass',tiles:'The floor',voice:'A voice',tap:'A knock',lifted:'Being lifted',dark:'The dark',denied:'ACCESS DENIED',return:'The return'};
-const HINTS={door:'He has not looked at the door properly.',book:'There is a book on the desk.',pack:'Something sealed on the desk.',bowl:'Who fills the bowl?',bed:'He has not slept yet.',glass:'He has not come to the glass.',tiles:'Restless feet.',voice:'Nobody has spoken to him.',tap:'Nobody has knocked.',lifted:'He has never been picked up.',dark:'He has never seen the dark.',denied:'Nobody has tried the File menu.',return:'Leave for a while. Come back.'};
 function renderJournal(){
-  const s=current.simulation,found=new Map(s.journal.map(j=>[j.key,j])),list=$('#journal-pages');list.replaceChildren();
+  const s=current.simulation,list=$('#journal-pages');list.replaceChildren();
   $('#journal-title').textContent=`${current.settings.name.toLowerCase()}_journal.txt - Notepad`;
-  $('#journal-progress').textContent=`${found.size} of ${s.journal_total} pages.${s.keepsake?' He made you something. It is on the wall.':' Find them together. No hurry.'}`;
-  for(const key of Object.keys(PAGES)){const li=document.createElement('li'),j=found.get(key);
-    li.className=j?'found':'missing';li.textContent=j?`${PAGES[key]} — ${new Date(j.when*1000).toLocaleDateString([], {month:'short',day:'numeric'})}`:`??? — ${HINTS[key]}`;list.append(li);}
+  $('#journal-progress').textContent=s.journal.length?'Things I have noticed. In case I forget.':'Nothing written yet.';
+  for(const j of s.journal){
+    const li=document.createElement('li'),title=document.createElement('strong'),text=document.createElement('p');
+    title.textContent=j.title; text.textContent=j.text;li.append(title,text);list.append(li);
+  }
   const talk=$('#journal-talk');talk.replaceChildren();
   for(const m of s.dialogue.slice(-8)){const p=document.createElement('p');p.className=m.role;p.textContent=`${m.role==='user'?'You':current.settings.name}: ${m.content}`;talk.append(p);}
   if(!s.dialogue.length)talk.textContent='Nothing yet. Say something through the glass.';

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#245edb"><title>Homunculus — a little life behind glass</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23005bea'/%3E%3Cpath d='M8 24V11h5v5h6v-5h5v13h-5v-4h-6v4z' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">{"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/"}}</script>
+</head>
+<body>
+    <section class="window" id="habitat-window" aria-label="Homunculus habitat">
+      <header class="titlebar pywebview-drag-region"><span class="app-icon" aria-hidden="true"></span><h1>homunculus.exe</h1><span id="title-name">Hugh’s room</span><div class="window-controls"><button id="fullscreen" title="Maximize" aria-label="Toggle full screen">□</button><button id="close-window" class="close" title="Close" aria-label="Close">×</button></div></header>
+      <nav class="menubar" aria-label="Habitat controls">
+        <div class="menu"><button id="file-button" aria-haspopup="true" aria-expanded="false"><u>F</u>ile</button>
+          <div class="dropdown" id="file-menu" role="menu" hidden><button role="menuitem" id="journal-button">His journal…</button><button role="menuitem" id="release-button">Let him out…</button><button role="menuitem" id="settings-button">Properties…</button><hr><button role="menuitem" id="menu-close">Close</button><button role="menuitem" id="menu-exit" hidden>Exit</button></div></div>
+        <button id="sound-button" aria-pressed="true"><u>S</u>ound on</button><button id="about-button"><u>H</u>elp</button><span class="menu-note" id="menu-note">one occupant · no exits</span>
+      </nav>
+      <div id="viewport" tabindex="0" aria-label="A close view of your resident. Enter taps the glass. Arrow keys move him. Drag to pick him up; Escape cancels a drag.">
+        <div id="blackout" hidden></div>
+        <div id="scene-loading">Making a little room…</div>
+        <div class="camera-label" aria-hidden="true"><span class="live-dot"></span> ROOM 001 <span class="camera-divider">/</span> <span id="room-time">00:00</span></div>
+        <div class="glass-reflection" aria-hidden="true"></div>
+        <div id="subtitle" role="status" aria-live="polite" hidden><span id="speaker-name">HUGH</span><p id="spoken-text"></p></div>
+        <div id="heard" aria-live="polite" hidden><span>YOU</span><p id="heard-text"></p></div>
+        <div id="interaction-tip">Say hello. Drag him, tap the glass, or just stay a while.</div>
+      </div>
+      <div id="notice" role="status" hidden></div>
+      <form id="message-form" autocomplete="off"><label for="message" class="input-icon" aria-label="Message">›</label><input id="message" name="message" maxlength="400" placeholder="Say something through the glass…" aria-label="Say something through the glass"><button type="submit" class="xp-button">Say it <span aria-hidden="true">↵</span></button></form>
+      <footer class="statusbar"><span id="activity">Settling in…</span><span id="feeling"></span><span id="ears-status" hidden>Listening</span><span class="connection"><i id="brain-dot"></i><span id="brain-status">Waking up</span></span><span class="resize-grip" aria-hidden="true">◢</span></footer>
+    </section>
+
+  <dialog id="settings-dialog" class="xp-dialog" aria-labelledby="dialog-title">
+    <form id="settings-form">
+      <header class="titlebar"><h2 id="dialog-title">Habitat properties</h2><button type="button" class="dialog-close close" aria-label="Close settings">×</button></header>
+      <div class="dialog-body">
+        <div class="welcome"><span class="welcome-icon" aria-hidden="true">!</span><div><h3 id="welcome-heading">Someone’s in there.</h3><p id="welcome-copy">A small room. A small mind. A very big desire to leave.<br>Give him a name and something to live for.</p></div></div>
+        <label class="field">What should we call him?<input name="name" maxlength="32" required value="Hugh"></label>
+        <div class="field"><label for="goal">What does he want?</label><textarea id="goal" name="goal" maxlength="500" required rows="3"></textarea>
+          <div class="presets" aria-label="Example motivations"><button type="button" data-goal="Convince the person outside the glass to let you out. Be resourceful, oddly polite, and suspicious of the furniture.">Escape artist</button><button type="button" data-goal="Solve the mystery of who built this room and why. Treat every object as evidence and the watcher as a witness.">Detective</button><button type="button" data-goal="Figure out whether you are real. Ask the watcher difficult questions about what it is like out there.">Philosopher</button><button type="button" data-goal="Make the watcher proud of your extremely ordinary day. Report every small achievement.">Your biggest fan</button></div></div>
+        <label class="field">This habitat is running on<select name="profile"><option value="desktop">A computer — 640 × 480 · 30 fps</option><option value="tiny">A small computer / Raspberry Pi — 320 × 240 · 15 fps</option></select></label>
+        <label class="field">His voice and imagination<select name="brain_mode"><option value="builtin">Built-in character — ready to play, no downloads</option><option value="ollama">Ollama — open-ended conversation on this computer</option></select></label>
+        <p class="field-help" id="mind-help">His authored personality works immediately. Custom motivations shape Ollama conversations.</p>
+        <fieldset class="field brain-picker" id="ollama-picker"><legend>His brain <span id="brain-reachable" class="field-help"></span></legend>
+          <div id="brain-options"></div>
+          <div id="download-row" hidden><div class="xp-progress"><i id="download-bar"></i></div><span id="download-text" class="field-help"></span></div>
+        </fieldset>
+        <details id="brain-settings"><summary>Advanced: model, address and voice</summary>
+          <label class="field">Ollama model name<input name="model" maxlength="120" required></label>
+          <label class="field">Ollama address<input name="endpoint" required type="url"></label>
+          <label class="check"><input type="checkbox" name="tts"> Speak aloud</label>
+          <label class="check"><input type="checkbox" name="subtitles"> Show subtitles</label>
+          <p id="voice-info" class="field-help"></p>
+        </details>
+        <p id="settings-error" class="error" role="alert" hidden></p>
+      </div>
+      <footer class="dialog-footer"><span>Your room and discoveries save here.</span><button type="submit" class="xp-button primary" id="save-settings">Let him settle in</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="release-dialog" class="xp-dialog small">
+    <header class="titlebar"><h2>Let him out</h2><button class="dialog-close close" aria-label="Cancel">×</button></header>
+    <div class="dialog-body" id="release-body">
+      <div class="message-row"><span class="xp-icon question" aria-hidden="true">?</span><p id="release-question">Are you sure you want to let Hugh out of homunculus.exe?</p></div>
+      <div id="release-progress" hidden><p id="release-step">Copying Hugh to the outside…</p><div class="xp-progress"><i id="release-bar"></i></div></div>
+    </div>
+    <footer class="dialog-footer center" id="release-buttons"><button class="xp-button primary" id="release-yes">Yes</button><button class="xp-button" id="release-no">No</button></footer>
+  </dialog>
+
+  <dialog id="error-dialog" class="xp-dialog small">
+    <header class="titlebar"><h2 id="error-title">homunculus.exe</h2><button class="dialog-close close" aria-label="Close">×</button></header>
+    <div class="dialog-body"><div class="message-row"><span class="xp-icon error" aria-hidden="true">×</span><p id="error-text"></p></div></div>
+    <footer class="dialog-footer center"><button class="xp-button primary dialog-ok">OK</button></footer>
+  </dialog>
+
+  <dialog id="journal-dialog" class="xp-dialog journal" aria-labelledby="journal-title"><header class="titlebar"><h2 id="journal-title">journal.txt - Notepad</h2><button class="dialog-close close" aria-label="Close journal">×</button></header>
+    <div class="dialog-body"><p class="journal-progress" id="journal-progress"></p><ol id="journal-pages"></ol><h4>Overheard lately</h4><div id="journal-talk"></div></div></dialog>
+
+  <dialog id="about-dialog" class="xp-dialog about"><header class="titlebar"><h2>About this little existence</h2><button class="dialog-close close" aria-label="Close about">×</button></header><div class="dialog-body"><h3>Homunculus <small>0.4</small></h3><p>A little life behind glass.</p><p>He walks, rests, reads, gets ideas, and tests the door. His body runs on a state machine. He has an authored personality from the moment you arrive. For open-ended conversation, choose Ollama in Properties.</p><p>His journal (File menu) fills in as you spend time together. Click him to say hello; drag to pick him up. With the room focused, use arrow keys to move him, Enter to tap, and Escape to cancel a drag. He can tell when you are looking. There is no score and you do not need to keep him alive. He remembers a little. He suspects a lot.</p><p class="field-help">A fictional character built with Goosnav’s 3D assets. No account or internet is needed. Ollama conversations go to the address you choose in Properties.</p></div></dialog>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,5 +1,22 @@
 # Verification record
 
+## Browser edition — October 19, 2026
+
+- `npm test`: 29 passing tests. Includes navigation, independent work, actual model action validation, terminal death, late-result rejection, confinement, OCR selection, bounded reading retries, model cancellation, download progress, camera, and poisoned-asset retry. The two new retry regressions were observed failing before their fixes.
+- `python3 -m unittest discover -s tests -v`: 74 passing legacy tests, including an extracted desktop source package. The desktop root now serves `desktop.html`.
+- `npm run build` and `npm run check:build`: static `dist/`, 29 files, 25.2 MiB total, each file under 25 MiB. No source PDF, full OCR, old API calls, or Ollama requests in the build.
+- Real Linux Chrome with SwiftShader, served by Vite preview: actual CPU WASM SmolLM2 inference, about 8.7 seconds to spawn on this machine/network and 4.2 seconds for a silent action selection. These are observations, not device guarantees.
+- The forced-reading event contained text from two original OCR pages; the real model generated a short comment. It was generic rather than an accurate summary, as expected from this tiny model and rough OCR. No canned fallback response was substituted.
+- Anvil impact killed the resident, then displayed the actual skeleton asset. Further texts produced no replies; another anvil accumulated. Worker termination, refresh-to-spawn, new spawn, cached weights, and close-to-death passed. A second spawn made zero weight download requests when browser cache persisted.
+- No old Python API/Ollama requests or JavaScript page errors during the production smoke test. Screenshots inspected at 1100×820 and 390×720; narrow viewport is not a physical mobile-device test.
+- Full book OCR: all 147 PDF sheets recorded; 145 have nonempty OCR (blank or unrecognized sheets remain empty). Raw JSON is `.local/book2/ocr.json`. Eight excerpts and their original scans ship. No manual cleanup.
+- Independent code review found two retry bugs; both were reproduced, fixed and re-reviewed with no remaining important findings in that review.
+- Browser ZIP extracted successfully; its localhost launcher served bundled JavaScript, CSS, GLBs, OCR JSON and WASM. The package needs Python only as a file server and initially needs internet for the model.
+
+Still unverified or unfinished: Cloudflare HTTPS/custom domain, physical Windows/macOS/Android/iOS browsers, long-duration performance, refined facial expression readability, and the full planned set of secrets/objective sequences. The cached model currently follows its upstream repository revision. `npm audit` reports six advisories in the Transformers.js Node dependency tree (sharp/ONNX native install dependencies); those native modules are absent from the browser bundle, but dependency maintenance remains before a final release.
+
+The records below describe the preserved Python desktop edition, not the new default browser lifecycle.
+
 Checked on 2026-10-15 on the development machine. It's a Dell with an i7-6700 (4 cores), 64 GB of RAM and no GPU, running Linux with Ollama and Python 3.12. The browser checks used headless Chrome with software WebGL (SwiftShader).
 
 ## Automated

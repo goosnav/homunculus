@@ -144,20 +144,27 @@ export class Room {
   }
   async loadAssets(){
     const loader=new GLTFLoader();
-    const load=async(file)=>{
+    this.assetLoads??=new Map();
+    const fetchAsset=async(file)=>{
       const gltf=await loader.loadAsync(`/assets/${file}.glb`);
       gltf.scene.traverse(o=>{if(o.isMesh){const source=Array.isArray(o.material)?o.material:[o.material];o.material=source.map(m=>{if(m.map){m.map.magFilter=THREE.NearestFilter;m.map.minFilter=THREE.NearestFilter;m.map.generateMipmaps=false;}return new THREE.MeshLambertMaterial({color:m.color,map:m.map,side:m.side,transparent:m.transparent,opacity:m.opacity,flatShading:true});});if(o.material.length===1)o.material=o.material[0];}});
       return gltf.scene;
     };
-    const resident=await load('resident');
+    const load=file=>{
+      if(!this.assetLoads.has(file))this.assetLoads.set(file,fetchAsset(file).catch(error=>{this.assetLoads.delete(file);throw error;}));
+      return this.assetLoads.get(file);
+    };
+    // Stage all downloads before attaching anything. A failed download can be retried
+    // without constructing another renderer or duplicating the successful scene objects.
+    const items=[['book',[1.64,1.025,-1.3],2.1,.24],['pack',[2.17,1.03,-1.4],1.65,-.3],['zine',[-2.33,.694,.51],1.8,.2],['card',[1.88,1.035,-1.04],2.1,.45]];
+    const [resident,...props]=await Promise.all(['resident',...items.map(item=>item[0])].map(load));
     this.model=resident;this.body.add(resident);
     resident.traverse(o=>{if(o.isBone){this.bones[o.name.replaceAll('.','')]=o;this.rest[o.name.replaceAll('.','')]={q:o.quaternion.clone(),p:o.position.clone()};}});
     this.headBone=this.bones.head;
     // A small book that only exists while he reads at the desk.
     if(this.bones.handR){this.book=new THREE.Mesh(new THREE.BoxGeometry(.2,.035,.27),mat(0x8b3b2e));this.book.position.set(.06,.1,.02);this.book.visible=false;this.bones.handR.add(this.book);}
     // Blender faces -Y; glTF conversion maps that to +Z, toward the glass.
-    const items=[['book',[1.64,1.025,-1.3],2.1,.24],['pack',[2.17,1.03,-1.4],1.65,-.3],['zine',[-2.33,.694,.51],1.8,.2],['card',[1.88,1.035,-1.04],2.1,.45]];
-    await Promise.all(items.map(async([file,p,s,y])=>{const item=await load(file);item.position.set(...p);item.scale.setScalar(s);item.rotation.y=y;this.scene.add(item);}));
+    items.forEach(([,p,s,y],i)=>{const item=props[i];item.position.set(...p);item.scale.setScalar(s);item.rotation.y=y;this.scene.add(item);});
     this.container.dataset.loaded='true';
     return this;
   }
@@ -181,10 +188,10 @@ export class Room {
     const lift=this.dragging?.45:lying?LIE.y:sitting?SIT.y:moving?Math.abs(w*.018):f==='happy'?Math.max(0,Math.sin(t*5))*.02:0;
     this.body.position.y=damp(this.body.position.y,lift,lying||sitting?6:20,dt);
     for(const [name,bone]of Object.entries(this.bones)){bone.quaternion.copy(this.rest[name].q);bone.position.copy(this.rest[name].p);}
-    // Limbs.
+    // Knees flex in negative local X on this rig, matching the seated pose.
     for(const [side,sign]of [['L',1],['R',-1]]){
       if(sitting){this.pose(`thigh.${side}`,1.45);this.pose(`shin.${side}`,-1.45);}
-      else{this.pose(`thigh.${side}`,moving?w*.32*sign:0);this.pose(`shin.${side}`,moving?Math.max(0,-w*sign)*.35:0);}
+      else{this.pose(`thigh.${side}`,moving?w*.32*sign:0);this.pose(`shin.${side}`,moving?-Math.max(0,-w*sign)*.35:0);}
       // Arm bones: positive X swings forward.
       const swing=moving?-w*.25*sign:speaking&&!lying?.28+Math.sin(t*3+sign)*.08:lying?-.05:0;
       this.pose(`upper_arm.${side}`,swing,0,this.dragging?sign*.9:f==='sad'&&!moving?-sign*.08:0);

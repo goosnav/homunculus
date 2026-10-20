@@ -32,11 +32,11 @@ jobs:
         shell: bash
         run: |
           for file in web/*.js; do node --check "$file"; done
-      - name: Test the room's camera and controls
+      - name: Test browser simulation, mind bridge, room and comics
         shell: bash
         run: |
           npm ci --ignore-scripts
-          node --test tests/room.test.mjs
+          npm test
       - name: Test game, saves and extracted source download
         run: python -m unittest discover -s tests -v
       - name: Upload source ZIP and checksum
@@ -47,4 +47,18 @@ jobs:
           path: |
             dist/homunculus-*.zip
             dist/homunculus-*.zip.sha256
+          if-no-files-found: error
+      - name: Build and verify the standalone browser edition
+        run: |
+          npm run build
+          npm run check:build
+          python tools/package-browser.py
+      - name: Upload browser edition
+        if: matrix.os == 'ubuntu-24.04' && matrix.python == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Homunculus-browser
+          path: |
+            build/homunculus-browser.zip
+            build/homunculus-browser.zip.sha256
           if-no-files-found: error

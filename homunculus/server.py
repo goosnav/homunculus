@@ -56,7 +56,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             target = (WEB / unquote(path).lstrip('/')).resolve()
             if path == '/':
-                target = WEB / 'index.html'
+                target = WEB / 'desktop.html'
             if not target.is_relative_to(WEB.resolve()) or not target.is_file():
                 return self.reply(404, {'error': 'File not found.'})
             data = target.read_bytes()

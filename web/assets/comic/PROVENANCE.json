@@ -1,0 +1,50 @@
+{
+  "source_title": "book 2 low quality.pdf",
+  "cover_title": "Meditations of the Elusive Idea Bladder",
+  "source_url": "https://drive.google.com/file/d/1eHsHUr3ZP4IX598ZNAZFPOD-FM6SsC4F/view",
+  "source_sha256": "4519506a600186cc6cce979f80256b989b98c9722c9672337730e59c588b8b04",
+  "source_pdf_pages": 147,
+  "method": "PDF sheets rendered with Poppler to 1200px for display. Quick raw Tesseract English OCR at 1600px using tools/ocr-book.py. excerpts.json contains uncorrected machine text. Full OCR and source PDF stay local; only selected excerpt pages ship.",
+  "selection": [
+    {
+      "pdf_sheet": 10,
+      "printed_page": 6,
+      "image": "page-6.jpg"
+    },
+    {
+      "pdf_sheet": 24,
+      "printed_page": 20,
+      "image": "page-20.jpg"
+    },
+    {
+      "pdf_sheet": 40,
+      "printed_page": 36,
+      "image": "page-36.jpg"
+    },
+    {
+      "pdf_sheet": 61,
+      "printed_page": 57,
+      "image": "page-57.jpg"
+    },
+    {
+      "pdf_sheet": 80,
+      "printed_page": 76,
+      "image": "page-76.jpg"
+    },
+    {
+      "pdf_sheet": 99,
+      "printed_page": 95,
+      "image": "page-95.jpg"
+    },
+    {
+      "pdf_sheet": 120,
+      "printed_page": 116,
+      "image": "page-116.jpg"
+    },
+    {
+      "pdf_sheet": 140,
+      "printed_page": 136,
+      "image": "page-136.jpg"
+    }
+  ]
+}

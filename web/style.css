@@ -132,3 +132,5 @@ summary{font-size:11px;cursor:pointer;color:#52605d}
 .xp-dialog{max-height:calc(100dvh - 20px)}.dialog-body{max-height:calc(100dvh - 130px)}
 @media(max-width:700px){.menu-note{display:none}.menubar>button,.menu>button{padding:3px 7px}.dialog-body{padding:12px}.dialog-footer>span{display:none}#brain-status{max-width:130px}.xp-dialog{max-width:calc(100vw - 12px)}.journal .dialog-body{max-height:65dvh}}
 @media(max-height:500px){#interaction-tip{display:none}#subtitle p{font-size:11px;padding:5px 8px}}
+
+.journal #journal-pages{list-style:none;padding:0}.journal #journal-pages li{padding:8px 0;border-bottom:1px solid #e4e1d7}.journal #journal-pages p{margin:3px 0;line-height:1.65}

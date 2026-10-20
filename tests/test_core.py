@@ -148,6 +148,10 @@ class JournalTests(unittest.TestCase):
         sim.interact('tap', {})
         sim.choose('read')
         self.assertIn('tapped', sim.event)
+        for _ in range(600):
+            sim.tick(.1)
+            if sim.notices:
+                break
         self.assertTrue(sim.notices[0].startswith('Noticed: '))
 
 

@@ -1,0 +1,26 @@
+#viewport{background:#080c10}
+#viewport canvas{cursor:default}
+.glass-reflection{z-index:3;background:linear-gradient(117deg,transparent 54%,#e4e2cf0a 54%,#e4e2cf0a 55%,transparent 55%);box-shadow:inset 0 0 90px #0407079c}
+.aperture{position:absolute;inset:0;z-index:4;pointer-events:none;border:14px solid #3b3a33;border-bottom:22px solid #5e5a4c;border-top-color:#272822;border-left-color:#45443b;box-shadow:inset 3px 5px 13px #000b,0 0 0 2px #191d18;background:linear-gradient(90deg,#0c151320,transparent 8%,transparent 92%,#0c151320)}
+#interventions{display:flex;gap:6px;padding:0 8px 7px 31px;flex-wrap:wrap}
+#interventions .xp-button{font-size:11px;min-width:0;padding:4px 12px}
+#spawn-panel{position:absolute;inset:0;display:grid;place-items:center;z-index:6;background:#0b1112bb;padding:12px;overflow:auto}
+.spawn-card{width:390px;max-width:100%;text-align:center;background:#ece9d8;color:#222;padding:20px 24px;border:1px solid #fff;outline:1px solid #777;box-shadow:3px 4px 0 #0004}
+.spawn-card h2{font-size:14px;font-weight:normal;margin:10px 0}.spawn-card p{line-height:1.6}
+.spawn-icon{color:#57574a;font:32px Tahoma;margin:0}
+#spawn-button{margin:12px 0 8px;min-width:170px}
+.spawn-fine{font-size:10px;color:#59594d;margin-top:20px}.spawn-warning{font-size:10px;margin-bottom:0}
+#spawn-progress{margin:20px 0 0}#spawn-progress label{display:block;font-size:12px}#spawn-meter{display:block;width:100%;height:18px;margin:12px 0 8px;border:1px solid #7f9db9;background:#fff;padding:2px;appearance:none}
+#spawn-meter::-webkit-progress-bar{background:#fff}#spawn-meter::-webkit-progress-value{background:repeating-linear-gradient(90deg,#36b835 0 8px,transparent 8px 10px)}#spawn-meter::-moz-progress-bar{background:#36b835}
+#spawn-status{font-size:10px;min-height:16px}#spawn-error{font-size:11px;color:#a52618;overflow-wrap:anywhere}
+#subtitle{z-index:5;bottom:32px}#subtitle p{font-family:Tahoma,sans-serif;font-size:13px;padding:6px 12px;max-width:340px}
+#confinement{position:absolute;inset:14px 14px 22px;z-index:2;background:#080a10eb;color:#b5c6c1;display:flex;flex-direction:column;align-items:center;justify-content:center;font:11px 'Lucida Console',monospace;letter-spacing:3px}
+#confinement b{font-size:48px;font-weight:normal;letter-spacing:-3px;margin:15px}#confinement small{font-size:9px}
+.dead .glass-reflection{background:#11111112}.dead #viewport canvas{cursor:default}
+#notes-body p{white-space:pre-wrap}#notes-body h3{font:12px 'Lucida Console',monospace}
+@media(max-width:500px){.aperture{border-width:8px;border-bottom-width:14px}#interventions{padding-left:8px;gap:4px}#interventions .xp-button{padding:4px 7px;font-size:10px}.spawn-card{padding:14px}.spawn-fine{margin-top:12px}.spawn-icon{display:none}#brain-status{max-width:130px}#subtitle{bottom:20px}.spawn-warning{font-size:9px}}
+@media(max-height:550px){.spawn-card{padding:10px 16px}.spawn-icon,.spawn-fine{display:none}.spawn-card h2{margin:4px}#spawn-progress{margin:6px 0}#spawn-panel{place-items:center}}
+#reading-pages{position:absolute;inset:14px 14px 22px;z-index:2;pointer-events:none;overflow:hidden;background:#a8ac9540;display:flex;align-items:center;justify-content:center;gap:12px}
+#reading-pages img{width:42%;max-height:60%;object-fit:contain;opacity:.78;transform:rotate(-6deg);box-shadow:0 5px 30px #0008;animation:paper-drift 4s ease-in-out infinite alternate}
+#reading-pages img+img{transform:rotate(7deg);animation-delay:-2s}
+@keyframes paper-drift{to{transform:translateY(14px) rotate(3deg)}}

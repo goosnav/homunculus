@@ -119,3 +119,29 @@ test('appliance mode ignores room keyboard and pointer actions', () => {
   container.emit('keydown', { key: 'Enter' });
   assert.deepEqual(actions, []);
 });
+
+test('walking knees flex backward throughout the stride and camera stays fixed', () => {
+  const { room } = roomFixture();
+  Object.assign(room, {
+    state: {position: [0,0], yaw: 0, walking: true, seated: false, activity:'wander', feeling:'calm'},
+    bones: {}, rest: {}, shadow: {position: {}, material: {}}, overlay: {textContent:''},
+    speakingUntil: 0, knockPhase: 0,
+  });
+  const poses = new Map();
+  room.pose = (name, x=0) => poses.set(name, x);
+  const cameraPosition=room.camera.position.clone(), cameraRotation=room.camera.quaternion.clone();
+  let leftBent=false,rightBent=false;
+  for(let i=0;i<120;i++){
+    room.animate(i/120*Math.PI*2/7.5,1/120);
+    // This rig flexes backward with negative local X, as the seated pose does.
+    assert.ok(poses.get('shin.L')<=0, 'left knee must not hyperextend forward');
+    assert.ok(poses.get('shin.R')<=0, 'right knee must not hyperextend forward');
+    leftBent ||= poses.get('shin.L')<-.1;
+    rightBent ||= poses.get('shin.R')<-.1;
+    assert.ok(room.camera.position.equals(cameraPosition));
+    assert.ok(room.camera.quaternion.equals(cameraRotation));
+  }
+  assert.ok(leftBent && rightBent, 'both knees must flex during their swing phase');
+  room.state.walking=false;room.animate(2,.016);
+  assert.equal(poses.get('shin.L'),0);assert.equal(poses.get('shin.R'),0);
+});
