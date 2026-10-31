@@ -32,7 +32,7 @@ export class Chamber{
  }
  interrupt(life,kind){
   if(kind==='confine'||kind==='read')this.cooperation=clamp(this.cooperation-(kind==='confine'?2:.6),-2,3);
-  this.cancel(life,{preservePosition:kind==='anvil'});
+  this.cancel(life,{preservePosition:kind==='anvil'||kind==='confine'});
  }
  interact(life,kind,payload){
   if(kind==='lights'){

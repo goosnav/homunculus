@@ -24,13 +24,17 @@ try{
  await until('!l.alive');assert.equal((await state()).outcome.kind,'chalk');await shot('chalk-empty');
  await page.waitForFunction(()=>window.__habitat.mind.worker===null&&window.__habitat.voice.worker===null);
  await next();assert.equal((await state()).chamber.inherited.chalk,true);assert.equal((await state()).chamber.chalk,0);await shot('inherited-chalk');
+ await page.locator('#message').fill('xyzzy');await page.locator('#say-button').click();
  await deliver('coil');await until('l.chamber.coil');
+ assert.equal(await page.evaluate(async()=>{const r=window.__habitat.room;let wrong=0;for(let i=0;i<20;i++){await new Promise(requestAnimationFrame);if(r.monitor.material.map!==r.monitorTexture)wrong++;}return wrong;}),0,'legacy copy must not flicker over repaired computer');
  while((await state()).chamber.channel!==(await state()).chamber.carrier)await page.locator('[data-action="tune"]').click();
  await page.locator('[data-action="lights"]').click();await until('l.chamber.job?.item==="signal"&&l.chamber.job.progress>.6');await shot('transfer');
  await until('!l.alive');assert.equal((await state()).outcome.kind,'signal');await shot('signal-empty');
+ assert.equal(await page.evaluate(async()=>{const r=window.__habitat.room;let wrong=0;for(let i=0;i<20;i++){await new Promise(requestAnimationFrame);if(r.monitor.material.map!==r.monitorTexture)wrong++;}return wrong;}),0,'departed occupant must never reappear on the monitor');
  await next();await deliver('mirror');await until('l.chamber.mirror');await page.locator('[data-action="bell"]').click();await until('!!l.visitor');await tick(8);await shot('mirror-visitor');
  await until('l.chamber.key==="held"');await shot('black-key');await page.locator('[data-action="release"]').click();await until('l.chamber.job?.phase==="work"');await tick(1);await shot('door-departure');await until('!l.alive');assert.equal((await state()).outcome.kind,'door');await shot('door-empty');
  assert.deepEqual(await page.evaluate(()=>window.__habitat.room.camera.position.toArray()),camera,'camera must never follow him out');
+ const warmedGeometry=await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries);await next();assert.equal(await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries),warmedGeometry,'successive lives must reuse one warmed renderer before reload');
  await page.reload();assert.equal(await page.locator('#spawn-button').isVisible(),true);await spawn();const c=(await state()).chamber;
  assert.deepEqual(c.inherited,{chalk:true,signal:true,key:true});assert.equal(c.job,null);assert.equal(c.coil,false);assert.equal(c.mirror,false);assert.equal(c.key,'none');
  assert.equal(await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries),initialGeometry,'new lives must reuse the scene geometry');

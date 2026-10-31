@@ -70,3 +70,16 @@ test('anvil lands at the current departure position, not the old navigation stop
  assert.ok(l.position[1]<before);const at=[...l.position];l.interact('anvil');step(l,1);
  assert.deepEqual(l.position,at);assert.equal(l.deathCause,'anvil');
 });
+
+test('confinement preserves a departing body and returns it by walking after release',()=>{
+ const l=fresh();deliver(l,'chalk');l.interact('lights');for(let i=0;i<3;i++)l.interact('tap');l.interact('release');
+ until(l,()=>l.chamber.job?.phase==='work');step(l,2.8);const at=[...l.position];
+ l.interact('confine');assert.deepEqual(l.position,at);step(l,7.9);assert.deepEqual(l.position,at);
+ l.tick(.2);assert.ok(Math.hypot(l.position[0]-at[0],l.position[1]-at[1])<=.15,'return at walking speed, never snap');
+ assert.equal(l.alive,true);assert.equal(l.outcome,null);
+});
+test('a floor opening kills during a delivery walk and cancels its project permanently',()=>{
+ const l=fresh();l.interact('deliver',{item:'coil'});l.interact('hole');until(l,()=>!l.alive);
+ assert.equal(l.deathCause,'hole');assert.equal(l.chamber.busy,false);step(l,30);assert.equal(l.chamber.coil,false);assert.equal(l.snapshot().skeleton,false);
+ assert.equal(l.applyThought({action:'rest',say:'Back.'},l.epoch),false);
+});

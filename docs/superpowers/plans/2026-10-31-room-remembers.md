@@ -26,23 +26,23 @@
 
 **Files:** web/chamber.js, web/life.js, tests/chamber.test.mjs.
 **Produces:** Life.chamber with deliveries/projects, lights/channel, key/chalk/coil/mirror states; snapshot.chamber; terminal outcome; archive read/write helpers. Keeps model ACTIONS unchanged.
-- [ ] Write route tests using Life.interact and actual navigation/ticks, terminal interruption and archive corruption/spam cases; run and observe missing-feature failure.
-- [ ] Implement deterministic delivery/collection/work sequences, soup/cooperation, chalk/knocks, coil/carrier, mirror/visitor/key, and departure outcomes. Integrate protected action selection, interruption and snapshots.
-- [ ] Run `npm test`; expected all old and new tests pass. Commit simulation.
+- [x] Write route tests using Life.interact and actual navigation/ticks, terminal interruption and archive corruption/spam cases; run and observe missing-feature failure.
+- [x] Implement deterministic delivery/collection/work sequences, soup/cooperation, chalk/knocks, coil/carrier, mirror/visitor/key, and departure outcomes. Integrate protected action selection, interruption and snapshots.
+- [x] Run `npm test`; expected all old and new tests pass. Commit simulation.
 
 ## Task 2: Current models and physical experiment presentation
 
 **Files:** web/assets/resident.glb, web/assets/asset-lock.json, web/assets/PROVENANCE.md, tools/sync-assets.mjs, web/face.js, web/chamber-view.js, web/browser-room.js, web/room.js, tests/assets.test.mjs, tests/face.test.mjs.
 **Consumes:** Task 1 snapshot.chamber/outcome. **Produces:** v12 native expression/jaw animation, hatch and objects, chalk door, radio waveform, mirror visitor response, actual doorway and three terminal sequences; clickable scene targets.
-- [ ] Assert current model has frown/jaw/blink and source hash provenance; test native face state. Observe failure against old model.
-- [ ] Copy current assets reproducibly, integrate native face without the old mouth, create bounded props and animations, reset all states between lives.
-- [ ] Run `npm test` and build; expected all pass, files remain under hosting limits. Commit assets/view.
+- [x] Assert current model has frown/jaw/blink and source hash provenance; test native face state. Observe failure against old model.
+- [x] Copy current assets reproducibly, integrate native face without the old mouth, create bounded props and animations, reset all states between lives.
+- [x] Run `npm test` and build; expected all pass, files remain under hosting limits. Commit assets/view.
 
 ## Task 3: Playable controls, persistence and production verification
 
 **Files:** web/browser-app.js, web/index.html, web/browser.css, web/browser-voice.js, tools/test-chamber.mjs, docs/VERIFICATION.md, README.md.
 **Consumes:** Task 1 archive/lifecycle and Task 2 scene actions. **Produces:** cooperative toolbar, service/experiments drawers, reachable outcomes, persistent physical traces, New occupant flow and restrained audio cues.
-- [ ] Create browser acceptance runner for actual buttons, three routes, death/interruption, refresh traces, mobile drawer/keyboard and scene reset.
-- [ ] Wire controls, archive milestones and outcome worker cleanup. Add feedback sounds using existing audio graph. Keep lore physical and copy short.
-- [ ] Run `npm test`, `npm run build`, `node tools/test-budget.mjs`, mobile and chamber browser checks, real-model lifecycle and stability soak; inspect screenshots. Expected gameplay/asset/inference checks pass without Python/Ollama or new off-site requests.
+- [x] Create browser acceptance runner for actual buttons, three routes, death/interruption, refresh traces, mobile drawer/keyboard and scene reset.
+- [x] Wire controls, archive milestones and outcome worker cleanup. Add feedback sounds using existing audio graph. Keep lore physical and copy short.
+- [x] Run `npm test`, `npm run build`, `node tools/test-budget.mjs`, mobile and chamber browser checks, real-model lifecycle and stability soak; inspect screenshots. Expected gameplay/asset/inference checks pass without Python/Ollama or new off-site requests.
 - [ ] Fresh code review against spec; resolve important defects, record verification and commit. Merge/push main, verify Cloudflare and public gameplay.

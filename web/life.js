@@ -40,6 +40,9 @@ export function parseThought(raw){
     return {action:value.action,feeling:FEELINGS.includes(value.feeling)?value.feeling:'sad',say:shortLine(value.say)};
   }catch{return null;}
 }
+// Departure temporarily goes beyond the navigation grid. Keep a real body there
+// when interrupted; route() supplies the first reachable node to walk back to.
+const walkingOrigin=p=>walkable(...p)||(Number.isFinite(p[0])&&Math.abs(p[0])<=2.8&&p[1]<-1.9&&p[1]>=-3)?p:nearest(...p);
 export class Life{
   constructor({random=Math.random,name,archive}={}){
     this.random=random;this.name=name||['Hugh','Clive','Gordon','Morris','Sid','Edgar','Vern','Basil','Cecil','Ned'][Math.floor(random()*10)%10];
@@ -92,14 +95,14 @@ export class Life{
     if(!this.alive||!ACTIONS.includes(action))return false;
     if(this.activity===action&&!restart)return true;
     if(action!=='hammer')this.dropTool();
-    this.seated=false;this.position=nearest(...this.position);this.activity=action;
+    this.seated=false;this.position=walkingOrigin(this.position);this.activity=action;
     this.workElapsed=0;this.pickupTime=0;
     const destination=action==='hammer'&&!this.hasHammer?this.toolPosition:action==='pace'?[this.random()*2-1,this.random()*2-.8]:PLACES[action];
     this.path=route(this.position,destination);this.remaining=action==='rest'?22:18+this.random()*14;
     return true;
   }
   beginWork(activity,point){
-    this.dropTool();this.position=nearest(...this.position);this.seated=false;this.activity=activity;this.path=route(this.position,point);this.workElapsed=0;this.remaining=999;
+    this.dropTool();this.position=walkingOrigin(this.position);this.seated=false;this.activity=activity;this.path=route(this.position,point);this.workElapsed=0;this.remaining=999;
   }
   finish(kind){
     if(!this.alive)return;

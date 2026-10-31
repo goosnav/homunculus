@@ -94,6 +94,9 @@ export class ChamberView{
   this.doorVoid.visible=this.doorPivot.visible=!!doorOpen;r.door.visible=!doorOpen;for(const p of r.doorPanels)p.visible=!doorOpen;r.doorLabel.visible=!doorOpen;r.handle.visible=!doorOpen;
   this.doorPivot.rotation.y=doorOpen?-1.15:0;if(doorOpen)r.doorView.visible=false;
   if(this.lastVisit!==c.visits){this.lastVisit=c.visits;const x=this.plateMap.image.getContext('2d');x.fillStyle='#c3bea0';x.fillRect(0,0,128,40);x.fillStyle='#454d42';x.font='bold 17px monospace';x.fillText(`ROOM ${String(c.visits).padStart(3,'0')}`,12,26);this.plateMap.needsUpdate=true;}
+  // Own the map every rendered frame; the legacy copy may run before repair,
+  // but must never overwrite the carrier or show an occupant after departure.
+  r.monitor.material.map=s.effects?.copy&&!c.coil&&!s.outcome?r.copyTarget.texture:r.monitorTexture;
   if(this.monitorFrame!==Math.floor(t*6)){
    this.monitorFrame=Math.floor(t*6);this.drawMonitor(s,t);
    const x=this.radioMap.image.getContext('2d');x.fillStyle='#27342d';x.fillRect(0,0,96,40);x.fillStyle=c.channel===c.carrier?'#c8d59e':'#939d83';x.font='22px monospace';x.fillText(`0${c.channel}`,10,28);x.fillRect(56,24-(c.channel===c.carrier?12:Math.sin(t*9)*8),26,2);this.radioMap.needsUpdate=true;
@@ -102,7 +105,7 @@ export class ChamberView{
  }
  drawMonitor(s,t){
   const r=this.room,c=s.chamber,x=r.monitorTexture.image.getContext('2d'),carrier=c.channel===c.carrier;
-  r.monitor.material.map=r.monitorTexture;x.fillStyle='#102219';x.fillRect(0,0,128,96);x.fillStyle='#a9bf91';x.strokeStyle='#a9bf91';x.font='10px monospace';
+  x.fillStyle='#102219';x.fillRect(0,0,128,96);x.fillStyle='#a9bf91';x.strokeStyle='#a9bf91';x.font='10px monospace';
   if(s.outcome){x.fillText('NO CARRIER',25,47);if(Math.floor(t)%2)x.fillRect(26,56,5,2);}
   else if(!c.coil){x.strokeRect(52,32,22,22);x.fillText('EMPTY SOCKET',12,77);if(c.inherited.signal){x.fillRect(12+Math.sin(t)*8,15,3,3);x.fillRect(91,57,2,2);}}
   else{x.fillText(carrier?'CARRIER':'SEARCHING',13,19);x.beginPath();for(let i=0;i<110;i++){const y=46+(carrier?Math.sin(i*.18-t*3)*9:Math.sin(i*2.7+t*5)*17);if(i)x.lineTo(i+9,y);else x.moveTo(i+9,y);}x.stroke();x.fillText(c.lights?'LIGHT INTERFERENCE':c.job?.item==='signal'?'CONNECTED':'_',8,79);}
