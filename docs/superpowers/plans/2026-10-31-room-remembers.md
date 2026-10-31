@@ -45,4 +45,4 @@
 - [x] Create browser acceptance runner for actual buttons, three routes, death/interruption, refresh traces, mobile drawer/keyboard and scene reset.
 - [x] Wire controls, archive milestones and outcome worker cleanup. Add feedback sounds using existing audio graph. Keep lore physical and copy short.
 - [x] Run `npm test`, `npm run build`, `node tools/test-budget.mjs`, mobile and chamber browser checks, real-model lifecycle and stability soak; inspect screenshots. Expected gameplay/asset/inference checks pass without Python/Ollama or new off-site requests.
-- [ ] Fresh code review against spec; resolve important defects, record verification and commit. Merge/push main, verify Cloudflare and public gameplay.
+- [x] Fresh code review against spec; resolve important defects, record verification and commit. Merge/push main, verify Cloudflare and public gameplay.

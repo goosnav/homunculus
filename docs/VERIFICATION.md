@@ -11,6 +11,8 @@
 - All 74 preserved Python tests pass. Mobile keyboard/pinch and falling/visitor/hole browser checks pass. Wrangler deployment dry run succeeds.
 - The complete static build is 118.3 MiB with 42 files, all under the per-file hosting limit. Reference-tokenizer tests preserve both actual comic excerpts and remain within the 256-token input limit.
 
+- Published gameplay commit `fddd400` to main. Cloudflare Workers Builds and all four GitHub CI jobs passed (Ubuntu Python 3.10/3.12, Windows and macOS). Public HTTPS checks completed real inference/audio/cache/death/restart plus all three room routes, inherited traces and fixed-camera assertions. Live JavaScript/CSS match the local build; the public resident GLB exactly matches the pinned v12 SHA-256.
+
 ## Early mobile restart investigation — October 20, 2026
 
 The reported physical iPhone/Safari process termination is still not directly reproduced. Controlled desktop measurements isolate a substantial inference-memory cost: the current ONNX build peaks at 1,175 MiB renderer RSS at spawn and stays around 1,057 MiB after play; a diagnostic build with the model disabled stays near 426 MiB. This supports memory pressure as the likely cause of the abrupt browser reloads, rather than an application restart loop. Desktop RSS is not an iOS memory limit or a promise of stability on every device.
