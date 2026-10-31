@@ -1,0 +1,42 @@
+{
+  "repository": "https://github.com/goosnav/goosnav-3D-assets",
+  "sourceCommit": "beaa91a01f4aff1513ff0b33d95554801e08dd80",
+  "files": [
+    {
+      "source": "exports/ps1guy_v12.glb",
+      "destination": "resident.glb",
+      "bytes": 1946080,
+      "sha256": "5a47af2bfca0efbf0de40524c5f2d21308439fccef4e81ef03e2b4705bd19ca7"
+    },
+    {
+      "source": "exports/ps1guy_skeleton_v1.glb",
+      "destination": "skeleton.glb",
+      "bytes": 773764,
+      "sha256": "023236a2e6793da45279dde6413f641a98c958417e73755d96239c62cc1c81c1"
+    },
+    {
+      "source": "props/ps1/book2_goosnav_dilemma.glb",
+      "destination": "book.glb",
+      "bytes": 97384,
+      "sha256": "5c84d9d42cd2d23e96881b815a678256a26992f6fd1d27b6bede58818152e9dc"
+    },
+    {
+      "source": "props/ps1/goosklerf_booster_pack.glb",
+      "destination": "pack.glb",
+      "bytes": 123396,
+      "sha256": "d5c96a5c65528976d3fb3a951ab2f21aa018c18090515e2e01e1f5a24fbf676d"
+    },
+    {
+      "source": "props/ps1/goosnav_zine_09.glb",
+      "destination": "zine.glb",
+      "bytes": 117228,
+      "sha256": "a8b93e8fef28ad027dc5c60d98103ab867113d6ad5bb593c5453bd69ef817590"
+    },
+    {
+      "source": "props/ps1/goosklerf_freewill.glb",
+      "destination": "card.glb",
+      "bytes": 72076,
+      "sha256": "76f80c2a28e38fe66d767c57065c0ef0023f17085de10b0e70fa7010cfe4aa3c"
+    }
+  ]
+}

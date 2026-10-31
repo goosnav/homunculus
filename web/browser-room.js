@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Room } from './room.js';
-import { expression } from './expressions.js';
+import { ChamberView } from './chamber-view.js';
+import { expression, nativeFace } from './expressions.js';
 const dark=0x292b29;
 const material=color=>new THREE.MeshLambertMaterial({color,flatShading:true});
 const meshBox=(size,color)=>new THREE.Mesh(new THREE.BoxGeometry(...size),material(color));
@@ -55,6 +56,7 @@ export class BrowserRoom extends Room{
     this.holeRim.rotation.x=Math.PI/2;this.holeRim.visible=false;this.scene.add(this.holeRim);
     // A front edge belongs to the wall around the viewer, with CSS completing the inset.
     this.box([.11,.08,5.5],[-3.37,.13,.2],0x66705e);
+    this.chamberView=new ChamberView(this);
   }
   async loadAssets(){
     // Fetch this extra dependency before the base room adopts its assets.
@@ -62,14 +64,7 @@ export class BrowserRoom extends Room{
     await super.loadAssets();
     this.skeleton=this.skeletonSource;const bounds=new THREE.Box3().setFromObject(this.skeleton),size=bounds.getSize(new THREE.Vector3());
     this.skeleton.scale.setScalar(1.7/size.y);this.skeleton.position.y=-bounds.min.y*this.skeleton.scale.x;this.skeleton.visible=false;this.body.add(this.skeleton);
-    // The owner-authored Homunculus variant has continuous skin under these expressions.
-    this.scene.updateMatrixWorld(true);
-    const face=new THREE.Group();face.position.set(0,1.525,.147);
-    this.frown=tube([[-.105,-.024,0],[-.055,.003,.008],[0,.014,.01],[.055,.003,.008],[.105,-.024,0]],.008,0x402e29);face.add(this.frown);
-    this.openMouth=new THREE.Mesh(new THREE.CircleGeometry(.035,10),material(0x372320));this.openMouth.position.set(0,-.005,.018);this.openMouth.scale.y=.6;this.openMouth.visible=false;face.add(this.openMouth);
-    this.body.add(face);this.body.updateMatrixWorld(true);this.headBone.attach(face);this.face=face;
-    this.brows=[];
-    for(const sign of [-1,1]){const brow=meshBox([.09,.014,.018],0x514039);brow.position.set(sign*.095,1.659,.074);brow.rotation.z=sign*-.24;this.body.add(brow);this.body.updateMatrixWorld(true);this.headBone.attach(brow);this.brows.push(brow);}
+    this.nativeMorphs=[];this.model.traverse(o=>{if(o.morphTargetDictionary)this.nativeMorphs.push(o);});
     this.hammer=new THREE.Group();const handle=meshBox([.035,.36,.035],0x78603e);handle.position.y=.17;this.hammer.add(handle);const head=meshBox([.19,.095,.08],0x545955);head.position.y=.35;this.hammer.add(head);this.bones.handR?.add(this.hammer);this.hammer.visible=false;
     this.floorHammer=this.hammer.clone();this.floorHammer.rotation.z=Math.PI/2;this.scene.add(this.floorHammer);
     this.headset=new THREE.Group();
@@ -137,10 +132,20 @@ export class BrowserRoom extends Room{
       chip.position.set(-3.1+i*.07,.025+Math.max(0,.8-fall*fall*1.8),-.85+Math.sin(i*3)*.17);chip.rotation.set(i,0,fall*4);
     }
   }
+  animateFace(t){
+    const face=nativeFace(this.state,t,t<this.speakingUntil&&this.state.alive);
+    this.pose('jaw',-Math.PI/5*face.jaw);
+    for(const mesh of this.nativeMorphs||[]){const dict=mesh.morphTargetDictionary;
+      for(const name of ['frown','smile','wide','round','press','fv','jaw_fix','blink'])if(dict[name]!==undefined)mesh.morphTargetInfluences[dict[name]]=name==='jaw_fix'?face.jaw:face[name]||0;
+    }
+    this.pose('brow.L',0,0,face.brow);this.pose('brow.R',0,0,-face.brow);
+  }
   animate(t,dt){
     if(!this.state||!this.model)return;const s=this.state;
     this.updateAnvils();
     this.updateOddities();
+    this.chamberView.update(s,t);
+    if(s.outcome){this.model.visible=false;this.skeleton.visible=false;this.shadow.visible=false;this.overlay.hidden=true;this.hammer.visible=false;this.headset.visible=false;this.cable.visible=false;this.book.visible=false;return;}
     if(!s.alive){
       this.dragging=false;this.speakingUntil=0;this.overlay.hidden=true;
       if(this.hammer)this.hammer.visible=false;if(this.book)this.book.visible=false;if(this.headset)this.headset.visible=false;if(this.cable)this.cable.visible=false;
@@ -158,7 +163,7 @@ export class BrowserRoom extends Room{
     }
     if(this.skeleton)this.skeleton.visible=false;if(this.shadow)this.shadow.visible=true;this.model.visible=this.formation===undefined||this.formation>=1;this.body.rotation.z=0;
     super.animate(t,dt);
-    if(s.arrival){this.animateArrival(s.arrival);return;}
+    if(s.arrival){this.animateArrival(s.arrival);this.animateFace(t);return;}
     const settled=!s.walking&&!this.dragging,hammering=settled&&s.activity==='hammer'&&s.stage==='strike',uploading=settled&&s.activity==='upload';
     if(this.hammer)this.hammer.visible=!!s.hasHammer&&s.activity==='hammer';
     if(this.headset)this.headset.visible=uploading&&s.workElapsed>2;
@@ -197,8 +202,8 @@ export class BrowserRoom extends Room{
       this.pose('thigh.R',.4*recoil);this.pose('shin.R',-.65*recoil);
     }
     if(this.cracks){this.cracks.visible=s.wallDamage>3;this.cracks.children.forEach((c,i)=>c.visible=s.wallDamage>i*3);}
-    const monitorText=s.uploadProgress>=99?'COPY IS A ROOM':uploading?`COPYING ${Math.floor(s.uploadProgress)}%`:'NO CARRIER';
-    if(this.monitorTexture&&this.lastMonitorText!==monitorText){this.lastMonitorText=monitorText;const c=this.monitorTexture.image.getContext('2d');c.fillStyle='#17251e';c.fillRect(0,0,128,96);c.fillStyle='#9fbd8d';c.font='10px monospace';c.fillText(monitorText,8,45);c.fillText(s.uploadProgress>=99?'ACCESS DENIED':'_',8,62);this.monitorTexture.needsUpdate=true;}
+    this.animateFace(t);
+    this.chamberView.pose(s,t);
   }
   animateArrival(arrival){
     const a=arrival.elapsed,impact=arrival.impact,after=Math.max(0,a-impact);
@@ -225,7 +230,10 @@ export class BrowserRoom extends Room{
   bindPointer(){
     // Observer's glass: tapping is allowed, but never dragging a dead body or a half-loaded resident.
     const canvas=this.renderer.domElement;
-    canvas.addEventListener('pointerdown',e=>{if(e.button===0&&this.state?.alive){this.container.focus();this.onInteraction('tap',{});}});
+    canvas.addEventListener('pointerdown',e=>{if(e.button===0&&e.isPrimary!==false&&this.state?.alive)this.pointerStart={id:e.pointerId,x:e.clientX,y:e.clientY};});
+    canvas.addEventListener('pointerup',e=>{const start=this.pointerStart;this.pointerStart=null;if(!start||start.id!==e.pointerId||Math.hypot(start.x-e.clientX,start.y-e.clientY)>8||!this.state?.alive)return;this.container.focus({preventScroll:true});this.ray(e);const action=this.chamberView.hit(this.raycaster);this.onInteraction(action||'tap',{});});
+    canvas.addEventListener('pointercancel',()=>{this.pointerStart=null;});
+    canvas.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;this.ray(e);canvas.style.cursor=this.state?.alive&&this.chamberView.hit(this.raycaster)?'pointer':'default';});
     this.container.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat&&this.state?.alive){e.preventDefault();this.onInteraction('tap',{});}});
     canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();cancelAnimationFrame(this.raf);this.container.dispatchEvent(new CustomEvent('render-lost'));});
   }

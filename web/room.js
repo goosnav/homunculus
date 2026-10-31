@@ -83,11 +83,9 @@ export class Room {
     // A door with a deliberately unhelpful little plaque.
     this.box([1.45,2.65,.12],[.05,1.32,-2.36],0x66755e);
     this.door=this.box([1.22,2.48,.13],[.05,1.25,-2.27],0x8b8567);
-    this.box([.93,1.0,.03],[.05,1.74,-2.19],0x979076);
-    this.box([.93,.74,.03],[.05,.65,-2.19],0x979076);
-    this.box([.08,.08,.08],[.48,1.15,-2.1],0xbdb17a);
+    this.doorPanels=[this.box([.93,1.0,.03],[.05,1.74,-2.19],0x979076),this.box([.93,.74,.03],[.05,.65,-2.19],0x979076),this.box([.08,.08,.08],[.48,1.15,-2.1],0xbdb17a)];
     const label=canvasTexture(128,64,(c)=>{c.fillStyle='#d9d4b2';c.fillRect(0,0,128,64);c.fillStyle='#4b594b';c.textAlign='center';c.font='bold 15px monospace';c.fillText('OUTSIDE',64,26);c.font='9px monospace';c.fillText('(probably)',64,46);});
-    this.plane([.64,.32],[.05,2.04,-2.165],label);
+    this.doorLabel=this.plane([.64,.32],[.05,2.04,-2.165],label);
     // A modest window onto a suspiciously unchanging landscape. It does follow your clock, though.
     this.box([1.65,1.44,.12],[-2.13,2.1,-2.35],0xe4ddbd);
     const hills=(sky,sun,far,near,stars)=>canvasTexture(128,96,(c)=>{c.fillStyle=sky;c.fillRect(0,0,128,96);if(stars)for(let i=0;i<22;i++){c.fillStyle='#dfe6c8';c.fillRect((i*37)%128,(i*23)%50,1,1);}c.fillStyle=sun;c.fillRect(83,15,13,13);c.fillStyle=far;c.beginPath();c.moveTo(0,65);c.lineTo(35,38);c.lineTo(78,72);c.lineTo(105,42);c.lineTo(128,58);c.lineTo(128,96);c.lineTo(0,96);c.fill();c.fillStyle=near;c.beginPath();c.moveTo(0,83);c.lineTo(62,56);c.lineTo(128,85);c.lineTo(128,96);c.lineTo(0,96);c.fill();});
@@ -153,7 +151,7 @@ export class Room {
     this.assetLoads??=new Map();
     const fetchAsset=async(file)=>{
       const gltf=await loader.loadAsync(`/assets/${file}.glb`);
-      gltf.scene.traverse(o=>{if(o.isMesh){const source=Array.isArray(o.material)?o.material:[o.material];o.material=source.map(m=>{if(m.map){m.map.magFilter=THREE.NearestFilter;m.map.minFilter=THREE.NearestFilter;m.map.generateMipmaps=false;}return new THREE.MeshLambertMaterial({color:m.color,map:m.map,side:m.side,transparent:m.transparent,opacity:m.opacity,flatShading:true});});if(o.material.length===1)o.material=o.material[0];}});
+      gltf.scene.traverse(o=>{if(o.isMesh){const source=Array.isArray(o.material)?o.material:[o.material];o.material=source.map(m=>{if(m.map){m.map.magFilter=THREE.NearestFilter;m.map.minFilter=THREE.NearestFilter;m.map.generateMipmaps=false;}return new THREE.MeshLambertMaterial({color:m.color,map:m.map,side:m.side,transparent:m.transparent,opacity:m.opacity,flatShading:file!=='resident'});});if(o.material.length===1)o.material=o.material[0];}});
       return gltf.scene;
     };
     const load=file=>{
