@@ -58,3 +58,15 @@ test('only bounded room traces persist; an archive never resurrects a life',asyn
  const bad={getItem:()=>'{"visits":1e90,"traces":{"chalk":true,"evil":true},"alive":true}',setItem:()=>{throw Error('quota');}};
  assert.ok(readArchive(bad).visits<=9999);assert.deepEqual(Object.keys(readArchive(bad).traces),['chalk']);assert.doesNotThrow(()=>writeArchive(bad,next.chamber.archive));
 });
+
+test('turning lights back on interrupts an unfinished chalk departure',()=>{
+ const l=fresh();deliver(l,'chalk');l.interact('lights');for(let i=0;i<3;i++)l.interact('tap');l.interact('release');
+ until(l,()=>l.chamber.job?.phase==='work');step(l,1);l.interact('lights');step(l,10);
+ assert.equal(l.alive,true);assert.equal(l.outcome,null);assert.equal(l.chamber.job,null);
+});
+test('anvil lands at the current departure position, not the old navigation stop',()=>{
+ const l=fresh();deliver(l,'chalk');l.interact('lights');for(let i=0;i<3;i++)l.interact('tap');l.interact('release');
+ until(l,()=>l.chamber.job?.phase==='work');const before=l.position[1];step(l,1);
+ assert.ok(l.position[1]<before);const at=[...l.position];l.interact('anvil');step(l,1);
+ assert.deepEqual(l.position,at);assert.equal(l.deathCause,'anvil');
+});

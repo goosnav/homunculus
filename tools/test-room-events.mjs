@@ -22,7 +22,7 @@ try{
  await capture('visitor-hostile');
  assert.ok(await page.evaluate(()=>window.__habitat.life.snapshot().startled>0));
  await page.evaluate(()=>{const l=window.__habitat.life;l.visitor=null;l.startledUntil=0;});
- await page.locator('[data-action="hole"]').click();
+ await page.locator('#experiments-toggle').click();await page.locator('[data-action="hole"]').click();
  await page.evaluate(()=>{window.__habitat.life.age+=1;});await capture('hole-open');
  assert.equal(await page.evaluate(()=>window.__habitat.room.holeDisk.visible),true);
  await page.evaluate(()=>{const l=window.__habitat.life;l.position=[l.hole.x,l.hole.z];Object.getPrototypeOf(l).tick.call(l,.1);l.age+=.3;});

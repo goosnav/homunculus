@@ -197,7 +197,7 @@ export class Life{
   }
   die(cause){
     if(!this.alive)return;
-    this.chamber.cancel(this);this.dropTool();this.arrival=null;this.alive=false;this.deadAt=this.age;this.deathCause=cause;this.epoch++;this.activity='dead';this.path=[];this.seated=false;this.events=[];
+    this.chamber.cancel(this,{preservePosition:true});this.dropTool();this.arrival=null;this.alive=false;this.deadAt=this.age;this.deathCause=cause;this.epoch++;this.activity='dead';this.path=[];this.seated=false;this.events=[];
     this.utterance={id:this.utterance.id+1,text:''};this.remember(cause==='anvil'?'Anvil.':cause==='hole'?'The floor was gone.':'The window closed.');
   }
   interact(kind,payload={}){

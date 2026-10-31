@@ -1,5 +1,13 @@
 # Verification record
 
+## The room remembers — October 31, 2026
+
+- Imported current owner-authored v12 from local asset-library commit `beaa91a01f4aff1513ff0b33d95554801e08dd80`, which is ahead of that repository's remote main. No asset-library work was changed or published. Six GLBs have exact paths, sizes and hashes in `web/assets/asset-lock.json`; only the resident's bytes changed. Native frown/jaw/lip/blink animation replaces the separate mouth overlay. The newer full-book prop was deliberately not imported; existing excerpts remain the public book material.
+- Added four physical deliveries, refusal/recovery, cooperative controls, a mirrored visitor/key interaction and three achievable departure sequences. New lives inherit bounded room traces, never living state or dialogue. The fixed camera stays in the observation room, including every departure; openings show no destination.
+- 67 Node tests pass. The route tests walk and tick the real simulation rather than assigning completion flags. They cover duplicate deliveries, model-action interference, radio/light prerequisites, visitor reflection/key collection, cooperation recovery, corrupt/denied storage, permanent death and interruptions during delivery/transfer/departure. Two added regressions reproduced light restoration failing to stop chalk departure and anvil targeting an outdated departure position before the fixes.
+- Real Chromium browser controls complete all three routes, show inherited traces after refresh, reset installed objects, and retain exactly 209 scene geometries across multiple lives. The current scene rendered 9,230 triangles in the initial view. Desktop and 390px phone screenshots were inspected for delivery, drawing, mirror visitor, radio transfer, all empty-room outcomes and the service drawer. Existing mobile keyboard/pinch checks pass; this is not a physical iPhone test.
+- The complete static build is 118.3 MiB with 42 files, all under the per-file hosting limit. Reference-tokenizer tests preserve both actual comic excerpts and remain within the 256-token input limit.
+
 ## Early mobile restart investigation — October 20, 2026
 
 The reported physical iPhone/Safari process termination is still not directly reproduced. Controlled desktop measurements isolate a substantial inference-memory cost: the current ONNX build peaks at 1,175 MiB renderer RSS at spawn and stays around 1,057 MiB after play; a diagnostic build with the model disabled stays near 426 MiB. This supports memory pressure as the likely cause of the abrupt browser reloads, rather than an application restart loop. Desktop RSS is not an iOS memory limit or a promise of stability on every device.

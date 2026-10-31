@@ -29,6 +29,18 @@ This model is deliberately small. Its answers can be odd, generic, or wrong. Spe
 
 Inference input is capped at 256 tokens to limit memory during play. The WASM context is fixed at 512 tokens with 64-token batches. Action selection and speech reuse their common prompt context, and the KV cache is cleared between thoughts. Older context is trimmed before the current event; forced reading keeps material from both selected excerpts. Mobile controls accommodate the on-screen keyboard. Audio is enabled by the Spawn tap. A bundled Flite KAL male robot voice generates PCM in a worker, then passes through a 1,550 Hz low-pass filter for the glass effect. It uses no OS voice or speech service. Its approximately 21 MB runtime loads on the first spoken reply; effects use Web Audio. Browser/device audio restrictions and system volume still apply.
 
+## The room remembers
+
+Room service sends soup, chalk, a copper coil or a mirror through a physical hatch. The occupant collects and uses them over time; mistreatment can make him refuse, and food can rebuild cooperation. Lights, the three-channel receiver, the service bell and the door latch interact with those objects. The original coercive controls live in the Experiments drawer.
+
+There are now three achievable departures. The camera stays on the room throughout: it never follows him or shows where he goes. The observation window remains open after departure or death, with a New occupant control.
+
+A small local archive (`homunculus-room-v1`) remembers the room's visit count and three physical traces. It never saves a living character or dialogue. A new occupant can notice an earlier outline, hook or signal residue. Every route is available on the first visit; there are no daily locks, achievement counters or grind requirements. Storage denial simply disables continuity.
+
+The current character is the owner's v12 export, with native frown, lip shapes, jaw and blinking eyes. `web/assets/asset-lock.json` records all imported model hashes and the local source commit. `node tools/sync-assets.mjs /path/to/goosnav-3D-assets` refreshes these checked-in assets explicitly; Cloudflare does not need the full asset repository or a Git LFS submodule checkout.
+
+Gameplay rules are in `web/chamber.js`, physical presentation in `web/chamber-view.js`. `npm run test:chamber` exercises all three routes through the actual browser controls and simulation ticks; real-model and memory tests remain separate. These mechanisms keep running while inference is busy.
+
 ## Book II OCR
 
 `tools/ocr-book.py` is a quick Python wrapper around Poppler and Tesseract. It renders scanned PDF pages and writes raw OCR into JSON, with incremental checkpoints and resume. No manual transcript cleanup.

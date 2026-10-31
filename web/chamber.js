@@ -24,13 +24,15 @@ export class Chamber{
   this.job={item,phase,work:0,progress:0};
   life.beginWork(ACTIVITIES[item]||'collect',PLACES[item]||PLACES.collect);
  }
- cancel(life){
+ cancel(life,{preservePosition=false}={}){
   this.job=null;this.delivery=null;
-  if(life.alive&&['collect','draw','wire','mount','depart'].includes(life.activity))life.choose('watch',true);
+  if(life.alive&&['collect','draw','wire','mount','depart'].includes(life.activity)){
+   if(preservePosition){life.activity='watch';life.path=[];life.seated=false;life.remaining=3;}else life.choose('watch',true);
+  }
  }
  interrupt(life,kind){
   if(kind==='confine'||kind==='read')this.cooperation=clamp(this.cooperation-(kind==='confine'?2:.6),-2,3);
-  this.cancel(life);
+  this.cancel(life,{preservePosition:kind==='anvil'});
  }
  interact(life,kind,payload){
   if(kind==='lights'){
@@ -69,6 +71,7 @@ export class Chamber{
  }
  tick(dt,life){
   if(!life.alive||life.arrival||['confined','forced_read'].includes(life.activity))return;
+  if(this.job?.item==='door'&&this.job.exit==='chalk'&&this.lights){this.cancel(life);this.tell('Only chalk again.');return;}
   if(this.job?.item==='signal'&&(this.lights||this.channel!==this.carrier)){
    this.cancel(life);life.choose('watch',true);this.tell('The connection broke.','radio');return;
   }
@@ -81,7 +84,7 @@ export class Chamber{
   if(j.phase==='delivery'){
    if(life.age-this.delivery.born<1.2)return;
    if(this.cooperation<-.5&&j.item!=='soup'){
-    this.delivery.returning=true;j.phase='refuse';j.work=0;life.feeling='annoyed';this.tell('He pushes it back.');return;
+    this.delivery.returning=true;j.phase='refuse';j.work=0;life.feeling='annoyed';this.tell('He won’t touch it.');return;
    }
    life.beginWork('collect',PLACES.collect);j.phase='collect';j.work=0;return;
   }
@@ -99,13 +102,14 @@ export class Chamber{
    this.begin(life,j.item);return;
   }
   if(j.phase==='walk'){
-   j.phase='work';j.work=0;
+   j.phase='work';j.work=0;j.origin=[...life.position];
    if(j.item==='coil'||j.item==='signal'){life.position=[1.96,-.22];life.seated=true;life.yaw=Math.PI;}
    else if(j.item==='chalk')life.yaw=Math.PI;
   }
   j.work+=dt;
   const duration={chalk:this.inherited.chalk?6:12,coil:9,mirror:6,key:1.5,signal:16,door:4}[j.item];
   j.progress=clamp(j.work/duration,0,1);
+  if(j.item==='door')life.position=[j.origin[0],j.origin[1]-.95*j.progress];
   if(j.item==='chalk')this.chalk=Math.max(this.chalk,j.progress);
   if(j.progress<1)return;
   if(j.item==='door'){life.finish(j.exit);return;}

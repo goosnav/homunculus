@@ -49,7 +49,7 @@ try{
  assert.equal(await page.evaluate(()=>window.__habitat.life.name),identity);
  assert.equal(await page.evaluate(()=>window.__habitat.life.alive),true);
  assert.ok(await page.evaluate(()=>window.__habitat.voice.lastAudio?.samples>0),'actual local voice must run during the soak');
- stage='death';await page.locator('[data-action="anvil"]').click();await page.waitForFunction(()=>!window.__habitat.life.alive);
+ stage='death';await page.locator('#experiments-toggle').click();await page.locator('[data-action="anvil"]').click();await page.waitForFunction(()=>!window.__habitat.life.alive);
  await page.waitForFunction(()=>window.__habitat.mind.worker===null&&window.__habitat.voice.worker===null);
  await page.waitForTimeout(2000);
  const {targetInfos}=await cdp.send('Target.getTargets');assert.equal(targetInfos.filter(t=>t.type==='worker').length,0,'death must terminate outer and nested workers');

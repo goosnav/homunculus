@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { Life } from '../web/life.js';
+import { readArchive,writeArchive } from '../web/chamber.js';
 import { BrowserVoice } from '../web/browser-voice.js';
 
 for(const ending of ['\n','\r\n'])test(`a transient room asset failure can be retried (${ending.length===1?'LF':'CRLF'} source)`,async()=>{
   const nodes=new Map();
   const node=selector=>{
-    if(!nodes.has(selector))nodes.set(selector,{hidden:false,dataset:{},addEventListener(){},focus(){},replaceChildren(){},append(){}});
+    if(!nodes.has(selector))nodes.set(selector,{hidden:false,dataset:{},addEventListener(){},setAttribute(){},focus(){},replaceChildren(){},append(){}});
     return nodes.get(selector);
   };
   let rooms=0,assetAttempts=0,voiceEnabled=false;
@@ -21,10 +22,10 @@ for(const ending of ['\n','\r\n'])test(`a transient room asset failure can be re
   class FakeMind{load(){this.ready=true;return Promise.resolve();}dispose(){}}
   const context=vm.createContext({
     console,URLSearchParams,location:{search:'?debug'},performance:{now:()=>0},
-    document:{querySelector:node,querySelectorAll:()=>[],body:{classList:{remove(){},add(){}}}},
+    document:{addEventListener(){},querySelector:node,querySelectorAll:()=>[],body:{classList:{remove(){},add(){}}}},
     window:{addEventListener(){}},requestAnimationFrame(){},speechSynthesis:{cancel(){}},
     BrowserRoom:FakeRoom,BrowserMind:FakeMind,BrowserVoice:FakeVoice,ComicReader:{load:async()=>({})},Life,
-    parseThought(){},mindMessages(){},
+    readArchive,writeArchive,parseThought(){},mindMessages(){},
   });
   const source=readFileSync(new URL('../web/browser-app.js',import.meta.url),'utf8').replace(/\r?\n/g,ending).replace(/^import .*;\r?\n/gm,'');
   vm.runInContext(source,context);

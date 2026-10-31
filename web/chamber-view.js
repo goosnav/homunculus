@@ -39,8 +39,8 @@ export class ChamberView{
   const points=[[-.34,0,0],[-.34,1.9,0],[-.34,1.9,0],[.34,1.9,0],[.34,1.9,0],[.34,0,0],[.34,0,0],[-.34,0,0],[.21,.89,0],[.15,.89,0]];
   this.chalkMaterial=new THREE.LineBasicMaterial({color:0xd1d1ad,transparent:true,opacity:.8});
   this.outline=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(...p))),this.chalkMaterial);
-  place(this.group,this.outline,-1.05,.03,-2.395);
-  this.chalkVoid=place(this.group,new THREE.Mesh(new THREE.PlaneGeometry(.66,1.89),ink(0x010403)),-1.05,.98,-2.399);this.chalkVoid.visible=false;
+  place(this.group,this.outline,-1.05,.03,-2.37);
+  this.chalkVoid=place(this.group,new THREE.Mesh(new THREE.PlaneGeometry(.66,1.89),ink(0x010403)),-1.05,.98,-2.38);this.chalkVoid.visible=false;
   this.draught=place(this.group,new THREE.Mesh(new THREE.PlaneGeometry(.63,1.5),new THREE.MeshBasicMaterial({color:0xc5d2b5,transparent:true,opacity:.12,depthWrite:false})),-1.05,.015,-1.65);this.draught.rotation.x=-Math.PI/2;this.draught.visible=false;
   // A real empty socket, repair coil and three-channel receiver on the desk.
   this.socket=place(this.group,new THREE.Mesh(new THREE.TorusGeometry(.065,.016,6,12),m(0x292e2b)),1.73,1.29,-1.242);
@@ -78,9 +78,9 @@ export class ChamberView{
   this.hatch.position.y=.4+(delivery?(delivery.returning?.02:.42):0);
   this.tray.visible=!!delivery;
   for(const mesh of Object.values(this.items))mesh.visible=false;
-  if(delivery){const p=Math.min(1,(s.age-delivery.born)/1.2),x=delivery.returning?-3.15:THREE.MathUtils.lerp(-3.2,-.6,p);this.tray.position.x=x;const mesh=this.items[delivery.item];mesh.visible=true;mesh.position.set(x,.17,.85);mesh.rotation.set(0,t*.1,0);}
-  if(j?.item==='chalk'&&j.phase==='work'){
-   const chalk=this.items.chalk;chalk.visible=true;r.bones.handR?.getWorldPosition(this.hand);chalk.position.copy(this.hand);chalk.rotation.set(0,0,Math.PI/4);
+  if(delivery){const p=Math.min(1,(s.age-delivery.born)/1.2),x=delivery.returning?THREE.MathUtils.lerp(-.6,-3.2,Math.min(1,(j?.work||0)/2)):THREE.MathUtils.lerp(-3.2,-.6,p);this.tray.position.x=x;const mesh=this.items[delivery.item];mesh.visible=true;mesh.position.set(x,.17,.85);mesh.rotation.set(0,t*.1,0);}
+  if(!delivery&&this.items[j?.item]&&['walk','work'].includes(j.phase)){
+   const carried=this.items[j.item];carried.visible=true;r.bones.handR?.getWorldPosition(this.hand);carried.position.copy(this.hand);carried.rotation.set(0,0,Math.PI/4);
   }
   this.outline.visible=c.chalk>0||!!c.inherited.chalk;this.outline.geometry.setDrawRange(0,c.chalk>0?Math.max(2,Math.ceil(c.chalk*5)*2):10);
   this.chalkMaterial.opacity=c.chalk>=1?(c.lights?.65:1):c.chalk>0?.7:.18;this.chalkMaterial.color.setHex(c.lights?0xbfc2a5:0xe0eccc);
@@ -111,7 +111,7 @@ export class ChamberView{
  pose(s,t){
   const j=s.chamber?.job;if(!j)return;const r=this.room;
   if(j.phase==='refuse'){r.pose('head',0,Math.sin(t*5)*.35);r.pose('upper_arm.R',.5,0,-.6);r.pose('forearm.R',1.1);}
-  if(s.walking)return;
+  if(s.walking){if(this.items[j.item]){r.pose('upper_arm.R',.5,0,-.2);r.pose('forearm.R',1.1);}return;}
   if(s.activity==='collect'){r.pose('chest',.65);r.pose('upper_arm.R',.8);r.pose('forearm.R',.2);r.pose('head',.35);}
   if(s.activity==='draw'){r.pose('upper_arm.R',1.7+Math.sin(t*2)*.25,0,-.2);r.pose('forearm.R',.35+Math.sin(t*3)*.1);r.pose('head',-.1,Math.sin(t)*.1);}
   if(s.activity==='wire'){r.pose('upper_arm.R',1.0);r.pose('upper_arm.L',.95);r.pose('forearm.R',.65+Math.sin(t*10)*.1);r.pose('forearm.L',.7);r.pose('head',.35);r.pose('thigh.R',1.45);r.pose('shin.R',-1.45);r.pose('thigh.L',1.45);r.pose('shin.L',-1.45);r.body.position.y=-.26;}
@@ -121,7 +121,7 @@ export class ChamberView{
    if(p>.72){r.model.visible=Math.floor(t*13)%3!==0;r.pose('upper_arm.R',.5);r.pose('upper_arm.L',.5);}
   }
   if(j.item==='door'&&j.phase==='work'){
-   const p=j.progress;r.resident.position.z=s.position[1]-.95*p;r.resident.rotation.y=Math.PI;
+   const p=j.progress;r.resident.position.set(s.position[0],0,s.position[1]);r.resident.rotation.y=Math.PI;
    r.pose('thigh.R',Math.sin(t*8)*.25);r.pose('thigh.L',-Math.sin(t*8)*.25);r.pose('head',0,p<.3?.7:0);
    if(p>.9)r.model.visible=false;
   }

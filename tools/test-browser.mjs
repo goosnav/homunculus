@@ -28,7 +28,7 @@ await page.waitForFunction(()=>!!window.__habitat?.life,{},{timeout:120000});con
 assert.deepEqual(await page.evaluate(()=>window.__habitat.mind.context),{size:512,batch:64,threads:1});
 await page.waitForFunction(()=>!!window.__habitat.lastThought,{},{timeout:90000});console.log('decision',await page.evaluate(()=>window.__habitat.lastThought));assert.ok(weights.length>0,'fresh browser must load actual bundled model parts');
 assert.ok(await page.evaluate(()=>Number.isInteger(window.__habitat.lastThought.inputTokens.decision)&&window.__habitat.lastThought.inputTokens.decision<=256),'real decision prefill must stay bounded');
-const name=await page.evaluate(()=>window.__habitat.life.name);await page.locator('[data-action="read"]').click();
+const name=await page.evaluate(()=>window.__habitat.life.name);await page.locator('#experiments-toggle').click();await page.locator('[data-action="read"]').click();
 assert.match(await page.evaluate(()=>window.__habitat.life.memories.at(-1)),/Page \d+:/);
 await page.screenshot({path:'.local/browser-qa/dist-reading.png'});
 try{await page.waitForFunction(()=>window.__habitat.life.utterance.id>0,{},{timeout:90000});}catch(error){console.log('reading_failure',await page.evaluate(()=>({notice:document.querySelector('#notice')?.textContent,ready:window.__habitat.mind.ready,pending:!!window.__habitat.mind.pending,lastThought:window.__habitat.lastThought,life:window.__habitat.life.snapshot(),events:window.__habitat.life.events})));throw error;}console.log('comment',await page.evaluate(()=>window.__habitat.life.utterance));

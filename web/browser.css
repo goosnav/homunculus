@@ -26,3 +26,15 @@
 #reading-pages img{width:42%;max-height:60%;object-fit:contain;opacity:.78;transform:rotate(-6deg);box-shadow:0 5px 30px #0008;animation:paper-drift 4s ease-in-out infinite alternate}
 #reading-pages img+img{transform:rotate(7deg);animation-delay:-2s}
 @keyframes paper-drift{to{transform:translateY(14px) rotate(3deg)}}
+/* XP utility drawers: the room keeps the visual emphasis. */
+#interventions{padding:0 8px 7px;gap:5px;align-items:center}
+#interventions .xp-button{min-height:29px;padding:4px 10px}
+.tool-drawer{display:flex;gap:6px;flex-wrap:wrap;padding:8px;margin:0 8px 7px;border:1px solid #9b9a8c;box-shadow:inset 1px 1px #fff;background:#e5e2d2;flex-shrink:0}
+.service-drawer{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-width:460px}
+.service-drawer .xp-button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:68px;min-width:0;font-size:11px;padding:5px 2px}
+.service-drawer svg{width:34px;height:29px;stroke:#514f40;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.service-drawer [data-delivery="coil"] svg{stroke:#946037}.service-drawer button:disabled svg{opacity:.4}
+#experiments-drawer .xp-button{min-height:32px}#next-occupant{margin-left:auto}
+.menu-note{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(pointer:coarse),(max-width:700px){#interventions .xp-button,#experiments-drawer .xp-button{min-height:36px}#interventions{gap:4px}#interventions .xp-button{font-size:11px;padding:5px 8px}.service-drawer{max-width:none}.tool-drawer{gap:4px;padding:5px}.menu-note{max-width:240px}}
+@media(prefers-reduced-motion:reduce){#reading-pages img{animation:none}}

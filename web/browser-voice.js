@@ -41,8 +41,9 @@ export class BrowserVoice{
   effect(kind){
     if(!this.enabled||!this.context||this.effects.size>=4)return;
     const now=this.context.currentTime,osc=this.context.createOscillator(),gain=this.context.createGain();
-    const [start,end,length,volume]=kind==='tap'?[650,240,.055,.035]:kind==='hammer'?[180,65,.12,.07]:kind==='hole'?[100,24,.7,.12]:[110,32,.28,.18];
-    osc.type='triangle';osc.frequency.setValueAtTime(start,now);osc.frequency.exponentialRampToValueAtTime(end,now+length);
+    const sounds={tap:[650,240,.055,.035],hammer:[180,65,.12,.07],hole:[100,24,.7,.12],bell:[780,680,.6,.06],radio:[460,440,.15,.025],key:[1200,800,.08,.035],mirror:[1400,1100,.12,.025],hatch:[140,90,.18,.07],door:[80,40,.6,.07],chalk:[400,200,.08,.02],switch:[1800,850,.025,.025]};
+    const [start,end,length,volume]=sounds[kind]||[110,32,.28,.18];
+    osc.type=kind==='bell'?'sine':kind==='radio'?'square':'triangle';osc.frequency.setValueAtTime(start,now);osc.frequency.exponentialRampToValueAtTime(end,now+length);
     gain.gain.setValueAtTime(volume,now);gain.gain.exponentialRampToValueAtTime(.001,now+length);
     osc.connect(gain).connect(this.filter);this.effects.add(osc);
     osc.onended=()=>{osc.disconnect();gain.disconnect();this.effects.delete(osc);};osc.start(now);osc.stop(now+length);

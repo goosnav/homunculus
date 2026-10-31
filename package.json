@@ -11,7 +11,8 @@
     "check:build": "node tools/check-build.mjs",
     "test:browser": "node tools/test-browser.mjs",
     "predev": "node tools/prepare-model.mjs",
-    "test:stability": "node tools/test-stability.mjs"
+    "test:stability": "node tools/test-stability.mjs",
+    "test:chamber": "node tools/test-chamber.mjs"
   },
   "devDependencies": {
     "@huggingface/transformers": "3.8.1",
