@@ -36,4 +36,4 @@
 ## 4. Release
 - [x] Full Node/Python tests, model-token budget/static build, browser lifecycle/story paths, mobile and memory soak.
 - [x] Fresh whole-branch review and regression-covered correction of important findings.
-- [ ] Publish game to main, verify CI/hosting/public runtime and record evidence/limitations; finish goal only when complete.
+- [x] Publish game to main, verify CI/hosting/public runtime and record evidence/limitations; finish goal only when complete.
