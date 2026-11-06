@@ -39,4 +39,4 @@
 **Files:** tools/test-night.mjs, .github/workflows/ci.yml, README.md, docs/VERIFICATION.md.
 - [x] Run full Node/Python suites, static build/token budget/mobile checks, real model lifecycle and longer memory soak.
 - [x] Fresh whole-branch review; one regression-covered fix pass, verify all important findings resolved.
-- [ ] Commit, merge/push main, check CI/Cloudflare and public gameplay. Record limits and measured pacing.
+- [x] Commit, merge/push main, check CI/Cloudflare and public gameplay. Record limits and measured pacing.
