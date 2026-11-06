@@ -46,3 +46,16 @@ test('thirty minutes and later encounters keep state bounded without completing 
  const l=fresh();assert.ok(l.night);shift(l);for(let i=0;i<7200;i++){operateNight(l);l.tick(.25);}
  assert.equal(l.alive,true);assert.equal(l.chamber.archive.afterHours.shifts,1);assert.ok(l.night.history.length<=8);assert.ok(l.events.length<=4);assert.ok(l.memories.length<=8);assert.ok(l.chamber.archive.afterHours.keepsakes.length<=12);
 });
+
+test('a reflected inspector can be challenged instead of obeyed',()=>{
+ const l=fresh();advance(l,4);l.interact('deliver',{item:'mirror'});advance(l,40);
+ for(let i=0;i<7000&&l.night.phase!=='inspection';i++){operateNight(l);l.tick(.25);}
+ assert.equal(l.night.phase,'inspection');l.interact('bell');advance(l,50);
+ assert.equal(l.night.inspector.verdict,'reflected');assert.ok(l.chamber.archive.afterHours.keepsakes.includes('eye'));
+});
+
+test('automatic inspection work waits quietly when the resident refuses cooperation',()=>{
+ const l=fresh();for(let i=0;i<7000&&l.night.phase!=='inspection';i++){operateNight(l);l.tick(.25);}
+ operateNight(l);advance(l,20);l.interact('confine');advance(l,50);const id=l.chamber.feedback.id;advance(l,5);
+ assert.equal(l.chamber.feedback.id,id,'refusal must not produce a sound every simulation tick');assert.equal(l.chamber.busy,false);
+});

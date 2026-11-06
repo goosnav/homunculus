@@ -1,3 +1,4 @@
+import { nightClue, nightAvailability } from './night.js';
 import { BrowserRoom } from './browser-room.js';
 import { Life, parseThought } from './life.js';
 import { readArchive, writeArchive } from './chamber.js';
@@ -38,13 +39,13 @@ function speak(text){
   voice.say(text);
 }
 function closeDrawers(){
- for(const kind of ['service','experiments']){$(`#${kind}-drawer`).hidden=true;$(`#${kind}-toggle`).setAttribute('aria-expanded','false');}
+ for(const kind of ['service','experiments','night']){$(`#${kind}-drawer`).hidden=true;$(`#${kind}-toggle`).setAttribute('aria-expanded','false');}
 }
 function toggleDrawer(kind){
  const opening=$(`#${kind}-drawer`).hidden;closeDrawers();$(`#${kind}-drawer`).hidden=!opening;$(`#${kind}-toggle`).setAttribute('aria-expanded',String(opening));
 }
 function persistRoom(){
- if(!life)return;const a=life.chamber.archive,key=`${a.visits}:${!!a.traces.chalk}:${!!a.traces.signal}:${!!a.traces.key}`;
+ if(!life)return;const a=life.chamber.archive,key=JSON.stringify(a);
  if(key!==lastArchive){lastArchive=key;writeArchive(storage(),a);}
 }
 function roomControls(s){
@@ -55,6 +56,14 @@ function roomControls(s){
  $('[data-action="release"]').disabled=!s.alive||busy;
  for(const b of document.querySelectorAll('[data-delivery]')){const k=b.dataset.delivery;b.disabled=!s.alive||busy||['confined','forced_read'].includes(s.activity)||(k==='chalk'&&c.chalk>=1)||(k==='coil'&&c.coil)||(k==='mirror'&&c.mirror)||(k==='soup'&&s.age<c.soupUntil);}
  $('#next-occupant').hidden=s.alive||s.deadFor<3;
+ if(s.night){
+  const n=s.night;$('#night-clue').textContent=nightClue(n);
+  $('#night-toggle').textContent=({parcel:'Parcel…',rain:'Rain…',phone:'Telephone…',shadow:'Shadow…',inspection:'Inspection…',eviction:'Eviction…'})[n.phase]||'Things in the room…';
+  $('#night-toggle').classList.toggle('calling',n.phase!=='quiet');
+  for(const [action,[visible,enabled]]of Object.entries(nightAvailability(s))){const button=$(`#night-drawer [data-action="${action}"]`);button.hidden=!visible;button.disabled=!enabled;}
+  $('[data-action="shutter"]').textContent=n.shutter?'Open shutter':'Close shutter';$('[data-action="shutter"]').setAttribute('aria-pressed',String(n.shutter));
+  $('[data-action="drain"]').textContent=n.drain?'Close drain':'Open drain';$('[data-action="drain"]').setAttribute('aria-pressed',String(n.drain));
+ }
  if(c.feedback.id!==lastRoomFeedback){lastRoomFeedback=c.feedback.id;$('#menu-note').textContent=c.feedback.text;feedbackUntil=s.age+6;voice.effect(c.feedback.sound);}
  else if(feedbackUntil&&s.age>feedbackUntil){$('#menu-note').textContent='';feedbackUntil=0;}
 }
@@ -92,12 +101,12 @@ async function spawn(){
 function cancelSpawn(){generation++;mind?.dispose();spawning=false;$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#brain-status').textContent='';$('#spawn-status').textContent='';}
 function interaction(kind,payload={}){
   if(!life)return false;
-  if(kind==='service'||kind==='experiments'){if(life.alive||kind==='experiments')toggleDrawer(kind);return true;}
+  if(kind==='service'||kind==='experiments'||kind==='night'){if(life.alive||kind==='experiments')toggleDrawer(kind);return true;}
   if(kind==='read'){payload.pages=comicReader.select();const images=$('#reading-pages');images.replaceChildren();for(const page of payload.pages){const image=new Image();image.src=page.image;image.alt=`Book 2, page ${page.page}`;images.append(image);}}
   const accepted=life.interact(kind,payload);
   if(accepted&&kind==='tap')voice.effect('tap');
   if(accepted&&['anvil','confine','close'].includes(kind))silence();
-  if(accepted&&kind==='release'&&life.chamber.job?.item!=='door')notice('Access is denied.');
+  if(accepted&&kind==='release'&&!life.chamber.job)notice('Access is denied.');
   if(accepted&&kind==='deliver'){closeDrawers();$('#service-toggle').focus({preventScroll:true});notice('');}
   if(!life.alive)endMind();
   return accepted;
@@ -147,7 +156,7 @@ function exitProgram(){if(spawning)cancelSpawn();else interaction('close');silen
 $('#close-window').addEventListener('click',()=>{exitProgram();location.assign('https://www.goosnav.shop/');});
 $('#restart-program').addEventListener('click',()=>{exitProgram();location.reload();});
 $('#journal-button').addEventListener('click',()=>showNotes(life?`${life.name.toLowerCase()}.txt - Notepad`:'File',life?[...life.journal.map(n=>`${n.title}\n${n.text}`),...life.dialogue.slice(-8).map(m=>`${m.role==='user'?'Outside':life.name}: ${m.content}`)].concat(life.journal.length||life.dialogue.length?[]:['Nothing written.']):['There is nobody in here.']));
-$('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','Send something through Room service. He decides whether to use it.','Click objects in the room, or use the controls below. Three quick taps knock on the glass.','The room keeps its marks. Each occupant gets one life.']));
+$('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','Send something through Room service. He decides whether to use it.','Things in the room has controls for the plumbing, telephone and small diversions. Keep an eye on what arrives.','The room keeps its marks. Each occupant gets one life.']));
 $('#notes .close').addEventListener('click',()=>$('#notes').close());
 $('#new-life').addEventListener('click',()=>{$('#notes').close();$('#spawn-button').textContent='Spawn homunculus';$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#spawn-panel').hidden=false;});
 $('#reload-mind').addEventListener('click',async()=>{

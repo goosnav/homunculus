@@ -60,7 +60,7 @@ export class ChamberView{
   place(this.doorPivot,box(1.22,2.48,.13,0x8b8567),.61,0,0);
   place(this.doorPivot,box(.93,1,.03,0x979076),.61,.49,.08);place(this.doorPivot,box(.93,.74,.03,0x979076),.61,-.6,.08);
   place(this.doorPivot,new THREE.Mesh(new THREE.SphereGeometry(.045,7,6),m(0xbdb17a)),1.04,-.1,.15);
-  this.plateMap=canvasTexture(128,40);place(this.group,new THREE.Mesh(new THREE.PlaneGeometry(.65,.2),new THREE.MeshBasicMaterial({map:this.plateMap})),2.95,2.65,-2.397);
+  this.plateMap=canvasTexture(128,40);this.plate=place(this.group,new THREE.Mesh(new THREE.PlaneGeometry(.65,.2),new THREE.MeshBasicMaterial({map:this.plateMap})),2.95,2.65,-2.397);
   this.switch=place(this.group,box(.13,.22,.04,0xb7b299),.94,1.4,-2.37);this.switchLever=place(this.switch,box(.045,.08,.035,0x494f42),0,0,.04);
   this.bell=place(this.group,new THREE.Mesh(new THREE.SphereGeometry(.11,10,6,0,Math.PI*2,0,Math.PI/2),m(0x9e8660)),-1.42,.14,1.15);
   place(this.group,box(.3,.05,.24,0x595e51),-1.42,.04,1.15);
@@ -71,7 +71,7 @@ export class ChamberView{
  target(action,position,size){const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),new THREE.MeshBasicMaterial({visible:false}));mesh.position.set(...position);mesh.userData.action=action;this.group.add(mesh);this.targets.push(mesh);}
  hit(raycaster){return raycaster.intersectObjects(this.targets,false)[0]?.object.userData.action||null;}
  update(s,t){
-  const c=s.chamber;if(!c)return;const r=this.room,j=c.job,delivery=c.delivery;
+  const c=s.chamber;if(!c)return;const r=this.room,j=c.job,delivery=c.delivery;this.plate.visible=!s.night?.staying;
   if(!c.lights){if(this.lastLights)this.lightValues=[r.hemi.intensity,r.sun.intensity,r.lamp.intensity];r.hemi.intensity=.28;r.sun.intensity=.08;r.lamp.intensity=0;}
   else if(!this.lastLights&&this.lightValues)[r.hemi.intensity,r.sun.intensity,r.lamp.intensity]=this.lightValues;
   this.lastLights=c.lights;this.switchLever.rotation.x=c.lights?-.25:.25;
@@ -108,7 +108,7 @@ export class ChamberView{
   x.fillStyle='#102219';x.fillRect(0,0,128,96);x.fillStyle='#a9bf91';x.strokeStyle='#a9bf91';x.font='10px monospace';
   if(s.outcome){x.fillText('NO CARRIER',25,47);if(Math.floor(t)%2)x.fillRect(26,56,5,2);}
   else if(!c.coil){x.strokeRect(52,32,22,22);x.fillText('EMPTY SOCKET',12,77);if(c.inherited.signal){x.fillRect(12+Math.sin(t)*8,15,3,3);x.fillRect(91,57,2,2);}}
-  else{x.fillText(carrier?'CARRIER':'SEARCHING',13,19);x.beginPath();for(let i=0;i<110;i++){const y=46+(carrier?Math.sin(i*.18-t*3)*9:Math.sin(i*2.7+t*5)*17);if(i)x.lineTo(i+9,y);else x.moveTo(i+9,y);}x.stroke();x.fillText(c.lights?'LIGHT INTERFERENCE':c.job?.item==='signal'?'CONNECTED':'_',8,79);}
+  else{x.fillText(carrier?'CARRIER':'SEARCHING',13,19);x.beginPath();for(let i=0;i<110;i++){const y=46+(carrier?Math.sin(i*.18-t*3)*9:Math.sin(i*2.7+t*5)*17);if(i)x.lineTo(i+9,y);else x.moveTo(i+9,y);}x.stroke();x.fillText(s.night&&!s.night.departureReady?'WAIT FOR ALLOCATION':c.lights?'LIGHT INTERFERENCE':c.job?.item==='signal'?'CONNECTED':'_',8,79);}
   r.monitorTexture.needsUpdate=true;
  }
  pose(s,t){

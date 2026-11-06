@@ -24,6 +24,7 @@
 <form id="message-form" autocomplete="off"><label for="message" class="input-icon" aria-label="Message">›</label><input id="message" maxlength="400" placeholder="Say something through the glass…" aria-label="Say something through the glass" disabled><button class="xp-button" id="say-button" disabled>Say it</button></form>
 <div id="interventions" aria-label="Room controls">
 <button class="xp-button" id="service-toggle" data-action="service" aria-expanded="false" aria-controls="service-drawer" disabled>Room service…</button>
+<button class="xp-button" id="night-toggle" data-action="night" aria-expanded="false" aria-controls="night-drawer" disabled>Things in the room…</button>
 <button class="xp-button" data-action="lights" aria-pressed="false" disabled>Lights off</button>
 <button class="xp-button" data-action="tune" disabled>Tune 01</button>
 <button class="xp-button" data-action="bell" disabled>Ring bell</button>
@@ -37,6 +38,25 @@
 <button class="xp-button" data-delivery="coil" title="The computer has an empty socket." disabled><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 25v-8c0-19 8-19 8-4S8 29 8 16s12-21 12-3-4 16-4 3 12-21 12-3-4 16-4 3 8-5 8 9"/></svg>Copper coil</button>
 <button class="xp-button" data-delivery="mirror" title="Something to look back." disabled><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M9 2h18v20H9ZM18 22v7m-5 0h10M13 15l10-9"/></svg>Mirror</button>
 </div>
+<div id="night-drawer" class="tool-drawer night-drawer" aria-label="Things in the room" hidden>
+<p id="night-clue"></p><div class="night-controls" aria-label="Objects and fixtures">
+<button class="xp-button" data-action="open-parcel" disabled>Open parcel</button>
+<button class="xp-button" data-action="return-parcel" disabled>Return parcel</button>
+<button class="xp-button" data-action="answer" disabled>Pick up</button>
+<button class="xp-button" data-action="transmit" disabled>Send tone</button>
+<button class="xp-button" data-action="hang-up" disabled>Hang up</button>
+<button class="xp-button" data-action="submit-inspection" disabled>Present room</button>
+<button class="xp-button" data-action="refuse-eviction" disabled>Refuse eviction</button>
+<button class="xp-button" data-action="plant" disabled>Plant seed</button>
+<button class="xp-button" data-action="water" disabled>Water plant</button>
+<button class="xp-button" data-action="harvest" disabled>Pick flower</button>
+<button class="xp-button" data-action="wind-mouse" disabled>Wind mouse</button>
+<button class="xp-button" data-action="feed-wall" disabled>Feed the wall</button>
+<button class="xp-button" data-action="fold-boat" disabled>Fold boat</button>
+<button class="xp-button" data-action="float-boat" disabled>Float boat</button>
+<button class="xp-button" data-action="shutter" disabled>Close shutter</button>
+<button class="xp-button" data-action="drain" disabled>Open drain</button>
+</div></div>
 <div id="experiments-drawer" class="tool-drawer" aria-label="Experiments" hidden>
 <button class="xp-button" data-action="read" disabled>Force-read Book 2</button><button class="xp-button" data-action="confine" disabled>10,000 years</button><button class="xp-button" data-action="anvil" disabled>Drop anvil</button><button class="xp-button" data-action="hole" disabled>Black hole</button>
 </div>

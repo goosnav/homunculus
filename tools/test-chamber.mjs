@@ -1,3 +1,4 @@
+import {driveNight} from './night-driver.mjs';
 // Game mechanisms use the real Life loop and real buttons. Time is advanced in
 // bounded ticks; inference is paused only for repeatable scene/route assertions.
 import {chromium} from 'playwright-core';import assert from 'node:assert/strict';import {mkdir} from 'node:fs/promises';
@@ -11,8 +12,8 @@ try{
  const tick=async seconds=>{await page.evaluate(seconds=>{for(let i=0;i<seconds*10;i++)window.__habitat.life.tick(.1);},seconds);await page.waitForTimeout(100);};
  const until=async condition=>{await page.evaluate(condition=>{const test=new Function('l',`return ${condition}`),l=window.__habitat.life;for(let i=0;i<2000&&!test(l);i++)l.tick(.1);if(!test(l))throw Error(`Unreachable: ${condition}`);},condition);await page.waitForTimeout(150);};
  const shot=async name=>page.screenshot({path:`.local/room-remembers/${name}.png`});
- async function spawn(){await page.locator('#spawn-button').click();await page.waitForFunction(()=>!!window.__habitat?.life,{},{timeout:120000});await page.evaluate(()=>window.__habitat.pauseAutonomy=true);await tick(4);}
- async function next(){await page.locator('#next-occupant').click();await page.waitForFunction(()=>window.__habitat?.life?.alive,{},{timeout:120000});await page.evaluate(()=>window.__habitat.pauseAutonomy=true);await tick(4);}
+ async function spawn(){await page.locator('#spawn-button').click();await page.waitForFunction(()=>!!window.__habitat?.life,{},{timeout:120000});await page.evaluate(()=>window.__habitat.pauseAutonomy=true);await tick(4);await driveNight(page,{stopAtEviction:true});if(!(await state()).chamber.lights)await page.locator('[data-action="lights"]').click();}
+ async function next(){await page.locator('#next-occupant').click();await page.waitForFunction(()=>window.__habitat?.life?.alive,{},{timeout:120000});await page.evaluate(()=>window.__habitat.pauseAutonomy=true);await tick(4);await driveNight(page,{stopAtEviction:true});if(!(await state()).chamber.lights)await page.locator('[data-action="lights"]').click();}
  async function deliver(item){await page.locator('#service-toggle').click();await page.locator(`[data-delivery="${item}"]`).click();assert.equal((await state()).chamber.delivery.item,item);}
  await spawn();const camera=await page.evaluate(()=>window.__habitat.room.camera.position.toArray());
  const initialGeometry=await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries);
@@ -28,7 +29,7 @@ try{
  await deliver('coil');await until('l.chamber.coil');
  assert.equal(await page.evaluate(async()=>{const r=window.__habitat.room;let wrong=0;for(let i=0;i<20;i++){await new Promise(requestAnimationFrame);if(r.monitor.material.map!==r.monitorTexture)wrong++;}return wrong;}),0,'legacy copy must not flicker over repaired computer');
  while((await state()).chamber.channel!==(await state()).chamber.carrier)await page.locator('[data-action="tune"]').click();
- await page.locator('[data-action="lights"]').click();await until('l.chamber.job?.item==="signal"&&l.chamber.job.progress>.6');await shot('transfer');
+ await page.locator('[data-action="lights"]').click();await page.locator('[data-action="release"]').click();await until('l.chamber.job?.item==="signal"&&l.chamber.job.progress>.6');await shot('transfer');
  await until('!l.alive');assert.equal((await state()).outcome.kind,'signal');await shot('signal-empty');
  assert.equal(await page.evaluate(async()=>{const r=window.__habitat.room;let wrong=0;for(let i=0;i<20;i++){await new Promise(requestAnimationFrame);if(r.monitor.material.map!==r.monitorTexture)wrong++;}return wrong;}),0,'departed occupant must never reappear on the monitor');
  await next();await deliver('mirror');await until('l.chamber.mirror');await page.locator('[data-action="bell"]').click();await until('!!l.visitor');await tick(8);await shot('mirror-visitor');

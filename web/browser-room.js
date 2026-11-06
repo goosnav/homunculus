@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Room } from './room.js';
+import { NightView } from './night-view.js';
 import { ChamberView } from './chamber-view.js';
 import { expression, nativeFace } from './expressions.js';
 const dark=0x292b29;
@@ -56,7 +57,7 @@ export class BrowserRoom extends Room{
     this.holeRim.rotation.x=Math.PI/2;this.holeRim.visible=false;this.scene.add(this.holeRim);
     // A front edge belongs to the wall around the viewer, with CSS completing the inset.
     this.box([.11,.08,5.5],[-3.37,.13,.2],0x66705e);
-    this.chamberView=new ChamberView(this);
+    this.chamberView=new ChamberView(this);this.nightView=new NightView(this);
   }
   async loadAssets(){
     // Fetch this extra dependency before the base room adopts its assets.
@@ -144,7 +145,7 @@ export class BrowserRoom extends Room{
     if(!this.state||!this.model)return;const s=this.state;
     this.updateAnvils();
     this.updateOddities();
-    this.chamberView.update(s,t);
+    this.chamberView.update(s,t);this.nightView?.update(s,t);
     if(s.outcome){this.model.visible=false;this.skeleton.visible=false;this.shadow.visible=false;this.overlay.hidden=true;this.hammer.visible=false;this.headset.visible=false;this.cable.visible=false;this.book.visible=false;return;}
     if(!s.alive){
       this.dragging=false;this.speakingUntil=0;this.overlay.hidden=true;
@@ -203,7 +204,7 @@ export class BrowserRoom extends Room{
     }
     if(this.cracks){this.cracks.visible=s.wallDamage>3;this.cracks.children.forEach((c,i)=>c.visible=s.wallDamage>i*3);}
     this.animateFace(t);
-    this.chamberView.pose(s,t);
+    this.chamberView.pose(s,t);this.nightView?.pose(s,t);
   }
   animateArrival(arrival){
     const a=arrival.elapsed,impact=arrival.impact,after=Math.max(0,a-impact);
@@ -231,9 +232,9 @@ export class BrowserRoom extends Room{
     // Observer's glass: tapping is allowed, but never dragging a dead body or a half-loaded resident.
     const canvas=this.renderer.domElement;
     canvas.addEventListener('pointerdown',e=>{if(e.button===0&&e.isPrimary!==false&&this.state?.alive)this.pointerStart={id:e.pointerId,x:e.clientX,y:e.clientY};});
-    canvas.addEventListener('pointerup',e=>{const start=this.pointerStart;this.pointerStart=null;if(!start||start.id!==e.pointerId||Math.hypot(start.x-e.clientX,start.y-e.clientY)>8||!this.state?.alive)return;this.container.focus({preventScroll:true});this.ray(e);const action=this.chamberView.hit(this.raycaster);this.onInteraction(action||'tap',{});});
+    canvas.addEventListener('pointerup',e=>{const start=this.pointerStart;this.pointerStart=null;if(!start||start.id!==e.pointerId||Math.hypot(start.x-e.clientX,start.y-e.clientY)>8||!this.state?.alive)return;this.container.focus({preventScroll:true});this.ray(e);const action=this.nightView?.hit(this.raycaster)||this.chamberView.hit(this.raycaster);this.onInteraction(action||'tap',{});});
     canvas.addEventListener('pointercancel',()=>{this.pointerStart=null;});
-    canvas.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;this.ray(e);canvas.style.cursor=this.state?.alive&&this.chamberView.hit(this.raycaster)?'pointer':'default';});
+    canvas.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;this.ray(e);canvas.style.cursor=this.state?.alive&&(this.nightView?.hit(this.raycaster)||this.chamberView.hit(this.raycaster))?'pointer':'default';});
     this.container.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat&&this.state?.alive){e.preventDefault();this.onInteraction('tap',{});}});
     canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();cancelAnimationFrame(this.raf);this.container.dispatchEvent(new CustomEvent('render-lost'));});
   }

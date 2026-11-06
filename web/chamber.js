@@ -106,7 +106,7 @@ export class Chamber{
    this.begin(life,j.item);return;
   }
   if(j.phase==='walk'){
-   j.phase='work';j.work=0;j.origin=[...life.position];
+   j.phase='work';j.work=0;j.origin=[...life.position];if(j.facing!==undefined)life.yaw=j.facing;
    if(j.item==='coil'||j.item==='signal'){life.position=[1.96,-.22];life.seated=true;life.yaw=Math.PI;}
    else if(j.item==='chalk')life.yaw=Math.PI;
   }

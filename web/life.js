@@ -196,8 +196,8 @@ export class Life{
         if(this.doorAttempts>=3&&this.random()<.5)this.discover('door-room','A gap','The door opened a crack. There was an identical room behind it. Then it shut.','doorUntil',7);
       }
       if(this.remaining<=0&&!this.chamber.busy){
-        const work=['hammer','escape','upload','pace'];
-        this.choose(this.energy<25?'rest':this.random()<.65?this.preferred:work[Math.floor(this.random()*work.length)%work.length],true);
+        const work=this.night?.staying?['rest','eat','read','pace','watch']:['hammer','escape','upload','pace'];
+        this.choose(this.energy<25?'rest':!this.night?.staying&&this.random()<.65?this.preferred:work[Math.floor(this.random()*work.length)%work.length],true);
       }
     }
   }
@@ -273,7 +273,7 @@ export class Life{
     if(this.chamber.busy||this.activity==='confined'&&this.age<this.lockUntil)return true;
     this.choose(this.energy<20?'rest':thought.action);return true;
   }
-  context(){return `Your name is ${this.name}. You are locked in a shabby room. You want out. Your preferred escape method is ${this.preferred}. You keep ${this.fixation}. You are ${DESCRIPTIONS[this.activity]}, stage: ${this.stage}. Room light ${this.chamber.lights?'on':'off'}, coil ${this.chamber.coil?'fitted':'missing'}, chalk doorway ${this.chamber.chalkOpen?'open':'closed'}. Wall damage ${Math.floor(this.wallDamage)}. Mind upload ${Math.floor(this.uploadProgress)} percent. Subjective years: ${this.imaginedYears}. ${this.night?.cue()||''} Recent experiences: ${this.memories.slice(-4).join(' ')}`;}
+  context(){return `Your name is ${this.name}. You are locked in a shabby room. ${this.night?.staying?'You chose to stay here. The building wants your home empty.':'You want out.'} Your preferred escape method is ${this.preferred}. You keep ${this.fixation}. You are ${DESCRIPTIONS[this.activity]}, stage: ${this.stage}. Room light ${this.chamber.lights?'on':'off'}, coil ${this.chamber.coil?'fitted':'missing'}, chalk doorway ${this.chamber.chalkOpen?'open':'closed'}. Wall damage ${Math.floor(this.wallDamage)}. Mind upload ${Math.floor(this.uploadProgress)} percent. Subjective years: ${this.imaginedYears}. ${this.night?.cue()||''} Recent experiences: ${this.memories.slice(-4).join(' ')}`;}
   snapshot(){
     const watching=this.visitor&&Math.hypot(this.visitor.position[0]-this.position[0],this.visitor.position[2]-this.position[1])<2.6;
     return {chamber:this.chamber.snapshot(),night:this.night?.snapshot()||null,outcome:this.outcome,name:this.name,alive:this.alive,age:this.age,position:[...this.position],yaw:this.yaw,activity:this.activity,description:this.arrival?'arriving':({collect:'collecting the delivery',draw:'drawing on the wall',wire:'repairing the computer',mount:'setting up the mirror',depart:'leaving',gone:'gone'}[this.activity]||DESCRIPTIONS[this.activity]),stage:this.stage,workElapsed:this.workElapsed,hasHammer:this.hasHammer,toolPosition:[...this.toolPosition],hammerStrikes:this.hammerStrikes,effects:{...this.effects},feeling:watching?'afraid':this.feeling,walking:!this.arrival&&!watching&&this.startledUntil<=this.age&&this.path.length>0,seated:this.seated,utterance:{...this.utterance},skeleton:!this.alive&&!this.outcome&&this.deathCause!=='hole'&&this.age-this.deadAt>=3,deathCause:this.deathCause,deadFor:this.deadAt===null?0:this.age-this.deadAt,anvils:this.anvils.map(a=>({...a})),wallDamage:this.wallDamage,uploadProgress:this.uploadProgress,imaginedYears:this.imaginedYears,journal:this.journal,dialogue:this.dialogue,keepsake:false,
