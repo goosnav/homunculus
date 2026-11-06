@@ -30,10 +30,17 @@ export class LaboratoryView{
   const white=put(this.eye,ball(.73,0xd3c5a6),0,0,.09);white.scale.set(1,.5,.13);
   this.pupil=put(this.eye,ball(.26,0x202f2a),0,0,.17);this.pupil.scale.z=.25;put(this.pupil,ball(.045,0xd3d5b7),-.06,.07,.06);
   this.eye.traverse(o=>{if(o.material){o.material.transparent=true;o.material.depthWrite=false;}});
+  this.targets={fan:this.fan,mist:this.nozzle,resonator:this.resonator,nest:this.nest};this.hitMeshes=[];
+  for(const [name,target] of Object.entries(this.targets))target.traverse(o=>{if(o.isMesh){o.userData.tool=name;this.hitMeshes.push(o);}});
+  this.marker=put(this.root,ring(.34,.018,0xd6b870));this.marker.rotation.x=-Math.PI/2;this.marker.material.depthTest=false;this.marker.renderOrder=20;this.marker.visible=false;this.selectedUntil=0;this.selectedTool='fan';this.selectedPad=0;
   this.screws=[];for(let i=0;i<6;i++){const screw=group(this.root);put(screw,box(.035,.1,.035,0x707e6c));put(screw,box(.09,.025,.07,0x9aa38a),0,.06);this.screws.push(screw);}
  }
+ selectTool(tool,pad=0){if(!Object.hasOwn(this.targets,tool))return;this.selectedTool=tool;this.selectedPad=Number.isInteger(pad)&&pad>=0&&pad<3?pad:0;this.selectedUntil=performance.now()+4500;}
+ hit(raycaster){if(!this.root.visible)return null;const hit=raycaster.intersectObjects(this.hitMeshes,false)[0];return hit?`tool:${hit.object.userData.tool}`:null;}
  update(s,t){
   const l=s.laboratory;this.root.visible=!!l;if(!l)return;
+  this.marker.visible=s.alive&&performance.now()<this.selectedUntil;
+  if(this.marker.visible){const target=this.targets[this.selectedTool];this.marker.position.copy(target.position);if(this.selectedTool==='resonator'){const pad=LAB_PADS[this.selectedPad];this.marker.position.set(pad[0],.04,pad[1]);}else this.marker.position.y=this.selectedTool==='mist'?2.25:.04;this.marker.scale.setScalar(1+Math.sin(t*5)*.08);}
   this.fanHead.rotation.y=Math.PI/2-l.draft.direction*Math.PI/2;this.rotor.rotation.z=t*l.draft.power*8;
   this.mist.visible=l.mist.on&&s.alive;
   for(let i=0;i<28;i++){const p=(t*.18+i*.137)%1,x=2.68-p*(.6+Math.sin(i)*.4)+l.draft.x*p,y=2.3-p*1.5,z=-1.87+p*(1.4+Math.cos(i)*.5)+l.draft.z*p;this.mistBuffer.set([x,y,z,x-.03,y-.07,z+.05],i*6);}this.mist.geometry.attributes.position.needsUpdate=true;

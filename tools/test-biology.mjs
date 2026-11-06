@@ -29,17 +29,19 @@ try{
  assert.ok(memory.at(-1).geometries<=memory[0].geometries+4,'body replacement must release old geometry');
  assert.ok(memory.at(-1).textures<=memory[0].textures+2,'body replacement must release old textures');
  await page.locator('#emotion-button').click();await page.locator('#laboratory-toggle').click();
- await page.locator('[data-action="mist"]').click();await page.locator('[data-action="resonance-tone"][data-tone="3"]').click();await page.locator('[data-action="resonance-power"]').click();await page.locator('[data-action="lights"]').click();
+ await page.locator('[data-device="mist"]').click();await page.locator('[data-action="mist"]').click();
+ await page.locator('[data-device="resonator"]').click();await page.locator('[data-action="resonance-tone"][data-tone="3"]').click();await page.locator('[data-action="resonance-power"][data-power="1"]').click();
+ await page.locator('#night-toggle').click();await page.locator('[data-room-tab="fixtures"]').click();await page.locator('[data-action="lights"]').click();
  await page.evaluate(()=>{const h=window.__habitat,l=h.life;for(let i=0;i<80;i++)Object.getPrototypeOf(l).tick.call(l,.1);});await page.waitForTimeout(200);
  assert.equal(await page.evaluate(()=>window.__habitat.room.laboratoryView.eye.visible),true);
  await page.screenshot({path:'.local/browser-qa/glass-eye.png'});
- await page.locator('[data-action="lights"]').click();await page.locator('[data-action="resonance-power"]').click();
+ await page.locator('[data-action="lights"]').click();await page.locator('#laboratory-toggle').click();await page.locator('[data-action="resonance-power"][data-power="2"]').click();
  await page.evaluate(()=>{const l=window.__habitat.life;for(let i=0;i<130;i++)Object.getPrototypeOf(l).tick.call(l,.1);});await page.waitForTimeout(200);
  assert.ok(await page.evaluate(()=>window.__habitat.room.body.position.y>1));await page.screenshot({path:'.local/browser-qa/gravity.png'});
  await page.locator('[data-action="resonance-tone"][data-tone="1"]').click();
  await page.evaluate(()=>{const l=window.__habitat.life;for(let i=0;i<60;i++)Object.getPrototypeOf(l).tick.call(l,.1);});
  assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.suspended),false);
- await page.locator('[data-action="resonance-power"]').click();await page.locator('[data-action="resonance-power"]').click();
+ await page.locator('[data-action="resonance-power"][data-power="1"]').click();await page.locator('[data-device="nest"]').click();
  for(const item of ['paper','wire','cloth']){await page.locator(`[data-item="${item}"]`).click();await page.evaluate(()=>{const l=window.__habitat.life;for(let i=0;i<350&&l.chamber.job;i++)Object.getPrototypeOf(l).tick.call(l,.1);});await page.waitForTimeout(150);}
  assert.deepEqual(await page.evaluate(()=>window.__habitat.life.laboratory.nest.scraps),['paper','wire','cloth']);
  await page.evaluate(()=>{const l=window.__habitat.life;for(let i=0;i<270;i++)Object.getPrototypeOf(l).tick.call(l,.1);});await page.waitForTimeout(200);

@@ -6,7 +6,7 @@ try{
  await page.goto(`${process.env.BROWSER_TEST_URL||'http://127.0.0.1:4173'}/?debug&body=human`);assert.equal(await page.locator('#night-toggle').count(),1,'after-hours objects must have reachable controls');
  async function spawn(){await page.locator('#spawn-button').click();await page.waitForFunction(()=>!!window.__habitat?.life,{},{timeout:120000});await page.evaluate(()=>{window.__habitat.pauseAutonomy=true;for(let i=0;i<20;i++)window.__habitat.life.tick(.25);});}
  await spawn();const camera=await page.evaluate(()=>window.__habitat.room.camera.position.toArray());
- await page.locator('#night-toggle').click();await page.screenshot({path:'.local/after-hours/controls.png'});await page.locator('[data-action="plant"]').click();
+ await page.locator('#night-toggle').click();await page.locator('#play-select').selectOption('plant');await page.screenshot({path:'.local/after-hours/controls.png'});await page.locator('[data-action="plant"]').click();
  await page.evaluate(()=>{for(let i=0;i<100;i++)window.__habitat.life.tick(.25);});
  let route=0;const shots=async(phase,s)=>{if(phase!=='quiet'){await page.waitForTimeout(100);await page.screenshot({path:`.local/after-hours/${route}-${phase}.png`});}};
  const duration=await driveNight(page,{onPhase:shots});assert.ok(duration<1800);assert.equal(await page.evaluate(()=>window.__habitat.life.alive),true);await page.screenshot({path:'.local/after-hours/stayed.png'});

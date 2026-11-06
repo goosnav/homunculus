@@ -27,7 +27,7 @@ export class Chamber{
   life.beginWork(ACTIVITIES[item]||'collect',PLACES[item]||PLACES.collect);
  }
  cancel(life,{preservePosition=false}={}){
-  life.laboratory?.interrupt(life,'cancelled');this.job=null;this.delivery=null;
+  life.laboratory?.interrupt(life,'cancelled');life.paperPlay?.interrupt(life,'cancelled');this.job=null;this.delivery=null;
   if(life.alive&&['collect','draw','wire','mount','depart','tinker'].includes(life.activity)){
    if(preservePosition){life.activity='watch';life.path=[];life.seated=false;life.remaining=3;}else life.choose('watch',true);
   }
@@ -41,7 +41,8 @@ export class Chamber{
    this.lights=!this.lights;this.tell(this.lights?'The lights come back.':'The glass goes dark.');return true;
   }
   if(kind==='tune'){
-   this.channel=this.channel%3+1;this.tell(this.channel===this.carrier?'A steady carrier.':'Something between stations.','radio');return true;
+   if(Object.hasOwn(payload,'channel')&&(!Number.isInteger(payload.channel)||payload.channel<1||payload.channel>3))return false;
+   this.channel=payload.channel??this.channel%3+1;this.tell(this.channel===this.carrier?'A steady carrier.':'Something between stations.','radio');return true;
   }
   if(kind==='bell'){
    if(life.age<this.bellUntil)return false;
@@ -116,6 +117,7 @@ export class Chamber{
   if(j.item==='door')life.position=[j.origin[0],j.origin[1]-.95*j.progress];
   if(j.item==='chalk')this.chalk=Math.max(this.chalk,j.progress);
   if(j.progress<1)return;
+  if(j.item.startsWith('play:')){this.job=null;life.paperPlay?.complete(life,j.item.slice(5));if(life.alive)life.choose('watch',true);return;}
   if(j.item.startsWith('lab:')){this.job=null;life.laboratory?.complete(life,j.item.slice(4));if(life.alive)life.choose('watch',true);return;}
   if(j.item.startsWith('night:')){this.job=null;life.night?.complete(life,j.item.slice(6));if(life.alive)life.choose('watch',true);return;}
   if(j.item==='door'){life.finish(j.exit);return;}

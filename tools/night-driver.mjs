@@ -1,18 +1,15 @@
+import {pressAction,showGive} from './tool-driver.mjs';
 import assert from 'node:assert/strict';
 export async function driveNight(page,{alternative=false,ending='stay',stopAtEviction=false,callService=false,onPhase=async()=>{}}={}){
  let previous='';
- const press=async action=>{
-  const night=page.locator(`#night-drawer [data-action="${action}"]`);
-  if(await night.count()){if(!await night.isVisible())await page.locator('#night-toggle').click();await night.click();}
-  else await page.locator(`[data-action="${action}"]`).click();
- };
+ const press=action=>pressAction(page,action);
  for(let attempt=0;attempt<500;attempt++){
   const s=await page.evaluate(()=>window.__habitat.life.snapshot()),n=s.night,c=s.chamber;
   if(n.phase!==previous){previous=n.phase;await onPhase(n.phase,s);}
   if(n.resolved||stopAtEviction&&n.phase==='eviction')return n.time;
   assert.ok(s.alive,'story actor died unexpectedly');
   if(!c.job&&!s.arrival){
-   if(c.cooperation<-.5){await page.locator('#service-toggle').click();await page.locator('[data-delivery="soup"]').click();}
+   if(c.cooperation<-.5){await showGive(page);await page.locator('[data-delivery="soup"]').click();}
    else if(n.phase==='quiet'&&callService&&n.serviceReady)await press('call-service');
    else if(n.phase==='parcel')await press(alternative?'return-parcel':'open-parcel');
    else if(n.phase==='rain'){
@@ -28,7 +25,7 @@ export async function driveNight(page,{alternative=false,ending='stay',stopAtEvi
     const dark=n.inspector.rule==='dark';if(c.lights===dark)await press('lights');else if(n.shutter!==dark)await press('shutter');else if(!n.inspector.submitted)await press('submit-inspection');
    }else if(n.phase==='eviction'){
     if(ending==='stay')await press('refuse-eviction');
-    else if(!c.coil){await page.locator('#service-toggle').click();await page.locator('[data-delivery="coil"]').click();}
+    else if(!c.coil){await showGive(page);await page.locator('[data-delivery="coil"]').click();}
     else if(c.lights)await press('lights');else if(c.channel!==c.carrier)await press('tune');else await press('release');
    }
   }

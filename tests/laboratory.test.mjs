@@ -168,3 +168,12 @@ available('thirty minutes of control changes retain finite bounded state and sma
   assert.ok(JSON.stringify(pair.lab.snapshot()).length<3000);assert.ok(JSON.stringify(pair.archive).length<150);
   assert.ok(pair.life.events.length<=4);assert.ok(pair.life.memories.length<=8);assert.equal(pair.life.chamber.job,null,'experiments do not steal the ordinary shift');
 });
+available('direct device settings are idempotent and reject invalid settings',()=>{
+  const pair=fresh();
+  for(const power of [2,0,1,1]){assert.equal(act(pair,'draft-power',{power}),true);assert.equal(pair.lab.draft.power,power);assert.equal(act(pair,'resonance-power',{power}),true);assert.equal(pair.lab.resonance.power,power);}
+  for(const direction of [3,0,2,2]){assert.equal(act(pair,'draft-direction',{direction}),true);assert.equal(pair.lab.draft.direction,direction);}
+  const before=pair.lab.snapshot();
+  for(const power of [-1,3,.5,NaN,Infinity,'1',null])for(const kind of ['draft-power','resonance-power'])assert.equal(act(pair,kind,{power}),false);
+  for(const direction of [-1,4,.5,NaN,Infinity,'1',null])assert.equal(act(pair,'draft-direction',{direction}),false);
+  assert.deepEqual(pair.lab.snapshot(),before);
+});

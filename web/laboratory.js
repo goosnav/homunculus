@@ -4,7 +4,7 @@ const REMNANTS=['cradle','heart','shed'];
 export const LAB_PADS=[[-.65,.85],[.6,.6],[.15,-1.55]];
 export const NEST_POSITION=[-.75,.65];
 const clamp=(v,min=0,max=1)=>Math.max(min,Math.min(max,v));
-const FIXTURES=['draft-turn','draft-power','mist','resonance-tone','resonance-power','resonance-aim'];
+const FIXTURES=['draft-turn','draft-direction','draft-power','mist','resonance-tone','resonance-power','resonance-aim'];
 const ACTIONS=[...FIXTURES,'deliver-scrap','keep-heart','release-heart'];
 const FLOW=[[1,0],[0,1],[-1,0],[0,-1]];
 const coerced=life=>['confined','forced_read'].includes(life.activity);
@@ -48,13 +48,18 @@ export class Laboratory {
     if(!ACTIONS.includes(kind))return null;
     if(this.ended||terminal(life))return false;
     if(!payload||typeof payload!=='object'||Array.isArray(payload))return false;
+    if(kind==='draft-direction'){
+      if(!Number.isInteger(payload.direction)||payload.direction<0||payload.direction>3)return false;
+      this.draft.direction=payload.direction;this.updateFlow();this.tell(life,'The fan turns on its little stand.','wind');return true;
+    }
     if(kind==='draft-turn'){
       if(payload.direction!==-1&&payload.direction!==1)return false;
       this.draft.direction=(this.draft.direction+payload.direction+4)%4;this.updateFlow();
       this.tell(life,'The fan turns on its little stand.','wind');return true;
     }
     if(kind==='draft-power'){
-      this.draft.power=(this.draft.power+1)%3;this.updateFlow();
+      if(Object.hasOwn(payload,'power')&&(!Number.isInteger(payload.power)||payload.power<0||payload.power>2))return false;
+      this.draft.power=payload.power??(this.draft.power+1)%3;this.updateFlow();
       this.tell(life,['The fan coasts to a stop.','A little draught crosses the floor.','The papers hold on to the floor.'][this.draft.power],'wind');return true;
     }
     if(kind==='mist'){
@@ -65,7 +70,8 @@ export class Laboratory {
       this.resonance.tone=payload.tone;this.tell(life,['A low note. The screws settle.','A note somewhere inside the walls.','The glass answers the high note.'][payload.tone-1],['bass','middle','treble'][payload.tone-1]);return true;
     }
     if(kind==='resonance-power'){
-      this.resonance.power=(this.resonance.power+1)%3;
+      if(Object.hasOwn(payload,'power')&&(!Number.isInteger(payload.power)||payload.power<0||payload.power>2))return false;
+      this.resonance.power=payload.power??(this.resonance.power+1)%3;
       this.tell(life,['The room finishes humming.','A gentle hum travels through the floor.','The screws start to complain.'][this.resonance.power],'radio');return true;
     }
     if(kind==='resonance-aim'){

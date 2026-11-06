@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
+import {paperPlayAvailability} from '../web/paper-play.js';
 import {laboratoryAvailability} from '../web/laboratory.js';
 import {SPECIES,randomSpecies,speciesId} from '../web/species.js';
 import { Life } from '../web/life.js';
@@ -23,10 +24,10 @@ for(const ending of ['\n','\r\n'])test(`a transient room asset failure can be re
   }
   class FakeMind{load(){this.ready=true;return Promise.resolve();}dispose(){}}
   const context=vm.createContext({
-    console,URLSearchParams,location:{search:'?debug'},performance:{now:()=>0},
+    console,URLSearchParams,matchMedia:()=>({matches:true}),createToolPanel:()=>({update(){},opened(){}}),location:{search:'?debug'},performance:{now:()=>0},
     document:{addEventListener(){},querySelector:node,querySelectorAll:()=>[],body:{classList:{remove(){},add(){}}}},
     window:{addEventListener(){}},requestAnimationFrame(){},speechSynthesis:{cancel(){}},
-    SPECIES,randomSpecies,speciesId,laboratoryAvailability,createInstrument:()=>({update(){}}),BrowserRoom:FakeRoom,BrowserMind:FakeMind,BrowserVoice:FakeVoice,ComicReader:{load:async()=>({})},Life,
+    SPECIES,randomSpecies,speciesId,laboratoryAvailability,paperPlayAvailability,createInstrument:()=>({update(){}}),BrowserRoom:FakeRoom,BrowserMind:FakeMind,BrowserVoice:FakeVoice,ComicReader:{load:async()=>({})},Life,
     readArchive,writeArchive,parseThought(){},mindMessages(){},
   });
   const source=readFileSync(new URL('../web/browser-app.js',import.meta.url),'utf8').replace(/\r?\n/g,ending).replace(/^import .*;\r?\n/gm,'');

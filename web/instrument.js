@@ -54,7 +54,7 @@ export function createInstrument({onAction}={}){
     const view=window.visualViewport;
     const left=(view?.offsetLeft||0)+6,top=(view?.offsetTop||0)+6;
     const width=Math.max(0,(view?.width||window.innerWidth)-12),height=Math.max(0,(view?.height||window.innerHeight)-12);
-    panel.style.width=`${Math.min(280,width)}px`;panel.style.maxHeight=`${height}px`;
+    panel.style.width=`${Math.min(window.innerWidth<=700?230:280,width)}px`;panel.style.maxHeight=`${height}px`;
     const box=panel.getBoundingClientRect();
     position??={x:left+width-box.width,y:top+48};
     position.x=clamp(position.x,left,Math.max(left,left+width-box.width));

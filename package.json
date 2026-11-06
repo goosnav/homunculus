@@ -14,7 +14,10 @@
     "test:stability": "node tools/test-stability.mjs",
     "test:chamber": "node tools/test-chamber.mjs",
     "test:night": "node tools/test-night.mjs",
-    "test:biology": "node tools/test-biology.mjs"
+    "test:biology": "node tools/test-biology.mjs",
+    "test:tools": "node tools/test-tools.mjs",
+    "test:paper": "node tools/test-paper-play.mjs",
+    "test:audio": "node tools/test-voice-mobile.mjs"
   },
   "devDependencies": {
     "@huggingface/transformers": "3.8.1",

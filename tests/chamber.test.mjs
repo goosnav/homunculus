@@ -83,3 +83,10 @@ test('a floor opening kills during a delivery walk and cancels its project perma
  assert.equal(l.deathCause,'hole');assert.equal(l.chamber.busy,false);step(l,30);assert.equal(l.chamber.coil,false);assert.equal(l.snapshot().skeleton,false);
  assert.equal(l.applyThought({action:'rest',say:'Back.'},l.epoch),false);
 });
+test('explicit radio station settings are repeatable and reject malformed channels',()=>{
+ const life=new Life({random:()=>.2});life.arrival=null;
+ assert.equal(life.interact('tune',{channel:3}),true);assert.equal(life.chamber.channel,3);
+ assert.equal(life.interact('tune',{channel:3}),true);assert.equal(life.chamber.channel,3);
+ for(const channel of [0,4,.5,NaN,Infinity,'2',null])assert.equal(life.interact('tune',{channel}),false);
+ assert.equal(life.chamber.channel,3);
+});

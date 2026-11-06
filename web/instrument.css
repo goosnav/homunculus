@@ -33,3 +33,5 @@
 .has-signal .instrument-lamp{background:#c99a49;border-color:#795c2c}
 @media(pointer:coarse),(max-width:700px){.instrument-titlebar{height:34px;min-height:34px}.instrument-close{width:28px;height:28px}.instrument-channel{min-height:44px}}
 @media(prefers-reduced-motion:reduce){.instrument-needle{transition:none}}
+
+@media(max-width:700px){.instrument-body{padding:4px}.instrument-dial{height:64px}.instrument-trace{height:20px}.instrument-channels{gap:1px;margin-top:4px}.instrument-channel{font-size:9px}.instrument-channel b{font-size:12px;margin-top:2px}.instrument-footer{height:18px;min-height:18px}.instrument-titlebar{height:30px;min-height:30px}}

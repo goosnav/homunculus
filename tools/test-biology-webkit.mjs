@@ -18,7 +18,7 @@ try{
     if(/\/models\/.*\.bin$/.test(url.pathname))weights.push(url.href);
   });
   await page.goto(new URL('/?debug&body=worm',site).href);
-  const bundle=await page.locator('script[type="module"]').getAttribute('src');
+  const bundle=await page.locator('script[type="module"][src]:not([src="/@vite/client"])').getAttribute('src');
   await page.evaluate(()=>{window.__habitat.pauseAutonomy=true;});
   const started=Date.now();await page.locator('#spawn-button').click();
   await page.waitForFunction(()=>window.__habitat.life?.species==='worm',{},{timeout:120000});
@@ -39,20 +39,16 @@ try{
   await page.evaluate(()=>{window.__habitat.pauseAutonomy=false;});
   await page.locator('#say-button').click();
   let reply=null;
-  try{
-    await page.waitForFunction(()=>!!window.__habitat.life.utterance.text,{},{timeout:90000});
-    reply=await page.evaluate(()=>({text:window.__habitat.life.utterance.text,tokens:window.__habitat.lastThought?.inputTokens}));
-    assert.ok(Number.isInteger(reply.tokens?.decision)&&reply.tokens.decision<=256);
-    assert.ok(Number.isInteger(reply.tokens?.speech)&&reply.tokens.speech<=256);
-    await page.waitForFunction(()=>window.__habitat.voice.lastAudio?.samples>0,{},{timeout:30000});
-    const jaws=[];
-    for(let i=0;i<5;i++){jaws.push(await page.evaluate(()=>window.__habitat.room.bones.jaw.quaternion.toArray()));await page.waitForTimeout(60);}
-    assert.ok(jaws.some(jaw=>jaw.some((value,index)=>Math.abs(value-jaws[0][index])>1e-5)),'the real spoken reply must animate the worm jaw');
-    assert.equal(await page.evaluate(()=>window.__habitat.voice.context.state),'running');
-  }catch(error){
-    if(error.name!=='TimeoutError')throw error;
-    reply={unavailable:error.message.split('\n')[0],notice:await page.locator('#notice').textContent()};
-  }
+  await page.waitForFunction(()=>!!window.__habitat.life.utterance.text,{},{timeout:90000});
+  reply=await page.evaluate(()=>({text:window.__habitat.life.utterance.text,tokens:window.__habitat.lastThought?.inputTokens}));
+  assert.ok(Number.isInteger(reply.tokens?.decision)&&reply.tokens.decision<=256);
+  assert.ok(Number.isInteger(reply.tokens?.speech)&&reply.tokens.speech<=256);
+  await page.waitForFunction(()=>window.__habitat.voice.lastAudio?.samples>0,{},{timeout:30000});
+  const jaws=[];
+  for(let i=0;i<5;i++){jaws.push(await page.evaluate(()=>window.__habitat.room.bones.jaw.quaternion.toArray()));await page.waitForTimeout(60);}
+  assert.ok(jaws.some(jaw=>jaw.some((value,index)=>Math.abs(value-jaws[0][index])>1e-5)),'the real spoken reply must animate the worm jaw');
+  assert.equal(await page.evaluate(()=>window.__habitat.voice.context.state),'running');
+
   await page.evaluate(()=>{window.__habitat.pauseAutonomy=true;});
   console.log(JSON.stringify({phase:'reply',reply}));
   await page.locator('#message').blur();
@@ -83,16 +79,20 @@ try{
   assert.ok((await page.locator('.window').boundingBox()).height>=840,'the window must recover when the keyboard closes');
   console.log(JSON.stringify({phase:'meter-and-keyboard',composer,instrument}));
 
+  await page.evaluate(()=>window.__habitat.voice.context.suspend());
   await page.locator('#laboratory-toggle').click();
-  await page.locator('[data-action="draft-turn"][data-direction="-1"]').click();
-  assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.draft.direction),3,'the counterclockwise button must send -1');
-  await page.locator('[data-action="draft-turn"][data-direction="1"]').click();
+  await page.waitForFunction(()=>window.__habitat.voice.context.state==='running');
+  await page.locator('[data-action="draft-direction"][data-direction="3"]').click();
+  assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.draft.direction),3,'Back wall must send the exact direction, rather than cycle it');
+  await page.locator('[data-action="draft-direction"][data-direction="0"]').click();
   assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.draft.direction),0);
-  await page.locator('[data-action="draft-power"]').click();assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.draft.power),1);
+  await page.locator('[data-action="draft-power"][data-power="1"]').click();assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.draft.power),1);
+  await page.locator('[data-device="mist"]').click();
   await page.locator('[data-action="mist"]').click();assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.mist.on),true);
+  await page.locator('[data-device="resonator"]').click();
   await page.locator('[data-action="resonance-aim"][data-pad="2"]').click();assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.resonance.pad),2);
   await page.locator('[data-action="resonance-tone"][data-tone="3"]').click();assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.resonance.tone),3);
-  await page.locator('[data-action="resonance-power"]').click();await page.locator('[data-action="resonance-power"]').click();
+  await page.locator('[data-action="resonance-power"][data-power="2"]').click();
   assert.equal(await page.evaluate(()=>window.__habitat.life.laboratory.resonance.power),2);
   await page.waitForFunction(()=>window.__habitat.life.laboratory.gravity.lift>.8,{},{timeout:30000});
   await page.waitForFunction(()=>window.__habitat.room.body.position.y>.7,{},{timeout:5000});

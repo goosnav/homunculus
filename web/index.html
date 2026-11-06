@@ -22,48 +22,53 @@
 </div>
 <div id="notice" role="status" hidden></div>
 <form id="message-form" autocomplete="off"><label for="message" class="input-icon" aria-label="Message">›</label><input id="message" maxlength="400" placeholder="Say something through the glass…" aria-label="Say something through the glass" disabled><button class="xp-button" id="say-button" disabled>Say it</button></form>
-<div id="interventions" aria-label="Room controls">
-<button class="xp-button" id="service-toggle" data-action="service" aria-expanded="false" aria-controls="service-drawer" disabled>Room service…</button>
-<button class="xp-button" id="laboratory-toggle" data-action="laboratory" aria-expanded="false" aria-controls="laboratory-drawer" disabled>Apparatus…</button>
-<button class="xp-button" data-action="wave" title="Wave through the glass" disabled>Wave</button>
-<button class="xp-button" id="night-toggle" data-action="night" aria-expanded="false" aria-controls="night-drawer" disabled>Things in the room…</button>
-<button class="xp-button" data-action="lights" aria-pressed="false" disabled>Lights off</button>
-<button class="xp-button" data-action="tune" disabled>Tune 01</button>
-<button class="xp-button" data-action="bell" disabled>Ring bell</button>
-<button class="xp-button" data-action="release" disabled>Let him out</button>
-<button class="xp-button" id="experiments-toggle" data-action="experiments" aria-expanded="false" aria-controls="experiments-drawer" disabled>Experiments…</button>
+<div id="interventions" aria-label="Tools">
+<button class="xp-button" id="service-toggle" data-action="service" aria-expanded="false" aria-controls="service-drawer" disabled>Give</button>
+<button class="xp-button" id="night-toggle" data-action="night" aria-expanded="false" aria-controls="night-drawer" disabled>Room</button>
+<button class="xp-button" id="laboratory-toggle" data-action="laboratory" aria-expanded="false" aria-controls="laboratory-drawer" disabled>Devices</button>
+<button class="xp-button" id="experiments-toggle" data-action="experiments" aria-expanded="false" aria-controls="experiments-drawer" disabled>Experiments</button>
 <button class="xp-button primary" id="next-occupant" hidden>New occupant</button>
 </div>
+<div id="tool-feedback" role="status" aria-live="polite" hidden></div>
 <div id="service-drawer" class="tool-drawer service-drawer" aria-label="Room service" hidden>
 <button class="xp-button" data-delivery="soup" title="A small kindness." disabled><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 14h28c-2 11-7 13-14 13S6 25 4 14Z"/><path d="M12 10c-5-4 5-4 0-9m12 9c-5-4 5-4 0-9"/></svg>Soup</button>
 <button class="xp-button" data-delivery="chalk" title="Something to draw with." disabled><svg viewBox="0 0 36 30" aria-hidden="true"><path d="m8 23 15-18 6 5-15 18Z"/><path d="m10 24 5 1M5 28h6"/></svg>Chalk</button>
 <button class="xp-button" data-delivery="coil" title="The computer has an empty socket." disabled><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M4 25v-8c0-19 8-19 8-4S8 29 8 16s12-21 12-3-4 16-4 3 12-21 12-3-4 16-4 3 8-5 8 9"/></svg>Copper coil</button>
 <button class="xp-button" data-delivery="mirror" title="Something to look back." disabled><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M9 2h18v20H9ZM18 22v7m-5 0h10M13 15l10-9"/></svg>Mirror</button>
-</div>
+<p class="tool-state" id="give-state">Send something through the hatch. He decides what to do with it.</p></div>
 <div id="night-drawer" class="tool-drawer night-drawer" aria-label="Things in the room" hidden>
-<p id="night-clue"></p><div class="night-controls" aria-label="Objects and fixtures">
+<div class="tool-picker" aria-label="Room tools"><button data-room-tab="play" aria-pressed="true">Play</button><button data-room-tab="fixtures" aria-pressed="false">Fixtures</button><button data-room-tab="arrivals" aria-pressed="false">Arrivals<span id="arrival-mark"></span></button></div>
+<section data-room-panel="play"><label class="tool-select">Object <select id="play-select"><option value="plane">Paper plane</option><option value="mouse">Wind-up mouse</option><option value="plant">Plant</option><option value="boat">Paper boat</option><option value="neighbor">Wall neighbor</option></select></label>
+<p class="tool-help" id="play-help"></p><div class="night-controls">
+<button class="xp-button" data-play="plane" data-action="fold-plane">Fold a plane</button><button class="xp-button" data-play="plane" data-action="launch-plane">Launch plane</button><button class="xp-button" data-play="plane" data-action="retrieve-plane">Bring it back</button>
+<button class="xp-button" data-play="plant" data-action="plant" disabled>Plant seed</button><button class="xp-button" data-play="plant" data-action="water" disabled>Water plant</button><button class="xp-button" data-play="plant" data-action="harvest" disabled>Pick flower</button><button class="xp-button" data-play="mouse" data-action="wind-mouse" disabled>Wind mouse</button><button class="xp-button" data-play="neighbor" data-action="feed-wall" disabled>Feed the wall</button><button class="xp-button" data-play="boat" data-action="fold-boat" disabled>Fold boat</button><button class="xp-button" data-play="boat" data-action="float-boat" disabled>Float boat</button></div></section>
+<section data-room-panel="fixtures" hidden><p class="tool-help">Change the room, or see who answers.</p><div class="night-controls">
+<button class="xp-button" data-action="wave" disabled>Wave</button><button class="xp-button" data-action="lights" disabled>Lights off</button><button class="xp-button" data-action="tune" disabled>Radio · 01</button><button class="xp-button" data-action="bell" disabled>Ring bell</button><button class="xp-button" data-action="release" disabled>Let him out</button>
+<button class="xp-button" data-action="shutter" disabled>Close shutter</button><button class="xp-button" data-action="drain" disabled>Open drain</button></div></section>
+<section data-room-panel="arrivals" hidden><p id="night-clue"></p><div class="night-controls" aria-label="Arrivals">
 <button class="xp-button" data-action="call-service" disabled>Call night service</button>
 <button class="xp-button" data-action="open-parcel" disabled>Open parcel</button>
 <button class="xp-button" data-action="return-parcel" disabled>Return parcel</button>
 <button class="xp-button" data-action="answer" disabled>Pick up</button>
+<span id="phone-tuning" hidden aria-label="Telephone tones">Radio <button class="xp-button" data-action="tune" data-channel="1" aria-pressed="false">1</button><button class="xp-button" data-action="tune" data-channel="2" aria-pressed="false">2</button><button class="xp-button" data-action="tune" data-channel="3" aria-pressed="false">3</button></span>
 <button class="xp-button" data-action="transmit" disabled>Send tone</button>
 <button class="xp-button" data-action="hang-up" disabled>Hang up</button>
 <button class="xp-button" data-action="submit-inspection" disabled>Present room</button>
 <button class="xp-button" data-action="refuse-eviction" disabled>Refuse eviction</button>
-<button class="xp-button" data-action="plant" disabled>Plant seed</button>
-<button class="xp-button" data-action="water" disabled>Water plant</button>
-<button class="xp-button" data-action="harvest" disabled>Pick flower</button>
-<button class="xp-button" data-action="wind-mouse" disabled>Wind mouse</button>
-<button class="xp-button" data-action="feed-wall" disabled>Feed the wall</button>
-<button class="xp-button" data-action="fold-boat" disabled>Fold boat</button>
-<button class="xp-button" data-action="float-boat" disabled>Float boat</button>
-<button class="xp-button" data-action="shutter" disabled>Close shutter</button>
-<button class="xp-button" data-action="drain" disabled>Open drain</button>
-</div></div>
-<div id="laboratory-drawer" class="tool-drawer laboratory-drawer" aria-label="Apparatus" hidden>
-<fieldset><legend>Air</legend><button class="xp-button" data-action="draft-turn" data-direction="-1" aria-label="Turn fan counterclockwise">↶</button><button class="xp-button" data-action="draft-power">Fan off · E</button><button class="xp-button" data-action="draft-turn" data-direction="1" aria-label="Turn fan clockwise">↷</button><button class="xp-button" data-action="mist" aria-pressed="false">Mist</button></fieldset>
-<fieldset><legend>Resonator</legend><button class="xp-button" data-action="resonance-tone" data-tone="1" aria-pressed="true">Bass</button><button class="xp-button" data-action="resonance-tone" data-tone="2" aria-pressed="false">Middle</button><button class="xp-button" data-action="resonance-tone" data-tone="3" aria-pressed="false">Treble</button><button class="xp-button" data-action="resonance-power">Power off</button><button class="xp-button" data-action="resonance-aim" data-pad="0" aria-pressed="true">Tile I</button><button class="xp-button" data-action="resonance-aim" data-pad="1" aria-pressed="false">Tile II</button><button class="xp-button" data-action="resonance-aim" data-pad="2" aria-pressed="false">Tile III</button></fieldset>
-<fieldset><legend>Scraps</legend><button class="xp-button" data-action="deliver-scrap" data-item="paper">Paper</button><button class="xp-button" data-action="deliver-scrap" data-item="wire">Wire</button><button class="xp-button" data-action="deliver-scrap" data-item="cloth">Cloth</button><button class="xp-button" data-action="keep-heart" hidden>Make it a home</button><button class="xp-button" data-action="release-heart" hidden>Let it leave</button></fieldset>
+</div></section></div>
+<div id="laboratory-drawer" class="tool-drawer laboratory-drawer" aria-label="Devices" hidden>
+<div class="tool-picker" aria-label="Choose a device"><button data-device="fan" aria-pressed="true">Fan</button><button data-device="mist" aria-pressed="false">Mist</button><button data-device="resonator" aria-pressed="false">Resonator</button><button data-device="nest" aria-pressed="false">Nest</button></div>
+<p class="tool-help" id="device-help">Blow loose things across the floor.</p>
+<section data-device-panel="fan">
+<fieldset><legend>Fan speed</legend><button class="xp-button" data-action="draft-power" data-power="0" aria-pressed="true">Off</button><button class="xp-button" data-action="draft-power" data-power="1" aria-pressed="false">Low</button><button class="xp-button" data-action="draft-power" data-power="2" aria-pressed="false">High</button></fieldset>
+<fieldset><legend>Blow toward</legend><button class="xp-button" data-action="draft-direction" data-direction="0" aria-pressed="true">Right</button><button class="xp-button" data-action="draft-direction" data-direction="1" aria-pressed="false">Glass</button><button class="xp-button" data-action="draft-direction" data-direction="2" aria-pressed="false">Left</button><button class="xp-button" data-action="draft-direction" data-direction="3" aria-pressed="false">Back wall</button></fieldset></section>
+<section data-device-panel="mist" hidden><button class="xp-button" data-action="mist" aria-pressed="false">Start mist</button></section>
+<section data-device-panel="resonator" hidden>
+<fieldset><legend>Volume</legend><button class="xp-button" data-action="resonance-power" data-power="0" aria-pressed="true">Off</button><button class="xp-button" data-action="resonance-power" data-power="1" aria-pressed="false">Low</button><button class="xp-button" data-action="resonance-power" data-power="2" aria-pressed="false">High</button></fieldset>
+<fieldset><legend>Note</legend><button class="xp-button" data-action="resonance-tone" data-tone="1" aria-pressed="true">Bass</button><button class="xp-button" data-action="resonance-tone" data-tone="2" aria-pressed="false">Middle</button><button class="xp-button" data-action="resonance-tone" data-tone="3" aria-pressed="false">Treble</button></fieldset>
+<fieldset><legend>Floor target</legend><button class="xp-button" data-action="resonance-aim" data-pad="0" aria-pressed="true">Nest</button><button class="xp-button" data-action="resonance-aim" data-pad="1" aria-pressed="false">Center</button><button class="xp-button" data-action="resonance-aim" data-pad="2" aria-pressed="false">Door</button></fieldset></section>
+<section data-device-panel="nest" hidden><div class="night-controls"><button class="xp-button" data-action="deliver-scrap" data-item="paper">Paper</button><button class="xp-button" data-action="deliver-scrap" data-item="wire">Wire</button><button class="xp-button" data-action="deliver-scrap" data-item="cloth">Cloth</button><button class="xp-button" data-action="keep-heart" hidden>Make it a home</button><button class="xp-button" data-action="release-heart" hidden>Let it leave</button></div></section>
+<p class="tool-state" id="device-state"></p>
 </div>
 <div id="experiments-drawer" class="tool-drawer" aria-label="Experiments" hidden>
 <button class="xp-button" data-action="read" disabled>Force-read Book 2</button><button class="xp-button" data-action="confine" disabled>10,000 years</button><button class="xp-button" data-action="anvil" disabled>Drop anvil</button><button class="xp-button" data-action="hole" disabled>Black hole</button>

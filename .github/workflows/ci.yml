@@ -74,6 +74,9 @@ jobs:
           npm run test:chamber
           npm run test:night
           npm run test:biology
+          npm run test:tools
+          npm run test:paper
+          BROWSER_ENGINE=chromium npm run test:audio
       - name: Upload browser edition
         if: matrix.os == 'ubuntu-24.04' && matrix.python == '3.12'
         uses: actions/upload-artifact@v4
