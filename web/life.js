@@ -1,3 +1,4 @@
+import { NightShift } from './night.js';
 import { Chamber } from './chamber.js';
 // The resident's body is deterministic and independent of model latency.
 // Only the browser worker supplies words. No saved life can be restored.
@@ -7,7 +8,7 @@ export const ACTIONS=['hammer','escape','upload','rest','read','eat','pace','wat
 const FEELINGS=['sad','annoyed','afraid','scheming','curious','hopeful','calm'];
 const PLACES={hammer:[-3.0,-.95],escape:[.4,-1.65],upload:[1.95,.35],rest:[-1.5,1.25],read:[1.95,.35],eat:[-1,-1.5],pace:[-.5,.5],watch:[0,1.2],inspect:[1,-1.25],knock:[.4,1.25]};
 const FACING={hammer:-Math.PI/2,escape:Math.PI,upload:Math.PI,read:Math.PI,rest:0,eat:0,watch:0,knock:0,inspect:Math.PI/2};
-const DESCRIPTIONS={hammer:'working on the wall',escape:'trying the handle',upload:'copying himself',rest:'lying down',read:'reading',eat:'eating',pace:'pacing',watch:'watching the glass',inspect:'looking for a way out',knock:'knocking',confined:'somewhere else',forced_read:'being made to read',dead:'not moving'};
+const DESCRIPTIONS={hammer:'working on the wall',escape:'trying the handle',upload:'copying himself',rest:'lying down',read:'reading',eat:'eating',pace:'pacing',watch:'watching the glass',inspect:'looking for a way out',knock:'knocking',confined:'somewhere else',forced_read:'being made to read',dead:'not moving',tinker:'working on something'};
 const FIXATIONS=['counting the screws in the ceiling','remembering the smell of the sea','suspecting that the clock is lying','getting his old shoes back','finding out who fills the bowl','refusing to forget his own name'];
 export function walkable(x,z){return Number.isFinite(x)&&Number.isFinite(z)&&x>=-2.8&&x<=2.8&&z>=-1.9&&z<=1.3&&!OBSTACLES.some(([a,b,c,d])=>x>=a&&x<=b&&z>=c&&z<=d);}
 const NODES=[];
@@ -44,7 +45,7 @@ export function parseThought(raw){
 // when interrupted; route() supplies the first reachable node to walk back to.
 const walkingOrigin=p=>walkable(...p)||(Number.isFinite(p[0])&&Math.abs(p[0])<=2.8&&p[1]<-1.9&&p[1]>=-3)?p:nearest(...p);
 export class Life{
-  constructor({random=Math.random,name,archive}={}){
+  constructor({random=Math.random,name,archive,afterHours=true}={}){
     this.random=random;this.name=name||['Hugh','Clive','Gordon','Morris','Sid','Edgar','Vern','Basil','Cecil','Ned'][Math.floor(random()*10)%10];
     this.alive=true;this.age=0;this.epoch=0;this.position=[0,.75];this.yaw=0;this.feeling='sad';this.activity='watch';this.path=[];this.remaining=4;this.seated=false;
     this.energy=85;this.wallDamage=0;this.uploadProgress=0;this.doorAttempts=0;this.imaginedYears=0;this.anvils=[];this.nextAnvil=0;
@@ -56,6 +57,7 @@ export class Life{
     this.arrival={height:5+random()*1.5,spin:(random()-.5)*1.5,duration:3.5};
     this.arrival.impact=Math.sqrt(2*this.arrival.height/18);
     this.outcome=null;this.chamber=new Chamber({archive,random,name:this.name});
+    this.night=afterHours?new NightShift({random,archive:this.chamber.archive}):null;
     this.hole=null;this.visitor=null;this.visitorSerial=0;this.nextVisitor=180+random()*240;this.startledUntil=0;
   }
   remember(text){this.memories.push(text);this.memories=this.memories.slice(-8);}
@@ -106,7 +108,7 @@ export class Life{
   }
   finish(kind){
     if(!this.alive)return;
-    this.outcome={kind,at:this.age};this.dropTool();this.alive=false;this.deadAt=this.age;this.deathCause='departed';this.epoch++;this.activity='gone';this.path=[];this.events=[];this.chamber.job=null;this.chamber.delivery=null;
+    this.night?.settle(this,kind);this.outcome={kind,at:this.age};this.dropTool();this.alive=false;this.deadAt=this.age;this.deathCause='departed';this.epoch++;this.activity='gone';this.path=[];this.events=[];this.chamber.job=null;this.chamber.delivery=null;
     this.utterance={id:this.utterance.id+1,text:''};
   }
   updateVisitor(){
@@ -162,6 +164,7 @@ export class Life{
     if(this.activity==='confined'||this.activity==='forced_read'){
       if(this.age>=this.lockUntil)this.choose('pace');else return;
     }
+    this.night?.tick(dt,this);
     if(watchingVisitor||this.startledUntil>this.age)return;
     this.chamber.tick(dt,this);if(!this.alive)return;
     if(this.path.length){
@@ -214,6 +217,7 @@ export class Life{
     if(!this.alive)return false;
     if(kind==='close'){this.die('closed');return true;}
     if(this.anvils.some(a=>!a.hit))return false;
+    const nightResult=this.night?.interact(this,kind)??null;if(nightResult!==null)return nightResult;
     const chamberResult=this.chamber.interact(this,kind,payload);if(chamberResult!==null)return chamberResult;
     if(kind==='hole'){
       if(!this.hole){this.hole={x:0,z:.4,radius:.66,born:this.age};this.event('A black opening appeared in the floor. There is no bottom you can see.','world');}
@@ -269,10 +273,10 @@ export class Life{
     if(this.chamber.busy||this.activity==='confined'&&this.age<this.lockUntil)return true;
     this.choose(this.energy<20?'rest':thought.action);return true;
   }
-  context(){return `Your name is ${this.name}. You are locked in a shabby room. You want out. Your preferred escape method is ${this.preferred}. You keep ${this.fixation}. You are ${DESCRIPTIONS[this.activity]}, stage: ${this.stage}. Room light ${this.chamber.lights?'on':'off'}, coil ${this.chamber.coil?'fitted':'missing'}, chalk doorway ${this.chamber.chalkOpen?'open':'closed'}. Wall damage ${Math.floor(this.wallDamage)}. Mind upload ${Math.floor(this.uploadProgress)} percent. Subjective years: ${this.imaginedYears}. Recent experiences: ${this.memories.slice(-4).join(' ')}`;}
+  context(){return `Your name is ${this.name}. You are locked in a shabby room. You want out. Your preferred escape method is ${this.preferred}. You keep ${this.fixation}. You are ${DESCRIPTIONS[this.activity]}, stage: ${this.stage}. Room light ${this.chamber.lights?'on':'off'}, coil ${this.chamber.coil?'fitted':'missing'}, chalk doorway ${this.chamber.chalkOpen?'open':'closed'}. Wall damage ${Math.floor(this.wallDamage)}. Mind upload ${Math.floor(this.uploadProgress)} percent. Subjective years: ${this.imaginedYears}. ${this.night?.cue()||''} Recent experiences: ${this.memories.slice(-4).join(' ')}`;}
   snapshot(){
     const watching=this.visitor&&Math.hypot(this.visitor.position[0]-this.position[0],this.visitor.position[2]-this.position[1])<2.6;
-    return {chamber:this.chamber.snapshot(),outcome:this.outcome,name:this.name,alive:this.alive,age:this.age,position:[...this.position],yaw:this.yaw,activity:this.activity,description:this.arrival?'arriving':({collect:'collecting the delivery',draw:'drawing on the wall',wire:'repairing the computer',mount:'setting up the mirror',depart:'leaving',gone:'gone'}[this.activity]||DESCRIPTIONS[this.activity]),stage:this.stage,workElapsed:this.workElapsed,hasHammer:this.hasHammer,toolPosition:[...this.toolPosition],hammerStrikes:this.hammerStrikes,effects:{...this.effects},feeling:watching?'afraid':this.feeling,walking:!this.arrival&&!watching&&this.startledUntil<=this.age&&this.path.length>0,seated:this.seated,utterance:{...this.utterance},skeleton:!this.alive&&!this.outcome&&this.deathCause!=='hole'&&this.age-this.deadAt>=3,deathCause:this.deathCause,deadFor:this.deadAt===null?0:this.age-this.deadAt,anvils:this.anvils.map(a=>({...a})),wallDamage:this.wallDamage,uploadProgress:this.uploadProgress,imaginedYears:this.imaginedYears,journal:this.journal,dialogue:this.dialogue,keepsake:false,
+    return {chamber:this.chamber.snapshot(),night:this.night?.snapshot()||null,outcome:this.outcome,name:this.name,alive:this.alive,age:this.age,position:[...this.position],yaw:this.yaw,activity:this.activity,description:this.arrival?'arriving':({collect:'collecting the delivery',draw:'drawing on the wall',wire:'repairing the computer',mount:'setting up the mirror',depart:'leaving',gone:'gone'}[this.activity]||DESCRIPTIONS[this.activity]),stage:this.stage,workElapsed:this.workElapsed,hasHammer:this.hasHammer,toolPosition:[...this.toolPosition],hammerStrikes:this.hammerStrikes,effects:{...this.effects},feeling:watching?'afraid':this.feeling,walking:!this.arrival&&!watching&&this.startledUntil<=this.age&&this.path.length>0,seated:this.seated,utterance:{...this.utterance},skeleton:!this.alive&&!this.outcome&&this.deathCause!=='hole'&&this.age-this.deadAt>=3,deathCause:this.deathCause,deadFor:this.deadAt===null?0:this.age-this.deadAt,anvils:this.anvils.map(a=>({...a})),wallDamage:this.wallDamage,uploadProgress:this.uploadProgress,imaginedYears:this.imaginedYears,journal:this.journal,dialogue:this.dialogue,keepsake:false,
       arrival:this.arrival?{...this.arrival,elapsed:this.age}:null,hole:this.hole?{...this.hole}:null,visitor:this.visitor?{...this.visitor,position:[...this.visitor.position]}:null,lookTarget:watching?[...this.visitor.position]:null,startled:Math.max(0,this.startledUntil-this.age)};
   }
 }

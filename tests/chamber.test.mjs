@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Life} from '../web/life.js';
 const step=(life,seconds)=>{for(let i=0;i<seconds*10;i++)life.tick(.1);};
-function fresh(options={}){const l=new Life({random:()=>.1,...options});step(l,4);return l;}
+function fresh(options={}){const l=new Life({random:()=>.1,afterHours:false,...options});step(l,4);return l;}
 function until(l,predicate,seconds=150){for(let i=0;i<seconds*10&&!predicate();i++)l.tick(.1);assert.ok(predicate(),'state must be reachable through navigation and time');}
 function deliver(l,item){assert.equal(l.interact('deliver',{item}),true);until(l,()=>!l.chamber.busy);}
 

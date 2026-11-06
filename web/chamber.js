@@ -1,10 +1,11 @@
+import { cleanNight } from './night.js';
 // The room's mechanisms run without inference. Only traces survive an occupant.
 const STORE='homunculus-room-v1';
 export const DELIVERIES=['soup','chalk','coil','mirror'];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function cleanArchive(value){
  const traces={};for(const key of ['chalk','signal','key'])if(value?.traces?.[key]===true)traces[key]=true;
- return {version:1,visits:Number.isFinite(value?.visits)?clamp(Math.floor(value.visits),0,9999):0,traces};
+ return {version:1,visits:Number.isFinite(value?.visits)?clamp(Math.floor(value.visits),0,9999):0,traces,...(value?.afterHours&&typeof value.afterHours==='object'?{afterHours:cleanNight(value.afterHours)}:{})};
 }
 export function readArchive(storage){try{return cleanArchive(JSON.parse(storage.getItem(STORE)));}catch{return cleanArchive();}}
 export function writeArchive(storage,value){try{storage.setItem(STORE,JSON.stringify(cleanArchive(value)));}catch{/* The room still works without storage. */}}
@@ -26,7 +27,7 @@ export class Chamber{
  }
  cancel(life,{preservePosition=false}={}){
   this.job=null;this.delivery=null;
-  if(life.alive&&['collect','draw','wire','mount','depart'].includes(life.activity)){
+  if(life.alive&&['collect','draw','wire','mount','depart','tinker'].includes(life.activity)){
    if(preservePosition){life.activity='watch';life.path=[];life.seated=false;life.remaining=3;}else life.choose('watch',true);
   }
  }
@@ -58,7 +59,10 @@ export class Chamber{
    if(this.knocks.length>=3){this.knocks=[];this.chalkOpen=true;this.tell('There is a draught.','door');life.event('The chalk outline has become an opening in the wall. You can leave through it.','world');}
   }
   if(kind==='release'&&this.busy)return false;
+  if(kind==='release'&&life.night&&!life.night.departureReady){this.tell('A second lock. The building has not finished with him.','door');return true;}
   if(kind==='release'&&!this.busy&&!life.arrival&&!['confined','forced_read'].includes(life.activity)){
+   if(life.night)life.night.leaving=true;
+   if(life.night&&this.coil&&!this.lights&&this.channel===this.carrier){life.epoch++;life.events=[];this.begin(life,'signal');return true;}
    const exit=this.chalkOpen&&!this.lights?'chalk':this.key==='held'?'door':null;
    if(exit){life.epoch++;life.events=[];this.begin(life,'door');this.job.exit=exit;life.beginWork('depart',exit==='chalk'?PLACES.chalk:PLACES.door);this.tell('He looks back at the glass.','door');return true;}
   }
@@ -77,7 +81,7 @@ export class Chamber{
   }
   if(!this.job){
    if(this.key==='floor'&&this.cooperation>=-.5){this.begin(life,'key');return;}
-   if(this.coil&&!this.lights&&this.channel===this.carrier&&this.cooperation>=-.5){this.begin(life,'signal');life.feeling='scheming';return;}
+   if((!life.night||life.night.leaving)&&this.coil&&!this.lights&&this.channel===this.carrier&&this.cooperation>=-.5){this.begin(life,'signal');life.feeling='scheming';return;}
    return;
   }
   const j=this.job;
@@ -107,11 +111,12 @@ export class Chamber{
    else if(j.item==='chalk')life.yaw=Math.PI;
   }
   j.work+=dt;
-  const duration={chalk:this.inherited.chalk?6:12,coil:9,mirror:6,key:1.5,signal:16,door:4}[j.item];
+  const duration=j.duration||{chalk:this.inherited.chalk?6:12,coil:9,mirror:6,key:1.5,signal:16,door:4}[j.item];
   j.progress=clamp(j.work/duration,0,1);
   if(j.item==='door')life.position=[j.origin[0],j.origin[1]-.95*j.progress];
   if(j.item==='chalk')this.chalk=Math.max(this.chalk,j.progress);
   if(j.progress<1)return;
+  if(j.item.startsWith('night:')){this.job=null;life.night?.complete(life,j.item.slice(6));if(life.alive)life.choose('watch',true);return;}
   if(j.item==='door'){life.finish(j.exit);return;}
   if(j.item==='signal'){this.trace('signal');life.finish('signal');return;}
   if(j.item==='chalk'){this.trace('chalk');this.tell('He tries the drawn handle. Nothing.','chalk');life.event('You drew a doorway. Under the light it is still only chalk.','world');}
