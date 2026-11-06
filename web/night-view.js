@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {KEEPSAKES} from './night.js';
 const material=(color,basic=false)=>basic?new THREE.MeshBasicMaterial({color}):new THREE.MeshLambertMaterial({color,flatShading:true});
 const box=(x,y,z,color)=>new THREE.Mesh(new THREE.BoxGeometry(x,y,z),material(color));
 const sphere=(radius,color)=>new THREE.Mesh(new THREE.IcosahedronGeometry(radius,1),material(color));
@@ -6,6 +7,24 @@ const put=(parent,mesh,x=0,y=0,z=0)=>{mesh.position.set(x,y,z);parent.add(mesh);
 const group=(parent,x=0,y=0,z=0)=>put(parent,new THREE.Group(),x,y,z);
 function label(width,height){const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;map.magFilter=map.minFilter=THREE.NearestFilter;map.generateMipmaps=false;return map;}
 function plane(w,h,color){return new THREE.Mesh(new THREE.PlaneGeometry(w,h),material(color,true));}
+function keepsake(key){
+ const g=new THREE.Group(),ivory=0xc7c4a3,ink=0x26382d,brass=0x9c9769;
+ const part=(mesh,x=0,y=.08,z=0)=>put(g,mesh,x,y,z);
+ const disc=(r,h,color)=>new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,10),material(color));
+ if(key==='tooth'){part(sphere(.065,ivory),0,.13);for(const x of [-.032,.032]){const root=new THREE.Mesh(new THREE.ConeGeometry(.025,.1,5),material(ivory));root.rotation.z=Math.PI;part(root,x,.055);}}
+ if(key==='button'){const b=disc(.068,.025,brass);b.rotation.x=Math.PI/2;part(b);for(const x of [-.024,.024])for(const y of [.056,.104])part(sphere(.012,ink),x,y,.019);}
+ if(key==='bloom'){part(box(.015,.13,.015,0x677747));for(let i=0;i<5;i++)part(sphere(.032,0xd4c879),Math.cos(i*Math.PI*.4)*.04,.16+Math.sin(i*Math.PI*.4)*.04);}
+ if(key==='boat'){const b=new THREE.Mesh(new THREE.ConeGeometry(.075,.07,4),material(ivory));b.rotation.z=Math.PI;b.scale.x=1.4;part(b,0,.035);part(plane(.085,.09,ivory),.01,.1);}
+ if(key==='spool'){for(const x of [-.045,.045]){const reel=disc(.05,.03,brass);reel.rotation.x=Math.PI/2;part(reel,x);part(sphere(.015,ink),x,.08,.025);}part(box(.12,.025,.02,ink));}
+ if(key==='shell'){const shell=new THREE.Mesh(new THREE.ConeGeometry(.07,.14,7),material(0xaaa893));shell.rotation.z=-.7;part(shell);for(let i=0;i<3;i++)part(box(.055,.012,.06,ivory),-.02+i*.02,.08+i*.027,.035);}
+ if(key==='jar'){part(disc(.05,.13,0x536754));part(disc(.055,.025,brass),0,.155);part(plane(.035,.07,ink),0,.08,.051);}
+ if(key==='silhouette'){part(plane(.045,.09,ink));part(sphere(.03,ink),0,.15);for(const x of [-.035,.035])part(plane(.022,.12,ink),x,.07);}
+ if(key==='stamp'){part(box(.13,.03,.08,brass),0,.02);part(box(.025,.07,.025,ink),0,.07);part(sphere(.04,ink),0,.12);}
+ if(key==='eye'){part(box(.14,.1,.06,brass));part(sphere(.045,ivory),0,.08,.04);part(sphere(.023,ink),0,.08,.075);}
+ if(key==='tenant'){part(box(.14,.09,.02,0xa1aa89));for(const x of [-.04,0,.04])part(box(.016,.055,.012,ink),x,.08,.018);}
+ if(key==='seal'){const paper=part(box(.12,.17,.014,0xa55542),0,.09);paper.rotation.z=-.18;part(box(.085,.03,.016,ivory),0,.085,.015);}
+ g.userData.keepsake=key;return g;
+}
 export class NightView{
  constructor(room){
   this.room=room;this.root=group(room.scene);this.targets=[];this.hand=new THREE.Vector3();this.lastPanel='';
@@ -52,8 +71,9 @@ export class NightView{
   this.seal=group(this.root,.05,1.2,-2.09);this.sealMap=label(256,64);const sealMesh=new THREE.Mesh(new THREE.PlaneGeometry(1.17,.26),new THREE.MeshBasicMaterial({map:this.sealMap}));sealMesh.rotation.z=-.22;this.seal.add(sealMesh);
   this.bolt=group(this.root,.12,1.1,-2.07);put(this.bolt,box(1.3,.09,.09,0x495b46));for(const x of [-.4,.4])put(this.bolt,box(.07,.18,.12,0x868d70),x,0,0);
   // Keepsakes live on an unlabelled shelf. This is not an achievements screen.
-  this.shelf=group(this.root,2.65,2.2,-2.26);put(this.shelf,box(.85,.06,.27,0x676c51));this.keepsakes=[];
-  for(let i=0;i<6;i++){const o=i%2?sphere(.055,0xa0aa7b):box(.065,.12,.07,0x8f9c76);put(this.shelf,o,-.34+i*.135,.09,0);this.keepsakes.push(o);}
+  this.shelf=group(this.root,2.55,2.15,-2.26);this.keepsakes=new Map();
+  for(let row=0;row<2;row++)put(this.shelf,box(1.1,.04,.27,0x676c51),0,row*.28,0);
+  KEEPSAKES.forEach((key,i)=>{const o=keepsake(key);put(this.shelf,o,-.45+(i%6)*.18,.025+Math.floor(i/6)*.28,0);this.keepsakes.set(key,o);});
   this.neighbor=group(this.root,-3.19,.55,-.3);put(this.neighbor,box(.04,.14,.45,0x272f25));this.button=put(this.root,sphere(.04,0xb2b388),-1.35,.04,-.7);
   this.target('open-parcel',[-.65,.25,.8],[.85,.7,.7]);this.target('water',[1.1,.5,1.06],[.65,1,.6]);this.target('wind-mouse',[0,.15,.6],[.5,.4,.5]);this.target('answer',[1.1,1.3,-1],[.65,.65,.45]);this.target('shutter',[-2.02,2,-2.12],[1.4,1.6,.1]);this.target('drain',[-.9,.05,.55],[.45,.15,.45]);this.target('feed-wall',[-3.15,.55,-.3],[.2,.5,.65]);
   const x=this.sealMap.image.getContext('2d');x.fillStyle='#a55542';x.fillRect(0,0,256,64);x.fillStyle='#e2d7ad';x.font='bold 32px monospace';x.fillText('VACANT',68,42);this.sealMap.needsUpdate=true;
@@ -78,10 +98,10 @@ export class NightView{
   if(this.shadow.visible){const bait=n.toy.until>n.time;this.shadow.position.set(bait?n.shadow.x:-1.1,bait?.035:1.1,bait?n.shadow.z:-2.17);this.shadow.rotation.set(bait?-Math.PI/2:0,0,bait?n.time*.05:Math.sin(t)*.1);this.shadow.scale.setScalar(bait?.8:1.2);}
   this.jar.visible=n.keepsakes.includes('jar');this.inspector.visible=n.phase==='inspection';this.inspector.position.set(Math.sin(t*.5)*.12,2.65+Math.sin(t*.8)*.08,-.05);
   this.pupil.position.x=THREE.MathUtils.clamp(s.position[0]*.05,-.12,.12);this.pupil.position.y=THREE.MathUtils.clamp((s.position[1]-.5)*.04,-.08,.08);
-  this.seal.visible=!n.departureReady;this.bolt.visible=n.staying;this.shelf.visible=n.keepsakes.length>0;this.keepsakes.forEach((o,i)=>{o.visible=i<n.keepsakes.length;o.rotation.y=t*.04+i;});this.button.visible=n.neighbor.gifts>0;this.neighbor.position.y=.55+(n.time-n.neighbor.reply<2?Math.sin(t*25)*.01:0);
+  this.seal.visible=!n.departureReady;this.bolt.visible=n.staying;this.shelf.visible=n.keepsakes.length>0;this.keepsakes.forEach((o,key)=>{o.visible=n.keepsakes.includes(key);});this.button.visible=n.neighbor.gifts>0;this.neighbor.position.y=.55+(n.time-n.neighbor.reply<2?Math.sin(t*25)*.01:0);
   const panelKey=[n.phase,n.phone.answered,n.phone.ignored,n.phone.code.join(''),n.phone.index,n.inspector.rule,n.inspector.submitted,n.resolved,n.inherited.includes('tenant')].join(':');
   if(panelKey!==this.lastPanel){this.lastPanel=panelKey;this.drawPanels(n);}
-  for(const target of this.targets){target.visible=alive;if(target.userData.action==='open-parcel')target.visible=alive&&n.phase==='parcel';if(target.userData.action==='answer')target.visible=alive&&n.phase==='phone';if(target.userData.baseAction==='water')target.userData.action=n.plant.planted?'water':'plant';if(['wind-mouse'].includes(target.userData.action))target.position.set(n.toy.x,.15,n.toy.z);}
+  for(const target of this.targets){target.visible=alive;if(target.userData.action==='open-parcel')target.visible=alive&&n.phase==='parcel';if(target.userData.baseAction==='answer'){target.visible=alive&&(n.phase==='phone'||n.serviceReady);target.userData.action=n.phase==='phone'?'answer':'call-service';}if(target.userData.baseAction==='water')target.userData.action=n.plant.planted?'water':'plant';if(['wind-mouse'].includes(target.userData.action))target.position.set(n.toy.x,.15,n.toy.z);}
  }
  drawPanels(n){
   let x=this.phoneMap.image.getContext('2d');x.fillStyle='#d0cbb1';x.fillRect(0,0,192,80);x.fillStyle='#394735';x.font='bold 16px monospace';x.fillText(n.phase==='eviction'?'ROOM: VACANT':n.staying?'DO NOT DISTURB':n.inherited.includes('tenant')?'RETURN SERVICE':'NIGHT SERVICE',12,22);x.font='22px monospace';x.fillText(n.phase==='phone'?(n.phone.answered?n.phone.code.join('  '):n.phone.ignored?'— — —':'RINGING'):'0 0 0',25,58);this.phoneMap.needsUpdate=true;
@@ -94,7 +114,7 @@ export class NightView{
   if(!j?.item.startsWith('night:')||s.walking)return;
   const kind=j.item.slice(6);r.pose('head',.25);r.pose('upper_arm.R',.8,0,-.18);r.pose('forearm.R',.8+Math.sin(t*4)*.12);r.pose('upper_arm.L',.65,0,.18);r.pose('forearm.L',.7);
   if(['plant','water','harvest','wind-mouse','fold-boat','float-boat','catch-shadow','play','open-parcel','return-parcel'].includes(kind)){r.pose('chest',.7);r.pose('thigh.R',.45);r.pose('shin.R',-.8);r.pose('thigh.L',.45);r.pose('shin.L',-.8);r.body.position.y=-.18;}
-  if(kind==='answer'||kind==='transmit'){r.pose('upper_arm.R',1.9,0,-.25);r.pose('forearm.R',1.9);r.pose('head',.1,0,-.15);}
+  if(['call-service','answer','transmit'].includes(kind)){r.pose('upper_arm.R',1.9,0,-.25);r.pose('forearm.R',1.9);r.pose('head',.1,0,-.15);}
   if(kind==='refuse-eviction'){r.pose('upper_arm.R',1.5+Math.sin(t*3)*.3);r.pose('forearm.R',.6);r.pose('chest',.15);}
  }
 }

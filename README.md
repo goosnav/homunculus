@@ -25,7 +25,7 @@ The model is **SmolLM2 135M Instruct**, Q4_0 GGUF, running on single-thread CPU 
 
 The wasm32 runtime is deliberately pinned for browser compatibility. The superseded ONNX runtime is excluded from the deployed build; Transformers.js remains a development dependency for reference-tokenizer regression tests.
 
-This model is deliberately small. Its answers can be odd, generic, or wrong. Speech is short and unsolicited model decisions are silent. The model chooses from validated actions and cannot directly manipulate geometry or execute code.
+This model is deliberately small. Its answers can be odd, generic, or wrong. Speech is short. Ordinary autonomous decisions are silent; major room encounters can prompt a brief reaction. The model chooses from validated actions and cannot directly manipulate geometry or execute code.
 
 Inference input is capped at 256 tokens to limit memory during play. The WASM context is fixed at 512 tokens with 64-token batches. Action selection and speech reuse their common prompt context, and the KV cache is cleared between thoughts. Older context is trimmed before the current event; forced reading keeps material from both selected excerpts. Mobile controls accommodate the on-screen keyboard. Audio is enabled by the Spawn tap. A bundled Flite KAL male robot voice generates PCM in a worker, then passes through a 1,550 Hz low-pass filter for the glass effect. It uses no OS voice or speech service. Its approximately 21 MB runtime loads on the first spoken reply; effects use Web Audio. Browser/device audio restrictions and system volume still apply.
 
@@ -33,13 +33,15 @@ Inference input is capped at 256 tokens to limit memory during play. The WASM co
 
 Room service sends soup, chalk, a copper coil or a mirror through a physical hatch. The occupant collects and uses them over time; mistreatment can make him refuse, and food can rebuild cooperation. Lights, the three-channel receiver, the service bell and the door latch interact with those objects. The original coercive controls live in the Experiments drawer.
 
-There are now three achievable departures. The camera stays on the room throughout: it never follows him or shows where he goes. The observation window remains open after departure or death, with a New occupant control.
+An after-hours shift unfolds through an unsolicited parcel, indoor weather, a telephone call, a loose shadow, an inspection and an eviction. The middle encounters change order; signals, instructions and alternative responses change what remains. The Things in the room drawer supplies contextual controls and a short clue. He can tend a plant, chase a wind-up mouse, feed the wall, or float a paper boat between arrivals. Optional paperwork accumulates under File.
 
-A small local archive (`homunculus-room-v1`) remembers the room's visit count and three physical traces. It never saves a living character or dialogue. A new occupant can notice an earlier outline, hook or signal residue. Every route is available on the first visit; there are no daily locks, achievement counters or grind requirements. Storage denial simply disables continuity.
+The existing three departures open after the building finishes its inspection. He can also refuse eviction, claim the room and continue living through later incidents. Quiet intervals leave room for ordinary life and side play; Call night service brings the next incident early. The design target is 10–30 minutes of exploratory play, but a knowledgeable player can finish faster. Automated route timing verifies reachability, not enjoyment or retention. The camera stays on the room throughout: it never follows him or shows where he goes. The observation window remains open after departure or death, with a New occupant control.
+
+A small local archive (`homunculus-room-v1`) remembers the room's visit count, physical traces, completed shifts and an allowlisted set of keepsakes. It never saves a living character or dialogue. A new occupant can notice an earlier outline, hook, signal residue, shelf objects or a plant that has taken root. Every route is available on the first visit; there are no daily locks, achievement counters or grind requirements. Storage denial simply disables continuity.
 
 The current character is the owner's v12 export, with native frown, lip shapes, jaw and blinking eyes. `web/assets/asset-lock.json` records all imported model hashes and the local source commit. `node tools/sync-assets.mjs /path/to/goosnav-3D-assets` refreshes these checked-in assets explicitly; Cloudflare does not need the full asset repository or a Git LFS submodule checkout.
 
-Gameplay rules are in `web/chamber.js`, physical presentation in `web/chamber-view.js`. `npm run test:chamber` exercises all three routes through the actual browser controls and simulation ticks; real-model and memory tests remain separate. These mechanisms keep running while inference is busy.
+Project/escape rules are in `web/chamber.js`; after-hours encounters and independent play live in `web/night.js`. Their views are `web/chamber-view.js` and `web/night-view.js`. `npm run test:night` completes two full public-button shifts with alternate resolutions, staying/leaving, death, mobile controls and scene reuse. `SOAK_AFTER_HOURS=1 npm run test:stability` warms a complete shift before repeated real inference. `npm run test:chamber` exercises all three routes through the actual browser controls and simulation ticks; real-model and memory tests remain separate. These mechanisms keep running while inference is busy.
 
 ## Book II OCR
 

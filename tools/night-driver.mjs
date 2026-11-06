@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-export async function driveNight(page,{alternative=false,ending='stay',stopAtEviction=false,onPhase=async()=>{}}={}){
+export async function driveNight(page,{alternative=false,ending='stay',stopAtEviction=false,callService=false,onPhase=async()=>{}}={}){
  let previous='';
  const press=async action=>{
   const night=page.locator(`#night-drawer [data-action="${action}"]`);
@@ -13,6 +13,7 @@ export async function driveNight(page,{alternative=false,ending='stay',stopAtEvi
   assert.ok(s.alive,'story actor died unexpectedly');
   if(!c.job&&!s.arrival){
    if(c.cooperation<-.5){await page.locator('#service-toggle').click();await page.locator('[data-delivery="soup"]').click();}
+   else if(n.phase==='quiet'&&callService&&n.serviceReady)await press('call-service');
    else if(n.phase==='parcel')await press(alternative?'return-parcel':'open-parcel');
    else if(n.phase==='rain'){
     if(alternative){if(!n.boat.made)await press('fold-boat');else if(!n.boat.launched&&n.water>=.12)await press('float-boat');else if(n.boat.launched&&n.time-n.boat.launchedAt>32&&!n.drain)await press('drain');}

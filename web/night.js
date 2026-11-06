@@ -8,7 +8,7 @@ const JOBS={
  plant:{point:[1,1.1],duration:8},water:{point:[1,1.1],duration:5},harvest:{point:[1,1.1],duration:7},
  'wind-mouse':{point:[.15,.6],duration:5},play:{point:[.15,.6],duration:5},
  'feed-wall':{point:[-1.3,-.75],duration:12},'fold-boat':{point:[-.6,.85],duration:8},'float-boat':{point:[-.55,.8],duration:5},
- answer:{point:[1.95,.35],duration:8},transmit:{point:[1.95,.35],duration:4},
+ 'call-service':{point:[1.95,.35],duration:8},answer:{point:[1.95,.35],duration:8},transmit:{point:[1.95,.35],duration:4},
  'catch-shadow':{point:[.1,.65],duration:10},'free-shadow':{point:[.1,.65],duration:9},
  'submit-inspection':{point:[.15,-1.65],duration:4},'inspection-pass':{point:[.15,-1.65],duration:8},'challenge':{point:[.65,.45],duration:18},
  'refuse-eviction':{point:[.15,-1.65],duration:22}
@@ -16,7 +16,7 @@ const JOBS={
 export class NightShift{
  constructor({random,archive}){
   this.random=random;archive.afterHours=cleanNight(archive.afterHours);this.record=archive.afterHours;this.inherited=[...this.record.keepsakes];
-  this.order=['parcel',...shuffled(['rain','phone','shadow'],random),'inspection','eviction'];this.cursor=0;this.phase='quiet';this.time=0;this.nextAt=35;this.entered=0;this.resolved=false;this.staying=false;this.leaving=false;this.history=[];
+  this.order=['parcel',...shuffled(['rain','phone','shadow'],random),'inspection','eviction'];this.cursor=0;this.phase='quiet';this.time=0;this.nextAt=35;this.entered=0;this.resolved=false;this.staying=false;this.quietSince=0;this.history=[];
   this.variant=random()<.5?'warm':'cold';this.shutter=false;this.drain=false;this.water=0;this.parcel='sealed';
   this.plant={planted:this.inherited.includes('bloom'),moisture:.3,growth:this.inherited.includes('bloom')?.15:0,harvests:0};this.toy={until:0,x:0,z:.6,friends:0};this.nextPlay=0;
   this.neighbor={gifts:0,until:0,returnAt:0,reply:0};this.boat={made:false,launched:false,launchedAt:0};
@@ -24,6 +24,7 @@ export class NightShift{
   this.shadow={x:-2.1,z:.5,caught:false,free:false};this.inspector={rule:random()<.5?'dark':'light',progress:0,verdict:'',submitted:false};
   this.nextTend=30;this.stamp=0;this.lastCue='';this.approach=false;
  }
+ get canCallService(){return this.phase==='quiet'&&this.time-this.quietSince>=15&&this.nextAt-this.time>5;}
  get departureReady(){return this.phase==='eviction'||this.resolved;}
  tell(l,text,sound='switch'){l.chamber.tell(text,sound);}
  keep(key){if(!this.record.keepsakes.includes(key))this.record.keepsakes=KEEPSAKES.filter(k=>k===key||this.record.keepsakes.includes(k));}
@@ -31,7 +32,7 @@ export class NightShift{
   if(l.chamber.busy||l.arrival||['confined','forced_read'].includes(l.activity))return false;
   if(l.chamber.cooperation<-.5){this.tell(l,'He turns away. Perhaps something warm first.');return false;}
   const spec=JOBS[kind];if(!spec)return false;
-  l.epoch++;l.events=[];l.chamber.job={item:`night:${kind}`,phase:'walk',work:0,progress:0,duration:spec.duration,facing:['answer','transmit','submit-inspection','refuse-eviction','inspection-pass'].includes(kind)?Math.PI:kind==='feed-wall'?-Math.PI/2:0};l.beginWork('tinker',kind==='play'?[this.toy.x,this.toy.z]:spec.point);return true;
+  l.epoch++;l.events=[];l.chamber.job={item:`night:${kind}`,phase:'walk',work:0,progress:0,duration:spec.duration,facing:['call-service','answer','transmit','submit-inspection','refuse-eviction','inspection-pass'].includes(kind)?Math.PI:kind==='feed-wall'?-Math.PI/2:0};l.beginWork('tinker',kind==='play'?[this.toy.x,this.toy.z]:spec.point);return true;
  }
  enter(l,phase){
   this.phase=phase;this.entered=this.time;this.approach=false;
@@ -49,13 +50,13 @@ export class NightShift{
   const papers={"tooth": ["Packing slip", "CONTENTS: one tooth.\nPACKAGE CAPACITY: zero teeth.\nSigned for by an empty room."], "button": ["Return receipt", "Return accepted tomorrow.\nDo not send the person back with the packaging."], "bloom": ["Horticulture notice", "Plant life is not an approved occupant.\nNeither, apparently, is the other kind."], "boat": ["Water damage report", "FLOOR: DRY.\nThis report was last seen sailing down the drain."], "spool": ["Recovered tape", "Footsteps. A chair moving. The phone ringing.\nRecorded before the room was built."], "shell": ["Wrong extension", "The neighbor took the call.\nThe voice kept asking whether the wall was alone."], "jar": ["Unlabelled jar", "The lid casts a shadow.\nThe glass does not."], "silhouette": ["Window inventory", "One shadow short.\nThe replacement has different shoes."], "stamp": ["Inspection result", "APPROVED FOR DEMOLITION.\nPlease retain this approval while the premises cease to exist."], "eye": ["Inspector complaint", "The inspector found an inspector in the mirror.\nNeither would identify a supervisor."]};
   if(papers[keepsake])l.note(`paper-${keepsake}`,...papers[keepsake]);
   this.history.push({case:this.phase,choice});this.history=this.history.slice(-8);
-  this.phase='quiet';this.cursor++;this.nextAt=this.time+95+this.random()*20;this.approach=false;
+  this.phase='quiet';this.quietSince=this.time;this.cursor++;this.nextAt=this.time+95+this.random()*20;this.approach=false;
   l.event(`The room kept a ${keepsake}. The building has not finished with you.`,'world');
  }
  settle(l,kind){
   if(this.resolved){if(kind!=='stay'){this.staying=false;this.record.last=kind;}return;}
   this.resolved=true;this.staying=kind==='stay';this.record.shifts=Math.min(9999,this.record.shifts+1);this.record.last=kind;this.keep(kind==='stay'?'tenant':'seal');
-  this.history.push({case:'eviction',choice:kind});this.history=this.history.slice(-8);this.phase='quiet';this.nextAt=this.time+120;this.cursor=0;
+  this.history.push({case:'eviction',choice:kind});this.history=this.history.slice(-8);this.phase='quiet';this.quietSince=this.time;this.nextAt=this.time+120;this.cursor=0;
   if(kind==='stay'){this.tell(l,'He takes his number off the wall.','door');l.feeling='calm';l.event('You refused eviction. You live here now. The building will have to work around you.','world');}
  }
  interact(l,kind){
@@ -68,6 +69,7 @@ export class NightShift{
   if(kind==='bell'&&this.phase==='shadow'&&!this.shutter)return this.startJob(l,'free-shadow');
   if(kind==='bell'&&this.phase==='inspection'&&c.mirror)return this.startJob(l,'challenge');
   if(!Object.hasOwn(JOBS,kind)||['play','catch-shadow','free-shadow','inspection-pass','challenge'].includes(kind))return null;
+  if(kind==='call-service'&&!this.canCallService)return false;
   if(kind==='plant'&&this.plant.planted)return false;
   if(kind==='water'&&(!this.plant.planted||this.plant.moisture>=1.3))return false;
   if(kind==='harvest'&&(!this.plant.planted||this.plant.growth<.65))return false;
@@ -87,6 +89,7 @@ export class NightShift{
  }
  complete(l,kind){
   if(!l.alive)return;
+  if(kind==='call-service'&&this.phase==='quiet'){this.nextAt=Math.min(this.nextAt,this.time+3);this.tell(l,'An extension rings above the ceiling.','telephone');}
   if(kind==='open-parcel'){this.parcel='opened';this.resolve(l,'opened','tooth');this.tell(l,'A tooth. Far too large for the box.','parcel');}
   if(kind==='return-parcel'){this.parcel='returned';this.resolve(l,'returned','button');this.tell(l,'It came back smaller. With a button.','parcel');}
   if(kind==='plant'){this.plant.planted=true;this.plant.moisture=.4;this.tell(l,'He puts a seed in the cracked pot.','water');}
@@ -139,19 +142,20 @@ export class NightShift{
   if(this.phase==='quiet'&&!c.busy&&this.toy.until>this.time&&this.time>=this.nextPlay){this.startJob(l,'play');this.nextPlay=this.time+25;}
  }
  cue(){return ({quiet:this.resolved?'You refused to leave. This is your home now.':'The building is slowly waking up around you.',parcel:'An unsolicited box under the bed has legs.',rain:'A cloud is raining into your room.',phone:'A telephone insists this room is vacant.',shadow:'Your detached shadow is following a little wind-up mouse.',inspection:'A mechanical eye is checking whether your room is occupied.',eviction:'The building wants this room empty. You can leave or refuse.'})[this.phase];}
- snapshot(){return {time:this.time,phase:this.phase,entered:this.entered,approach:this.approach,resolved:this.resolved,staying:this.staying,departureReady:this.departureReady,variant:this.variant,shutter:this.shutter,drain:this.drain,water:this.water,parcel:this.parcel,plant:{...this.plant},toy:{...this.toy},neighbor:{...this.neighbor},boat:{...this.boat},phone:{...this.phone,code:[...this.phone.code]},shadow:{...this.shadow},inspector:{...this.inspector},stamp:this.stamp,inherited:this.inherited,keepsakes:[...this.record.keepsakes]};}
+ snapshot(){return {time:this.time,serviceReady:this.canCallService,phase:this.phase,entered:this.entered,approach:this.approach,resolved:this.resolved,staying:this.staying,departureReady:this.departureReady,variant:this.variant,shutter:this.shutter,drain:this.drain,water:this.water,parcel:this.parcel,plant:{...this.plant},toy:{...this.toy},neighbor:{...this.neighbor},boat:{...this.boat},phone:{...this.phone,code:[...this.phone.code]},shadow:{...this.shadow},inspector:{...this.inspector},stamp:this.stamp,inherited:this.inherited,keepsakes:[...this.record.keepsakes]};}
 }
 
 // Short, actionable clues live in the optional physical-controls drawer.
 export function nightClue(n){
  if(!n)return '';
- return ({quiet:n.resolved?'He lives here now. The building is still taking an interest.':'The room has plumbing, a telephone, and someone behind the wall.',parcel:'The parcel is walking. Open it, or send it back.',rain:n.boat.launched?'Let the boat sail, then open the drain.':'Grow something under the rain and light, or fold a boat and find it a drain.',phone:n.phone.ignored?'The wall answered. Perhaps send its occupant a meal.':n.phone.answered?`The lamps read ${n.phone.code.join(' · ')}. Tune and send each tone in that order.`:'Pick up the receiver, or hang up and let someone else answer.',shadow:'It is watching the mouse. Darkness will hold it still. An open shutter and the bell might let it out.',inspection:n.inspector.rule==='dark'?'The inspection card shows a closed shutter and an unlit bulb. Or show it its own reflection.':'The inspection card shows an open shutter and a lit bulb. Or show it its own reflection.',eviction:'They marked the room VACANT. Prepare a way out, or refuse to surrender it.'})[n.phase];
+ return ({quiet:n.resolved?'He lives here now. The building is still taking an interest.':'Tend the room, or call night service to bring the next visitor.',parcel:'The parcel is walking. Open it, or send it back.',rain:n.boat.launched?'Let the boat sail, then open the drain.':'Grow something under the rain and light, or fold a boat and find it a drain.',phone:n.phone.ignored?'The wall answered. Perhaps send its occupant a meal.':n.phone.answered?`The lamps read ${n.phone.code.join(' · ')}. Tune and send each tone in that order.`:'Pick up the receiver, or hang up and let someone else answer.',shadow:'It is watching the mouse. Darkness will hold it still. An open shutter and the bell might let it out.',inspection:n.inspector.rule==='dark'?'The inspection card shows a closed shutter and an unlit bulb. Or show it its own reflection.':'The inspection card shows an open shutter and a lit bulb. Or show it its own reflection.',eviction:'They marked the room VACANT. Prepare a way out, or refuse to surrender it.'})[n.phase];
 }
 
 export function nightAvailability(s){
  const n=s.night;if(!n)return {};
  const busy=!!s.chamber.job||!!s.arrival||['confined','forced_read'].includes(s.activity),ready=s.alive&&!busy;
  return {
+  'call-service':[n.phase==='quiet',ready&&n.serviceReady],
   plant:[!n.plant.planted,ready],water:[n.plant.planted,ready&&n.plant.moisture<1.3],harvest:[n.plant.planted,ready&&n.plant.growth>=.65],
   'wind-mouse':[true,ready&&n.toy.until-n.time<=45],'feed-wall':[true,ready&&!n.neighbor.returnAt&&(n.time>=n.neighbor.until||n.phase==='phone'&&n.phone.ignored)],
   'fold-boat':[!n.boat.made,ready],'float-boat':[n.boat.made,ready&&!n.boat.launched&&n.water>=.12],shutter:[true,s.alive],drain:[true,s.alive],

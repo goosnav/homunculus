@@ -2,9 +2,9 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {Life} from '../web/life.js';import {readArchive,writeArchive} from '../web/chamber.js';
 import {advance,operateNight,shift} from './night-helpers.mjs';
 const fresh=(r=.3,archive)=>new Life({random:()=>r,archive});
-test('a complete after-hours shift has multiple physical encounters and at least ten minutes of play',()=>{
+test('a complete after-hours shift resolves six distinct encounters and lets the resident stay',t=>{
  const l=fresh();assert.ok(l.night);const duration=shift(l);
- assert.ok(duration>=600,`full shift took only ${duration}s`);assert.ok(duration<1800);assert.equal(l.alive,true);assert.equal(l.night.phase,'quiet');
+ t.diagnostic(`Unhurried scripted route: ${duration}s (includes optional quiet intervals)`);assert.ok(duration<1800);assert.equal(l.alive,true);assert.equal(l.night.phase,'quiet');
  assert.equal(l.chamber.archive.afterHours.shifts,1);assert.ok(l.chamber.archive.afterHours.keepsakes.includes('tenant'));
  assert.equal(l.night.history.length,6);assert.equal(new Set(l.night.history.map(x=>x.case)).size,6);
 });
@@ -58,4 +58,32 @@ test('automatic inspection work waits quietly when the resident refuses cooperat
  const l=fresh();for(let i=0;i<7000&&l.night.phase!=='inspection';i++){operateNight(l);l.tick(.25);}
  operateNight(l);advance(l,20);l.interact('confine');advance(l,50);const id=l.chamber.feedback.id;advance(l,5);
  assert.equal(l.chamber.feedback.id,id,'refusal must not produce a sound every simulation tick');assert.equal(l.chamber.busy,false);
+});
+
+
+test('failed release followed by staying does not arm a later signal escape',()=>{
+ const l=fresh();for(let i=0;i<7000&&l.night.phase!=='eviction';i++){operateNight(l);l.tick(.25);}
+ l.interact('release');assert.equal(l.chamber.busy,false);
+ l.interact('refuse-eviction');advance(l,35);assert.equal(l.night.staying,true);
+ l.interact('deliver',{item:'coil'});advance(l,40);if(l.chamber.lights)l.interact('lights');while(l.chamber.channel!==l.chamber.carrier)l.interact('tune');
+ advance(l,35);assert.equal(l.alive,true,'choosing home must not silently become an escape');assert.equal(l.chamber.busy,false);
+ l.interact('release');advance(l,50);assert.equal(l.outcome.kind,'signal');
+});
+
+test('a broken signal departure requires another explicit release',()=>{
+ const l=fresh();shift(l);l.interact('deliver',{item:'coil'});advance(l,40);
+ if(l.chamber.lights)l.interact('lights');while(l.chamber.channel!==l.chamber.carrier)l.interact('tune');
+ l.interact('release');advance(l,2);l.interact('lights');advance(l,1);assert.equal(l.chamber.busy,false);
+ l.interact('lights');advance(l,30);assert.equal(l.alive,true);assert.equal(l.chamber.busy,false);
+ l.interact('release');advance(l,50);assert.equal(l.outcome.kind,'signal');
+});
+
+test('calling night service advances every quiet interval without skipping encounters',t=>{
+ const normal=fresh(),active=fresh();const unhurried=shift(normal),quick=shift(active,{callService:true});
+ t.diagnostic(`Active scripted route: ${quick}s; unhurried: ${unhurried}s. Human engagement is not measured.`);
+ assert.ok(quick<unhurried-300,'active players must be able to advance the building');
+ assert.deepEqual(active.night.history,normal.night.history);assert.equal(active.alive,true);
+ const l=fresh();advance(l,4);assert.equal(l.interact('call-service'),false);advance(l,16);
+ assert.equal(l.interact('call-service'),true);assert.equal(l.interact('call-service'),false,'one physical job at a time');advance(l,30);
+ assert.equal(l.night.phase,'parcel');assert.equal(l.interact('call-service'),false,'cannot skip an unresolved case');
 });

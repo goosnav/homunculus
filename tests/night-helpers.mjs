@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 export const advance=(l,seconds)=>{for(let i=0;i<seconds*4;i++)l.tick(.25);};
-export function operateNight(l,{alternative=false,ending='stay'}={}){
+export function operateNight(l,{alternative=false,ending='stay',callService=false}={}){
  const n=l.night,c=l.chamber;
  if(!l.alive||l.arrival||c.busy)return;
  const act=k=>l.interact(k);
  if(c.cooperation<-.5){l.interact('deliver',{item:'soup'});return;}
+ if(n.phase==='quiet'&&callService&&n.canCallService){act('call-service');return;}
  if(n.phase==='parcel'){act(alternative?'return-parcel':'open-parcel');return;}
  if(n.phase==='rain'){
   if(alternative){if(!n.boat.made)act('fold-boat');else if(!n.boat.launched)act('float-boat');else if(n.time-n.boat.launchedAt>32&&!n.drain)act('drain');}

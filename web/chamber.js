@@ -61,7 +61,6 @@ export class Chamber{
   if(kind==='release'&&this.busy)return false;
   if(kind==='release'&&life.night&&!life.night.departureReady){this.tell('A second lock. The building has not finished with him.','door');return true;}
   if(kind==='release'&&!this.busy&&!life.arrival&&!['confined','forced_read'].includes(life.activity)){
-   if(life.night)life.night.leaving=true;
    if(life.night&&this.coil&&!this.lights&&this.channel===this.carrier){life.epoch++;life.events=[];this.begin(life,'signal');return true;}
    const exit=this.chalkOpen&&!this.lights?'chalk':this.key==='held'?'door':null;
    if(exit){life.epoch++;life.events=[];this.begin(life,'door');this.job.exit=exit;life.beginWork('depart',exit==='chalk'?PLACES.chalk:PLACES.door);this.tell('He looks back at the glass.','door');return true;}
@@ -81,7 +80,7 @@ export class Chamber{
   }
   if(!this.job){
    if(this.key==='floor'&&this.cooperation>=-.5){this.begin(life,'key');return;}
-   if((!life.night||life.night.leaving)&&this.coil&&!this.lights&&this.channel===this.carrier&&this.cooperation>=-.5){this.begin(life,'signal');life.feeling='scheming';return;}
+   if(!life.night&&this.coil&&!this.lights&&this.channel===this.carrier&&this.cooperation>=-.5){this.begin(life,'signal');life.feeling='scheming';return;}
    return;
   }
   const j=this.job;

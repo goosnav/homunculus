@@ -16,7 +16,8 @@ try{
  async function next(){await page.locator('#next-occupant').click();await page.waitForFunction(()=>window.__habitat?.life?.alive,{},{timeout:120000});await page.evaluate(()=>window.__habitat.pauseAutonomy=true);await tick(4);await driveNight(page,{stopAtEviction:true});if(!(await state()).chamber.lights)await page.locator('[data-action="lights"]').click();}
  async function deliver(item){await page.locator('#service-toggle').click();await page.locator(`[data-delivery="${item}"]`).click();assert.equal((await state()).chamber.delivery.item,item);}
  await spawn();const camera=await page.evaluate(()=>window.__habitat.room.camera.position.toArray());
- const initialGeometry=await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries);
+ const geometry=()=>page.evaluate(()=>{const ids=new Set();window.__habitat.room.scene.traverse(o=>{if(o.geometry)ids.add(o.geometry.uuid);});return [...ids].sort();});
+ const initialGeometry=(await geometry()).length;
  await shot('room-v12');await deliver('chalk');await tick(1.7);await shot('delivery');
  await until('l.chamber.chalk>.45');await shot('drawing');await until('l.chamber.chalk>=1');
  await page.locator('[data-action="lights"]').click();await shot('chalk-dark');
@@ -35,10 +36,10 @@ try{
  await next();await deliver('mirror');await until('l.chamber.mirror');await page.locator('[data-action="bell"]').click();await until('!!l.visitor');await tick(8);await shot('mirror-visitor');
  await until('l.chamber.key==="held"');await shot('black-key');await page.locator('[data-action="release"]').click();await until('l.chamber.job?.phase==="work"');await tick(1);await shot('door-departure');await until('!l.alive');assert.equal((await state()).outcome.kind,'door');await shot('door-empty');
  assert.deepEqual(await page.evaluate(()=>window.__habitat.room.camera.position.toArray()),camera,'camera must never follow him out');
- const warmedGeometry=await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries);await next();assert.equal(await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries),warmedGeometry,'successive lives must reuse one warmed renderer before reload');
+ const warmedGeometry=await geometry();await next();assert.deepEqual(await geometry(),warmedGeometry,'successive lives reuse the exact geometry objects before reload');assert.ok(await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries)<=warmedGeometry.length,'GPU cache cannot exceed the bounded scene');
  await page.reload();assert.equal(await page.locator('#spawn-button').isVisible(),true);await spawn();const c=(await state()).chamber;
  assert.deepEqual(c.inherited,{chalk:true,signal:true,key:true});assert.equal(c.job,null);assert.equal(c.coil,false);assert.equal(c.mirror,false);assert.equal(c.key,'none');
- assert.equal(await page.evaluate(()=>window.__habitat.room.renderer.info.memory.geometries),initialGeometry,'new lives must reuse the scene geometry');
+ assert.equal((await geometry()).length,initialGeometry,'a refresh rebuilds the same bounded scene geometry');
  const stored=await page.evaluate(()=>localStorage.getItem('homunculus-room-v1'));assert.equal(stored.includes('alive'),false);assert.equal(stored.includes('dialogue'),false);
  await page.setViewportSize({width:390,height:844});await page.locator('#service-toggle').click();await shot('mobile-service');
  for(const button of await page.locator('[data-delivery]').all()){const box=await button.boundingBox();assert.ok(box.width>=44&&box.height>=44);assert.ok(box.x>=0&&box.x+box.width<=390);}

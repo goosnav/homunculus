@@ -1,3 +1,4 @@
+import {driveNight} from './night-driver.mjs';
 // Production-build soak; optional Linux RSS ceiling is a local regression gate,
 // not a prediction of iOS's per-tab memory limit.
 import {chromium} from 'playwright-core';
@@ -24,6 +25,7 @@ try{
  // so results cannot be confused with a concurrent autonomous thought.
  await page.evaluate(()=>window.__habitat.pauseAutonomy=true);
  await page.waitForFunction(()=>!window.__habitat.mind.pending);
+ if(process.env.SOAK_AFTER_HOURS==='1'){stage='full-shift';await driveNight(page);}
  const identity=await page.evaluate(()=>window.__habitat.life.name);
  for(let i=0;i<cycles;i++){
   stage=`cycle-${i}`;
