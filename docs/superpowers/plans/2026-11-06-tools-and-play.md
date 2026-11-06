@@ -54,7 +54,7 @@ Interface: `PaperPlay.interact/tick/complete/interrupt/snapshot/cue`; Chamber jo
 
 - [x] Full Node tests, build, asset budget, mobile, real inference and WebKit checks.
 - [x] Fresh independent review of diff and fixes if needed.
-- [ ] Update verification record, commit, push main and check live deployment.
+- [x] Update verification record, commit, push main and check live deployment.
 
 ## Execution notes
 
@@ -67,3 +67,5 @@ Root implements the shared GUI/integration; phone_audio and paper_play own indep
 - Explicitpower/direction/channel setters had failing regressions before implementation.
 - Fresh reviewer found paperwork overriding a scare, and carried paper dropping at a stale location. Both fixed and independently verified; refolding also uses canonical paper coordinates. Final review: no important findings; 56 focused tests pass.
 - User-approved scope keeps the main work in the shared checkout and authorizes push; no additional approval gate introduced.
+
+Release: `fe0bf42`; 162 Node tests, 74 Python tests, Chromium/WebKit GUI and audio checks, full story routes, actual inference and bounded plane reuse passed. Cloudflare and all four CI jobs passed. Public build hashes, new controls/play and real dialogue/audio/cache/death were verified. Physical iPhone audio routing remains a device-testing limitation.
