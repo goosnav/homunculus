@@ -5,7 +5,7 @@ const root=new URL('../dist/',import.meta.url);
 const index=await readFile(new URL('index.html',root),'utf8');
 assert.match(index,/Spawn homunculus/);
 assert.doesNotMatch(index,/\/app\.js|\/api\/bootstrap/);
-for(const file of ['assets/resident.glb','assets/skeleton.glb','assets/comic/excerpts.json'])assert.ok((await stat(new URL(file,root))).size>0,file);
+for(const file of ['assets/resident.glb','assets/skeleton.glb','assets/creatures/slug.glb','assets/creatures/worm.glb','assets/creatures/mass.glb','assets/comic/excerpts.json'])assert.ok((await stat(new URL(file,root))).size>0,file);
 const excerpts=JSON.parse(await readFile(new URL('assets/comic/excerpts.json',root),'utf8'));
 assert.ok(excerpts.pages.length>=2&&excerpts.pages.length<excerpts.source_pages);
 for(const page of excerpts.pages){assert.ok(page.text.length>0);await stat(new URL(page.image,root));}

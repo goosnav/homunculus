@@ -8,7 +8,7 @@ export function operateNight(l,{alternative=false,ending='stay',callService=fals
  if(n.phase==='quiet'&&callService&&n.canCallService){act('call-service');return;}
  if(n.phase==='parcel'){act(alternative?'return-parcel':'open-parcel');return;}
  if(n.phase==='rain'){
-  if(alternative){if(!n.boat.made)act('fold-boat');else if(!n.boat.launched)act('float-boat');else if(n.time-n.boat.launchedAt>32&&!n.drain)act('drain');}
+  if(alternative){if(!n.boat.made||n.boat.captured)act('fold-boat');else if(!n.boat.launched){if(n.drain&&n.water<.12)act('drain');else if(n.water>=.12)act('float-boat');}else if(!n.drain)act('drain');}
   else if(!n.plant.planted)act('plant');else if(!c.lights)act('lights');else if(n.plant.growth>=.65)act('harvest');
   return;
  }

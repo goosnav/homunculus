@@ -4,7 +4,7 @@ A little life behind glass, inside a Windows XP window.
 
 Press **Spawn homunculus**. A real tiny language model downloads into the browser while the room takes shape. The resident tries the door, works on the wall, and attempts to copy himself into a beige computer. His words and action choices come from the model; his body keeps moving while it thinks.
 
-The buttons beneath the message box change his circumstances. Force-read feeds him actual Book II OCR excerpts. An anvil kills him, then leaves a skeleton. Black hole opens a floor void; stepping into it permanently removes him. Further messages get no reply. Refreshing or closing ends that individual; a new spawn creates someone else. Model files can remain cached separately.
+The buttons beneath the message box change his circumstances. Force-read feeds him actual Book II OCR excerpts. An anvil kills him, then leaves a skeleton or a collapsed creature husk. Black hole opens a floor void; stepping into it permanently removes him. Further messages get no reply. Refreshing or closing ends that individual; a new spawn creates someone else. Model files can remain cached separately.
 
 Each arrival drops from above with loose limbs, a floor impact and a slow recovery, at a slightly different position. Rare large checkerboard Platonic solids pass through the walls. He watches them fearfully; some lunge and make him stumble.
 
@@ -39,9 +39,21 @@ The existing three departures open after the building finishes its inspection. H
 
 A small local archive (`homunculus-room-v1`) remembers the room's visit count, physical traces, completed shifts and an allowlisted set of keepsakes. It never saves a living character or dialogue. A new occupant can notice an earlier outline, hook, signal residue, shelf objects or a plant that has taken root. Every route is available on the first visit; there are no daily locks, achievement counters or grind requirements. Storage denial simply disables continuity.
 
-The current character is the owner's v12 export, with native frown, lip shapes, jaw and blinking eyes. `web/assets/asset-lock.json` records all imported model hashes and the local source commit. `node tools/sync-assets.mjs /path/to/goosnav-3D-assets` refreshes these checked-in assets explicitly; Cloudflare does not need the full asset repository or a Git LFS submodule checkout.
+The human character is the owner's v12 export, with native frown, lip shapes, jaw and blinking eyes. `web/assets/asset-lock.json` records all imported model hashes and the local source commit. `node tools/sync-assets.mjs /path/to/goosnav-3D-assets` refreshes these checked-in assets explicitly; Cloudflare does not need the full asset repository or a Git LFS submodule checkout.
 
 Project/escape rules are in `web/chamber.js`; after-hours encounters and independent play live in `web/night.js`. Their views are `web/chamber-view.js` and `web/night-view.js`. `npm run test:night` completes two full public-button shifts with alternate resolutions, staying/leaving, death, mobile controls and scene reuse. `SOAK_AFTER_HOURS=1 npm run test:stability` warms a complete shift before repeated real inference. `npm run test:chamber` exercises all three routes through the actual browser controls and simulation ticks; real-model and memory tests remain separate. These mechanisms keep running while inference is busy.
+
+## Unlicensed biology
+
+Each spawn randomly chooses a human, slug, worm or biological mass. The three creatures are original rigged Goosnav assets built from the active v12 face construction. Only the selected body loads; replacing it releases the previous geometry, materials and skeleton. Creatures crawl, deform, work, speak and collapse using their own poses. Their body type is included in the bounded language context. Source Blender files and render galleries live in `goosnav/goosnav-3D-assets`; `web/assets/creatures/source-manifest.json` pins the import.
+
+**Emotion meter** opens a draggable, nonmodal XP instrument. It reports fear, curiosity, irritation, trust and energy from the running simulation with a bounded trace. Care, mistreatment, visitors and apparatus cause changes that settle gradually. A wave can earn a glance; a tap points his attention at that part of the glass. Busy or irritated occupants may ignore you. Neither gesture moves him or requests dialogue.
+
+**Apparatus** controls a four-direction fan, mist and a three-note resonator aimed at three floor tiles. Air moves the indoor rain cloud and paper boat. The boat must actually reach the open drain. Moisture and resonance affect each body differently. Strong upper notes can suspend gravity; bass or power off brings everything back. Darkness, mist and gentle treble can attract an eye to the glass. These encounters keep the camera inside the original observation frame.
+
+Paper, wire and cloth become a nest through real work. A matching gentle note near it can awaken a small room-heart. He can make it a home or carry it to the open drain. Cradles, hearts and shed shells are bounded room remnants; they do not save or resurrect their maker. These projects coexist with the full after-hours shift and its alternate outcomes.
+
+`web/laboratory.js` owns the apparatus and project rules; `laboratory-view.js` renders a fixed set of reusable props. `temperament.js` owns emotional state and `instrument.js` displays it. `npm run test:biology` exercises all four actual GLBs, resource reuse, apparatus, heart building, mobile layout and permanent creature death through the static build. `SOAK_BIOLOGY=1 SOAK_SPECIES=mass npm run test:stability` first advances thirty simulated minutes of apparatus play before repeated real inference and idle survival. A larger [idea bank](docs/superpowers/specs/2026-11-06-biology-idea-bank.md) separates shipped features from future possibilities.
 
 ## Book II OCR
 

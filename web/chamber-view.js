@@ -80,7 +80,7 @@ export class ChamberView{
   for(const mesh of Object.values(this.items))mesh.visible=false;
   if(delivery){const p=Math.min(1,(s.age-delivery.born)/1.2),x=delivery.returning?THREE.MathUtils.lerp(-.6,-3.2,Math.min(1,(j?.work||0)/2)):THREE.MathUtils.lerp(-3.2,-.6,p);this.tray.position.x=x;const mesh=this.items[delivery.item];mesh.visible=true;mesh.position.set(x,.17,.85);mesh.rotation.set(0,t*.1,0);}
   if(!delivery&&this.items[j?.item]&&['walk','work'].includes(j.phase)){
-   const carried=this.items[j.item];carried.visible=true;r.bones.handR?.getWorldPosition(this.hand);carried.position.copy(this.hand);carried.rotation.set(0,0,Math.PI/4);
+   const carried=this.items[j.item];carried.visible=true;(r.bones.handR||r.bones.nose||r.headBone)?.getWorldPosition(this.hand);carried.position.copy(this.hand);carried.rotation.set(0,0,Math.PI/4);
   }
   this.outline.visible=c.chalk>0||!!c.inherited.chalk;this.outline.geometry.setDrawRange(0,c.chalk>0?Math.max(2,Math.ceil(c.chalk*5)*2):10);
   this.chalkMaterial.opacity=c.chalk>=1?(c.lights?.65:1):c.chalk>0?.7:.18;this.chalkMaterial.color.setHex(c.lights?0xbfc2a5:0xe0eccc);
@@ -88,7 +88,7 @@ export class ChamberView{
   this.draught.material.opacity=.09+Math.sin(t*1.8)*.025;
   this.installedCoil.visible=c.coil;this.mirror.visible=c.mirror;this.reflection.visible=!!s.visitor?.reflected;
   this.key.visible=c.key!=='none'&&!s.outcome;
-  if(c.key==='held'&&r.bones.handR){r.bones.handR.getWorldPosition(this.hand);this.key.position.copy(this.hand);this.key.rotation.set(0,0,.2);}else{this.key.position.set(.2,.06,.6);this.key.rotation.x=-Math.PI/2;}
+  if(c.key==='held'&&r.headBone){(r.bones.handR||r.bones.nose||r.headBone).getWorldPosition(this.hand);this.key.position.copy(this.hand);this.key.rotation.set(0,0,.2);}else{this.key.position.set(.2,.06,.6);this.key.rotation.x=-Math.PI/2;}
   this.hook.visible=!!c.inherited.key||c.key==='held';
   const doorOpen=j?.item==='door'&&j.exit==='door'||s.outcome?.kind==='door';
   this.doorVoid.visible=this.doorPivot.visible=!!doorOpen;r.door.visible=!doorOpen;for(const p of r.doorPanels)p.visible=!doorOpen;r.doorLabel.visible=!doorOpen;r.handle.visible=!doorOpen;

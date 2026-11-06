@@ -1,3 +1,5 @@
+import {LaboratoryView} from './laboratory-view.js';
+import {switchBody,attachBodyGear,animateCreature} from './creature-view.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Room } from './room.js';
@@ -57,12 +59,13 @@ export class BrowserRoom extends Room{
     this.holeRim.rotation.x=Math.PI/2;this.holeRim.visible=false;this.scene.add(this.holeRim);
     // A front edge belongs to the wall around the viewer, with CSS completing the inset.
     this.box([.11,.08,5.5],[-3.37,.13,.2],0x66705e);
-    this.chamberView=new ChamberView(this);this.nightView=new NightView(this);
+    this.chamberView=new ChamberView(this);this.nightView=new NightView(this);this.laboratoryView=new LaboratoryView(this);
   }
   async loadAssets(){
     // Fetch this extra dependency before the base room adopts its assets.
     this.skeletonSource??=(await new GLTFLoader().loadAsync('./assets/skeleton.glb')).scene;
-    await super.loadAssets();
+    await super.loadAssets();this.species=this.settings.species||'human';
+    if(!this.book)this.book=meshBox([.2,.035,.27],0x8b3b2e);
     this.skeleton=this.skeletonSource;const bounds=new THREE.Box3().setFromObject(this.skeleton),size=bounds.getSize(new THREE.Vector3());
     this.skeleton.scale.setScalar(1.7/size.y);this.skeleton.position.y=-bounds.min.y*this.skeleton.scale.x;this.skeleton.visible=false;this.body.add(this.skeleton);
     this.nativeMorphs=[];this.model.traverse(o=>{if(o.morphTargetDictionary)this.nativeMorphs.push(o);});
@@ -72,9 +75,11 @@ export class BrowserRoom extends Room{
     const dome=new THREE.Mesh(new THREE.SphereGeometry(.205,10,5,0,Math.PI*2,0,Math.PI/2),material(0x848780));dome.scale.y=.55;this.headset.add(dome);
     for(let i=0;i<8;i++){const hole=new THREE.Mesh(new THREE.SphereGeometry(.012,5,4),material(0x333a33));hole.position.set(Math.cos(i*Math.PI/4)*.17,.055,Math.sin(i*Math.PI/4)*.17);this.headset.add(hole);}
     this.headset.position.set(0,1.695,0);this.body.add(this.headset);this.body.updateMatrixWorld(true);this.headBone.attach(this.headset);this.headset.visible=false;
+    attachBodyGear(this);
     if(this.formation!==undefined)this.materialize(this.formation);
     return this;
   }
+  selectSpecies(species){return switchBody(this,species);}
   materialize(progress){
     this.formation=progress;const materials=[];this.scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])if(!materials.includes(m))materials.push(m);});
     materials.forEach((m,i)=>{m.wireframe=progress<1&&(progress<=0||(i+1)/materials.length>progress);m.needsUpdate=true;});
@@ -145,7 +150,10 @@ export class BrowserRoom extends Room{
     if(!this.state||!this.model)return;const s=this.state;
     this.updateAnvils();
     this.updateOddities();
-    this.chamberView.update(s,t);this.nightView?.update(s,t);
+    this.chamberView.update(s,t);this.nightView?.update(s,t);this.laboratoryView?.update(s,t);
+    if(this.cracks){this.cracks.visible=s.wallDamage>3;this.cracks.children.forEach((c,i)=>c.visible=s.wallDamage>i*3);}
+    if(s.species&&s.species!=='human'){animateCreature(this,s,t,dt);if(s.alive&&s.night?.phase==='shadow')this.shadow.visible=false;this.laboratoryView?.pose(s,t);return;}
+    this.body.scale.set(1,1,1);
     if(s.outcome){this.model.visible=false;this.skeleton.visible=false;this.shadow.visible=false;this.overlay.hidden=true;this.hammer.visible=false;this.headset.visible=false;this.cable.visible=false;this.book.visible=false;return;}
     if(!s.alive){
       this.dragging=false;this.speakingUntil=0;this.overlay.hidden=true;
@@ -202,9 +210,8 @@ export class BrowserRoom extends Room{
       this.pose('chest',-.4*recoil);this.pose('upper_arm.R',1.2*recoil,0,-.6);this.pose('upper_arm.L',1.2*recoil,0,.6);
       this.pose('thigh.R',.4*recoil);this.pose('shin.R',-.65*recoil);
     }
-    if(this.cracks){this.cracks.visible=s.wallDamage>3;this.cracks.children.forEach((c,i)=>c.visible=s.wallDamage>i*3);}
     this.animateFace(t);
-    this.chamberView.pose(s,t);this.nightView?.pose(s,t);
+    this.chamberView.pose(s,t);this.nightView?.pose(s,t);this.laboratoryView?.pose(s,t);
   }
   animateArrival(arrival){
     const a=arrival.elapsed,impact=arrival.impact,after=Math.max(0,a-impact);
@@ -232,10 +239,10 @@ export class BrowserRoom extends Room{
     // Observer's glass: tapping is allowed, but never dragging a dead body or a half-loaded resident.
     const canvas=this.renderer.domElement;
     canvas.addEventListener('pointerdown',e=>{if(e.button===0&&e.isPrimary!==false&&this.state?.alive)this.pointerStart={id:e.pointerId,x:e.clientX,y:e.clientY};});
-    canvas.addEventListener('pointerup',e=>{const start=this.pointerStart;this.pointerStart=null;if(!start||start.id!==e.pointerId||Math.hypot(start.x-e.clientX,start.y-e.clientY)>8||!this.state?.alive)return;this.container.focus({preventScroll:true});this.ray(e);const action=this.nightView?.hit(this.raycaster)||this.chamberView.hit(this.raycaster);this.onInteraction(action||'tap',{});});
+    canvas.addEventListener('pointerup',e=>{const start=this.pointerStart;this.pointerStart=null;if(!start||start.id!==e.pointerId||Math.hypot(start.x-e.clientX,start.y-e.clientY)>8||!this.state?.alive)return;this.container.focus({preventScroll:true});this.ray(e);const action=this.nightView?.hit(this.raycaster)||this.chamberView.hit(this.raycaster);this.onInteraction(action||'tap',{x:this.pointer.x,y:this.pointer.y});});
     canvas.addEventListener('pointercancel',()=>{this.pointerStart=null;});
     canvas.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;this.ray(e);canvas.style.cursor=this.state?.alive&&(this.nightView?.hit(this.raycaster)||this.chamberView.hit(this.raycaster))?'pointer':'default';});
-    this.container.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat&&this.state?.alive){e.preventDefault();this.onInteraction('tap',{});}});
+    this.container.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&!e.repeat&&this.state?.alive){e.preventDefault();this.onInteraction(e.key===' '?'wave':'tap',{});}});
     canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();cancelAnimationFrame(this.raf);this.container.dispatchEvent(new CustomEvent('render-lost'));});
   }
 }

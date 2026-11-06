@@ -2,13 +2,13 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#245edb"><title>homunculus.exe</title>
-<link rel="icon" href="data:,"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./browser.css">
+<link rel="icon" href="data:,"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./browser.css"><link rel="stylesheet" href="./instrument.css">
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/"}}</script>
 </head><body>
 <section class="window" aria-label="Homunculus habitat">
 <header class="titlebar"><span class="app-icon" aria-hidden="true"></span><h1>homunculus.exe</h1><span id="title-name">No occupant</span><div class="window-controls"><button id="restart-program" aria-label="Restart program" title="Restart program">○</button><button class="close" id="close-window" aria-label="Exit to Goosnav shop" title="Exit to Goosnav shop">×</button></div></header>
 <nav class="menubar" aria-label="Window controls"><button id="journal-button">File</button><button id="help-button">Help</button><span class="menu-note" id="menu-note"></span></nav>
-<div id="viewport" tabindex="0" aria-label="A window into the room. Click or press Enter to tap the glass.">
+<div id="viewport" tabindex="0" aria-label="A window into the room. Click or press Enter to tap the glass. Press Space to wave.">
 <div class="glass-reflection" aria-hidden="true"></div><div class="aperture" aria-hidden="true"></div>
 <div id="subtitle" role="status" hidden><span id="speaker-name"></span><p id="spoken-text"></p></div>
 <div id="reading-pages" hidden aria-label="The pages he is being forced to read"></div>
@@ -24,6 +24,8 @@
 <form id="message-form" autocomplete="off"><label for="message" class="input-icon" aria-label="Message">›</label><input id="message" maxlength="400" placeholder="Say something through the glass…" aria-label="Say something through the glass" disabled><button class="xp-button" id="say-button" disabled>Say it</button></form>
 <div id="interventions" aria-label="Room controls">
 <button class="xp-button" id="service-toggle" data-action="service" aria-expanded="false" aria-controls="service-drawer" disabled>Room service…</button>
+<button class="xp-button" id="laboratory-toggle" data-action="laboratory" aria-expanded="false" aria-controls="laboratory-drawer" disabled>Apparatus…</button>
+<button class="xp-button" data-action="wave" title="Wave through the glass" disabled>Wave</button>
 <button class="xp-button" id="night-toggle" data-action="night" aria-expanded="false" aria-controls="night-drawer" disabled>Things in the room…</button>
 <button class="xp-button" data-action="lights" aria-pressed="false" disabled>Lights off</button>
 <button class="xp-button" data-action="tune" disabled>Tune 01</button>
@@ -58,6 +60,11 @@
 <button class="xp-button" data-action="shutter" disabled>Close shutter</button>
 <button class="xp-button" data-action="drain" disabled>Open drain</button>
 </div></div>
+<div id="laboratory-drawer" class="tool-drawer laboratory-drawer" aria-label="Apparatus" hidden>
+<fieldset><legend>Air</legend><button class="xp-button" data-action="draft-turn" data-direction="-1" aria-label="Turn fan counterclockwise">↶</button><button class="xp-button" data-action="draft-power">Fan off · E</button><button class="xp-button" data-action="draft-turn" data-direction="1" aria-label="Turn fan clockwise">↷</button><button class="xp-button" data-action="mist" aria-pressed="false">Mist</button></fieldset>
+<fieldset><legend>Resonator</legend><button class="xp-button" data-action="resonance-tone" data-tone="1" aria-pressed="true">Bass</button><button class="xp-button" data-action="resonance-tone" data-tone="2" aria-pressed="false">Middle</button><button class="xp-button" data-action="resonance-tone" data-tone="3" aria-pressed="false">Treble</button><button class="xp-button" data-action="resonance-power">Power off</button><button class="xp-button" data-action="resonance-aim" data-pad="0" aria-pressed="true">Tile I</button><button class="xp-button" data-action="resonance-aim" data-pad="1" aria-pressed="false">Tile II</button><button class="xp-button" data-action="resonance-aim" data-pad="2" aria-pressed="false">Tile III</button></fieldset>
+<fieldset><legend>Scraps</legend><button class="xp-button" data-action="deliver-scrap" data-item="paper">Paper</button><button class="xp-button" data-action="deliver-scrap" data-item="wire">Wire</button><button class="xp-button" data-action="deliver-scrap" data-item="cloth">Cloth</button><button class="xp-button" data-action="keep-heart" hidden>Make it a home</button><button class="xp-button" data-action="release-heart" hidden>Let it leave</button></fieldset>
+</div>
 <div id="experiments-drawer" class="tool-drawer" aria-label="Experiments" hidden>
 <button class="xp-button" data-action="read" disabled>Force-read Book 2</button><button class="xp-button" data-action="confine" disabled>10,000 years</button><button class="xp-button" data-action="anvil" disabled>Drop anvil</button><button class="xp-button" data-action="hole" disabled>Black hole</button>
 </div>

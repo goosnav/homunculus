@@ -16,7 +16,7 @@ export async function driveNight(page,{alternative=false,ending='stay',stopAtEvi
    else if(n.phase==='quiet'&&callService&&n.serviceReady)await press('call-service');
    else if(n.phase==='parcel')await press(alternative?'return-parcel':'open-parcel');
    else if(n.phase==='rain'){
-    if(alternative){if(!n.boat.made)await press('fold-boat');else if(!n.boat.launched&&n.water>=.12)await press('float-boat');else if(n.boat.launched&&n.time-n.boat.launchedAt>32&&!n.drain)await press('drain');}
+    if(alternative){if(!n.boat.made||n.boat.captured)await press('fold-boat');else if(!n.boat.launched){if(n.drain&&n.water<.12)await press('drain');else if(n.water>=.12)await press('float-boat');}else if(!n.drain)await press('drain');}
     else if(!n.plant.planted)await press('plant');else if(!c.lights)await press('lights');else if(n.plant.growth>=.65)await press('harvest');
    }else if(n.phase==='phone'){
     if(alternative){if(!n.phone.ignored)await press('hang-up');else if(!n.neighbor.returnAt)await press('feed-wall');}

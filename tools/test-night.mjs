@@ -3,7 +3,7 @@ await mkdir('.local/after-hours',{recursive:true});
 const browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE||undefined,args:['--no-sandbox','--enable-unsafe-swiftshader']});
 try{
  const page=await browser.newPage({viewport:{width:1200,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`${process.env.BROWSER_TEST_URL||'http://127.0.0.1:4173'}/?debug`);assert.equal(await page.locator('#night-toggle').count(),1,'after-hours objects must have reachable controls');
+ await page.goto(`${process.env.BROWSER_TEST_URL||'http://127.0.0.1:4173'}/?debug&body=human`);assert.equal(await page.locator('#night-toggle').count(),1,'after-hours objects must have reachable controls');
  async function spawn(){await page.locator('#spawn-button').click();await page.waitForFunction(()=>!!window.__habitat?.life,{},{timeout:120000});await page.evaluate(()=>{window.__habitat.pauseAutonomy=true;for(let i=0;i<20;i++)window.__habitat.life.tick(.25);});}
  await spawn();const camera=await page.evaluate(()=>window.__habitat.room.camera.position.toArray());
  await page.locator('#night-toggle').click();await page.screenshot({path:'.local/after-hours/controls.png'});await page.locator('[data-action="plant"]').click();

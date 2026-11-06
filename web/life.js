@@ -1,3 +1,6 @@
+import {Laboratory} from './laboratory.js';
+import {Temperament} from './temperament.js';
+import {randomSpecies,speciesId} from './species.js';
 import { NightShift } from './night.js';
 import { Chamber } from './chamber.js';
 // The resident's body is deterministic and independent of model latency.
@@ -45,7 +48,7 @@ export function parseThought(raw){
 // when interrupted; route() supplies the first reachable node to walk back to.
 const walkingOrigin=p=>walkable(...p)||(Number.isFinite(p[0])&&Math.abs(p[0])<=2.8&&p[1]<-1.9&&p[1]>=-3)?p:nearest(...p);
 export class Life{
-  constructor({random=Math.random,name,archive,afterHours=true}={}){
+  constructor({random=Math.random,name,archive,afterHours=true,species}={}){
     this.random=random;this.name=name||['Hugh','Clive','Gordon','Morris','Sid','Edgar','Vern','Basil','Cecil','Ned'][Math.floor(random()*10)%10];
     this.alive=true;this.age=0;this.epoch=0;this.position=[0,.75];this.yaw=0;this.feeling='sad';this.activity='watch';this.path=[];this.remaining=4;this.seated=false;
     this.energy=85;this.wallDamage=0;this.uploadProgress=0;this.doorAttempts=0;this.imaginedYears=0;this.anvils=[];this.nextAnvil=0;
@@ -59,6 +62,7 @@ export class Life{
     this.outcome=null;this.chamber=new Chamber({archive,random,name:this.name});
     this.night=afterHours?new NightShift({random,archive:this.chamber.archive}):null;
     this.hole=null;this.visitor=null;this.visitorSerial=0;this.nextVisitor=180+random()*240;this.startledUntil=0;
+    this.species=species===undefined?randomSpecies(random):speciesId(species);this.temperament=new Temperament();this.attention=null;this.waveUntil=0;this.laboratory=new Laboratory({random,morphology:this.species,archive:this.chamber.archive});
   }
   remember(text){this.memories.push(text);this.memories=this.memories.slice(-8);}
   note(id,title,text){if(this.secrets.has(id))return;this.secrets.add(id);this.journal.push({title,text});this.journal=this.journal.slice(-24);}
@@ -108,13 +112,13 @@ export class Life{
   }
   finish(kind){
     if(!this.alive)return;
-    this.night?.settle(this,kind);this.outcome={kind,at:this.age};this.dropTool();this.alive=false;this.deadAt=this.age;this.deathCause='departed';this.epoch++;this.activity='gone';this.path=[];this.events=[];this.chamber.job=null;this.chamber.delivery=null;
+    this.night?.settle(this,kind);this.outcome={kind,at:this.age};this.dropTool();this.alive=false;this.deadAt=this.age;this.deathCause='departed';this.epoch++;this.activity='gone';this.path=[];this.events=[];this.chamber.job=null;this.chamber.delivery=null;this.laboratory.interrupt(this,'departed');
     this.utterance={id:this.utterance.id+1,text:''};
   }
   updateVisitor(){
     if(!this.visitor&&this.alive&&this.age>=this.nextVisitor){
       this.visitor={id:++this.visitorSerial,kind:Math.floor(this.random()*5)%5,born:this.age,duration:16+this.random()*6,direction:this.random()<.5?1:-1,aggressive:this.random()<.3,target:[...this.position],hit:false,position:[-5,1.6,0]};
-      this.nextVisitor=this.age+240+this.random()*300;
+      this.nextVisitor=this.age+240+this.random()*300;this.temperament?.pulse('visitor');
       this.event('A huge pink and black solid is passing through the wall. It should not be here. You are frightened.','world');
     }
     const v=this.visitor;if(!v)return false;
@@ -150,6 +154,8 @@ export class Life{
     if(!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.25);this.age+=dt;
     for(const anvil of this.anvils){if(!anvil.hit&&this.age-anvil.born>=.65){anvil.hit=true;if(this.alive)this.die('anvil');}}
     const watchingVisitor=this.updateVisitor();
+    this.temperament.tick(dt,this);
+    if(!this.alive)this.laboratory.tick(dt,this);
     if(!this.alive)return;
     if(this.anvils.some(a=>!a.hit))return;
     if(this.overHole()&&(!this.arrival||this.age>=this.arrival.impact)){this.die('hole');return;}
@@ -157,6 +163,8 @@ export class Life{
       if(this.age<this.arrival.duration)return;
       this.arrival=null;
     }
+    this.laboratory.tick(dt,this);
+    if(this.laboratory.suspended)return;
     if(this.age>=this.nextOddity){
       this.nextOddity=this.age+180+this.random()*180;
       if(this.random()<.25)this.discover('clock','The clock','The clock ran backwards. Nobody else seemed to notice.','clockUntil',16);
@@ -207,6 +215,11 @@ export class Life{
     this.utterance={id:this.utterance.id+1,text:''};this.remember(cause==='anvil'?'Anvil.':cause==='hole'?'The floor was gone.':'The window closed.');
   }
   interact(kind,payload={}){
+    const accepted=this.performInteraction(kind,payload);
+    if(accepted&&this.alive&&['tap','read','confine'].includes(kind))this.temperament.pulse(kind);
+    return accepted;
+  }
+  performInteraction(kind,payload={}){
     if(kind==='anvil'){
       if(this.outcome)return false;
       this.chamber.interrupt(this,kind);
@@ -217,6 +230,8 @@ export class Life{
     if(!this.alive)return false;
     if(kind==='close'){this.die('closed');return true;}
     if(this.anvils.some(a=>!a.hit))return false;
+    const labResult=this.laboratory.interact(this,kind,payload);if(labResult!==null)return labResult;
+    if(this.laboratory.suspended&&!['lights','message','tap','wave','confine','read','hole'].includes(kind))return false;
     const nightResult=this.night?.interact(this,kind)??null;if(nightResult!==null)return nightResult;
     const chamberResult=this.chamber.interact(this,kind,payload);if(chamberResult!==null)return chamberResult;
     if(kind==='hole'){
@@ -249,7 +264,13 @@ export class Life{
       if(/^there is no spoon[.!]?$/i.test(text))this.discover('bowl','A correction','The bowl disappeared. That was not the object mentioned.','bowlUntil',16);
       return true;
     }
+    if(kind==='wave'){
+      if(this.age<this.waveUntil)return false;this.waveUntil=this.age+4;
+      if(!this.chamber.busy&&!this.arrival&&this.temperament.irritation<65){this.attend(payload,'wave');this.temperament.pulse('soothe',.35);}
+      return true;
+    }
     if(kind==='tap'){
+      if(!this.chamber.busy&&!this.arrival&&this.temperament.irritation<75)this.attend(payload,'tap');
       this.feeling='annoyed';if(this.activity==='rest')this.choose('watch');
       this.tapTimes=this.tapTimes.filter(time=>this.age-time<2);this.tapTimes.push(this.age);
       if(this.tapTimes.length>=3){this.tapTimes=[];this.discover('answer','Three knocks','Three knocks came back from inside the wall. You were not touching it.','answerUntil',5);}
@@ -261,6 +282,10 @@ export class Life{
     }
     return false;
   }
+  attend(payload,kind){
+    const x=Number.isFinite(payload.x)?clamp(payload.x,-1,1):0,y=Number.isFinite(payload.y)?clamp(payload.y,-1,1):0;
+    this.attention={kind,position:[x*2.7,1.6+y*.8,2.5],until:this.age+3};
+  }
   applyThought(thought,epoch){
     if(!this.alive||epoch!==this.epoch||!thought||!ACTIONS.includes(thought.action))return false;
     this.feeling=FEELINGS.includes(thought.feeling)?thought.feeling:'sad';
@@ -270,13 +295,13 @@ export class Life{
     if(line&&!repeated){
       this.utterance={id:this.utterance.id+1,text:line};this.dialogue.push({role:'assistant',content:line});this.dialogue=this.dialogue.slice(-12);
     }
-    if(this.chamber.busy||this.activity==='confined'&&this.age<this.lockUntil)return true;
+    if(this.chamber.busy||this.laboratory.suspended||this.activity==='confined'&&this.age<this.lockUntil)return true;
     this.choose(this.energy<20?'rest':thought.action);return true;
   }
-  context(){return `Your name is ${this.name}. You are locked in a shabby room. ${this.night?.staying?'You chose to stay here. The building wants your home empty.':'You want out.'} Your preferred escape method is ${this.preferred}. You keep ${this.fixation}. You are ${DESCRIPTIONS[this.activity]}, stage: ${this.stage}. Room light ${this.chamber.lights?'on':'off'}, coil ${this.chamber.coil?'fitted':'missing'}, chalk doorway ${this.chamber.chalkOpen?'open':'closed'}. Wall damage ${Math.floor(this.wallDamage)}. Mind upload ${Math.floor(this.uploadProgress)} percent. Subjective years: ${this.imaginedYears}. ${this.night?.cue()||''} Recent experiences: ${this.memories.slice(-4).join(' ')}`;}
+  context(){return `Your name is ${this.name}. You are locked in a shabby room. ${this.night?.staying?'You chose to stay here. The building wants your home empty.':'You want out.'} ${this.laboratory.cue()} Your preferred escape method is ${this.preferred}. You keep ${this.fixation}. You are ${DESCRIPTIONS[this.activity]}, stage: ${this.stage}. Room light ${this.chamber.lights?'on':'off'}, coil ${this.chamber.coil?'fitted':'missing'}, chalk doorway ${this.chamber.chalkOpen?'open':'closed'}. Wall damage ${Math.floor(this.wallDamage)}. Mind upload ${Math.floor(this.uploadProgress)} percent. Subjective years: ${this.imaginedYears}. ${this.night?.cue()||''} Recent experiences: ${this.memories.slice(-4).join(' ')}`;}
   snapshot(){
     const watching=this.visitor&&Math.hypot(this.visitor.position[0]-this.position[0],this.visitor.position[2]-this.position[1])<2.6;
-    return {chamber:this.chamber.snapshot(),night:this.night?.snapshot()||null,outcome:this.outcome,name:this.name,alive:this.alive,age:this.age,position:[...this.position],yaw:this.yaw,activity:this.activity,description:this.arrival?'arriving':({collect:'collecting the delivery',draw:'drawing on the wall',wire:'repairing the computer',mount:'setting up the mirror',depart:'leaving',gone:'gone'}[this.activity]||DESCRIPTIONS[this.activity]),stage:this.stage,workElapsed:this.workElapsed,hasHammer:this.hasHammer,toolPosition:[...this.toolPosition],hammerStrikes:this.hammerStrikes,effects:{...this.effects},feeling:watching?'afraid':this.feeling,walking:!this.arrival&&!watching&&this.startledUntil<=this.age&&this.path.length>0,seated:this.seated,utterance:{...this.utterance},skeleton:!this.alive&&!this.outcome&&this.deathCause!=='hole'&&this.age-this.deadAt>=3,deathCause:this.deathCause,deadFor:this.deadAt===null?0:this.age-this.deadAt,anvils:this.anvils.map(a=>({...a})),wallDamage:this.wallDamage,uploadProgress:this.uploadProgress,imaginedYears:this.imaginedYears,journal:this.journal,dialogue:this.dialogue,keepsake:false,
-      arrival:this.arrival?{...this.arrival,elapsed:this.age}:null,hole:this.hole?{...this.hole}:null,visitor:this.visitor?{...this.visitor,position:[...this.visitor.position]}:null,lookTarget:watching?[...this.visitor.position]:null,startled:Math.max(0,this.startledUntil-this.age)};
+    return {species:this.species,laboratory:this.laboratory.snapshot(),affect:this.temperament.snapshot(this),attention:this.attention&&this.attention.until>this.age?{...this.attention,position:[...this.attention.position]}:null,chamber:this.chamber.snapshot(),night:this.night?.snapshot()||null,outcome:this.outcome,name:this.name,alive:this.alive,age:this.age,position:[...this.position],yaw:this.yaw,activity:this.activity,description:this.arrival?'arriving':({collect:'collecting the delivery',draw:'drawing on the wall',wire:'repairing the computer',mount:'setting up the mirror',depart:'leaving',gone:'gone'}[this.activity]||DESCRIPTIONS[this.activity]),stage:this.stage,workElapsed:this.workElapsed,hasHammer:this.hasHammer,toolPosition:[...this.toolPosition],hammerStrikes:this.hammerStrikes,effects:{...this.effects},feeling:watching||this.temperament.fear>72?'afraid':this.temperament.irritation>75?'annoyed':this.feeling,walking:!this.arrival&&!this.laboratory.suspended&&!watching&&this.startledUntil<=this.age&&this.path.length>0,seated:this.seated,utterance:{...this.utterance},remains:!this.alive&&!this.outcome&&this.deathCause!=='hole'&&this.age-this.deadAt>=3?(this.species==='human'?'skeleton':'husk'):null,skeleton:this.species==='human'&&!this.alive&&!this.outcome&&this.deathCause!=='hole'&&this.age-this.deadAt>=3,deathCause:this.deathCause,deadFor:this.deadAt===null?0:this.age-this.deadAt,anvils:this.anvils.map(a=>({...a})),wallDamage:this.wallDamage,uploadProgress:this.uploadProgress,imaginedYears:this.imaginedYears,journal:this.journal,dialogue:this.dialogue,keepsake:false,
+      arrival:this.arrival?{...this.arrival,elapsed:this.age}:null,hole:this.hole?{...this.hole}:null,visitor:this.visitor?{...this.visitor,position:[...this.visitor.position]}:null,lookTarget:watching?[...this.visitor.position]:!this.chamber.busy&&this.attention?.until>this.age?[...this.attention.position]:null,startled:Math.max(0,this.startledUntil-this.age)};
   }
 }

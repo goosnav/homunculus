@@ -17,7 +17,7 @@ page.on('console',m=>{if(m.type()==='error')console.log('console-error',m.text()
 await context.route(/\/api\/(state|interact|bootstrap)|:11434/,route=>route.abort());
 await context.route('**/*',route=>{const url=new URL(route.request().url());if(/^https?:$/.test(url.protocol)&&url.origin!==site.origin){const knownHostingScript=process.env.BROWSER_EXPECT_CLOUDFLARE_BEACON==='1'&&url.hostname==='static.cloudflareinsights.com'&&/^\/beacon\.min\.js(?:\/|$)/.test(url.pathname)&&route.request().resourceType()==='script';
  (knownHostingScript?hostingTelemetry:external).push(url.href);return route.abort();}return route.fallback();});
-await page.goto(new URL('/?debug',site).href);assert.equal(weights.length,0);await page.screenshot({path:'.local/browser-qa/dist-spawn.png'});
+await page.goto(new URL('/?debug&body=human',site).href);assert.equal(weights.length,0);await page.screenshot({path:'.local/browser-qa/dist-spawn.png'});
 let failedAsset=false;
 await context.route('**/assets/resident.glb',route=>{if(!failedAsset){failedAsset=true;return route.abort();}return route.continue();});
 await page.locator('#spawn-button').click();

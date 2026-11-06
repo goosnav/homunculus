@@ -6,7 +6,7 @@ const browser=await chromium.launch({executablePath:process.env.BROWSER_EXECUTAB
 try{
  const page=await browser.newPage({viewport:{width:1100,height:820}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`${process.env.BROWSER_TEST_URL||'http://127.0.0.1:4173'}/?debug`);
+ await page.goto(`${process.env.BROWSER_TEST_URL||'http://127.0.0.1:4173'}/?debug&body=human`);
  await page.locator('#spawn-button').click();
  await page.waitForFunction(()=>!!window.__habitat.life,{},{timeout:120000});
  await page.evaluate(()=>{const h=window.__habitat;h.mind.dispose();h.life.tick=()=>{};h.life.position=[-.3,.9];h.life.path=[];h.life.yaw=0;});

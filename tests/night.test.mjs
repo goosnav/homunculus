@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {Life} from '../web/life.js';import {readArchive,writeArchive} from '../web/chamber.js';
 import {advance,operateNight,shift} from './night-helpers.mjs';
+import {Laboratory} from '../web/laboratory.js';
 const fresh=(r=.3,archive)=>new Life({random:()=>r,archive});
 test('a complete after-hours shift resolves six distinct encounters and lets the resident stay',t=>{
  const l=fresh();assert.ok(l.night);const duration=shift(l);
@@ -86,4 +87,54 @@ test('calling night service advances every quiet interval without skipping encou
  const l=fresh();advance(l,4);assert.equal(l.interact('call-service'),false);advance(l,16);
  assert.equal(l.interact('call-service'),true);assert.equal(l.interact('call-service'),false,'one physical job at a time');advance(l,30);
  assert.equal(l.night.phase,'parcel');assert.equal(l.interact('call-service'),false,'cannot skip an unresolved case');
+});
+
+function launchedRainBoat(){
+ const l=fresh();
+ for(let i=0;i<8000&&l.night.phase!=='rain';i++){operateNight(l,{callService:true});l.tick(.25);}
+ assert.equal(l.night.phase,'rain');
+ for(let i=0;i<400&&l.chamber.busy;i++)l.tick(.25);
+ assert.equal(l.interact('fold-boat'),true);for(let i=0;i<400&&l.chamber.busy;i++)l.tick(.25);
+ for(let i=0;i<200&&l.night.water<.12;i++)l.tick(.25);
+ assert.equal(l.interact('float-boat'),true);for(let i=0;i<400&&!l.night.boat.launched;i++)l.tick(.25);
+ assert.equal(l.night.boat.launched,true);
+ l.laboratory??=new Laboratory({random:()=>.3,archive:l.chamber.archive});return l;
+}
+const labAction=(l,kind,payload)=>l.laboratory.interact(l,kind,payload);
+test('opposite fan directions steer both the real boat and the rain cloud in opposite directions',()=>{
+ const east=launchedRainBoat(),west=launchedRainBoat();
+ for(const l of [east,west]){labAction(l,'draft-power');labAction(l,'draft-power');}
+ labAction(west,'draft-turn',{direction:1});labAction(west,'draft-turn',{direction:1});
+ advance(east,3);advance(west,3);
+ assert.ok(east.night.boat.x-west.night.boat.x>.8,'wind changes the physical boat path');
+ assert.ok(east.night.cloud.x-west.night.cloud.x>.5,'the cloud follows that same wind');
+ assert.equal(east.night.phase,'rain');assert.equal(west.night.phase,'rain');
+});
+test('the boat resolves by reaching the open drain, and an opposing draft prevents a timed fake success',()=>{
+ const l=launchedRainBoat();labAction(l,'draft-power');labAction(l,'draft-power');l.interact('drain');
+ advance(l,55);assert.equal(l.night.phase,'rain');assert.equal(l.night.boat.captured,false);
+ assert.ok(l.night.water>.02,'rain keeps a navigable runoff channel even with the drain open');
+ labAction(l,'draft-power');advance(l,60);
+ assert.equal(l.night.boat.captured,true);assert.equal(l.night.history.at(-1).choice,'boat');assert.equal(l.night.phase,'quiet');
+ assert.ok(Math.hypot(l.night.boat.x+.9,l.night.boat.z-.55)<.25,'the actual boat reached the visible drain');
+});
+test('steering toward the drain can finish before thirty seconds, with no water-drained timer',()=>{
+ const l=launchedRainBoat(),launched=l.night.time;
+ labAction(l,'draft-power');labAction(l,'draft-power');labAction(l,'draft-turn',{direction:1});labAction(l,'draft-turn',{direction:1});l.interact('drain');
+ for(let i=0;i<100&&l.night.phase==='rain';i++)l.tick(.25);
+ assert.equal(l.night.boat.captured,true);assert.ok(l.night.time-launched<15);
+ assert.equal(l.night.history.at(-1).choice,'boat');
+});
+test('cloud and boat coordinates stay bounded, and a captured boat can be made again',()=>{
+ const l=launchedRainBoat();labAction(l,'draft-power');labAction(l,'draft-power');
+ advance(l,200);
+ assert.ok(l.night.boat.x<=1.55&&l.night.boat.x>=-1.45);
+ assert.ok(l.night.cloud.x<=1.6&&l.night.cloud.x>=-1.5);
+ assert.ok(l.night.boat.z<=1.15&&l.night.boat.z>=-.85);
+ const snap=l.night.snapshot();snap.boat.x=Infinity;snap.cloud.z=NaN;
+ assert.ok(Number.isFinite(l.night.boat.x)&&Number.isFinite(l.night.cloud.z));
+ labAction(l,'draft-power');l.interact('drain');advance(l,60);
+ assert.equal(l.night.boat.captured,true);
+ assert.equal(l.interact('fold-boat'),true,'the paper prop can be reused after capture');
+ advance(l,30);assert.equal(l.night.boat.launched,false);assert.equal(l.night.boat.captured,false);
 });

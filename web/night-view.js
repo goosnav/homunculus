@@ -85,11 +85,15 @@ export class NightView{
   this.parcel.visible=n.phase==='parcel';this.parcel.position.y=.27+Math.sin(t*6)*.015;this.parcel.rotation.y=Math.sin(t*2)*.06;this.feet.forEach((f,i)=>f.rotation.x=Math.sin(t*7+i)*.3);this.parcelLid.rotation.x=work==='night:open-parcel'?-Math.min(1,s.chamber.job.progress*2):Math.sin(t*10)*.025;
   this.plant.visible=n.plant.planted;this.plant.scale.setScalar(.2+n.plant.growth*.8);this.flower.visible=n.plant.growth>.65;this.flower.rotation.y=t*.6;
   this.leaves.forEach((leaf,i)=>{leaf.rotation.z=(i%2?1:-1)*(.4+(1-n.plant.moisture)*.3+Math.sin(t+i)*.06);});
-  this.jug.visible=work==='night:water';if(this.jug.visible){r.bones.handR?.getWorldPosition(this.hand);this.jug.position.copy(this.hand);this.jug.rotation.z=s.walking?0:.7;}
-  this.cloud.visible=this.rain.visible=n.phase==='rain';this.cloud.position.y=2.8+Math.sin(t)*.035;
-  for(let i=0;i<48;i++){const x=.8+Math.sin(i*42.3)*.75,z=.55+Math.cos(i*31.1)*.6,y=2.7-((t*2.1+i*.37)%2.65);this.rainBuffer.set([x,y,z,x,y-.13,z],i*6);}this.rain.geometry.attributes.position.needsUpdate=true;
-  this.puddle.visible=n.water>.01;this.puddle.scale.setScalar(.2+Math.sqrt(n.water)*.8);this.puddle.material.color.setHex(n.variant==='cold'?0x536c70:0x606d4f);
-  this.boat.visible=n.boat.made;this.boat.position.set(n.boat.launched?.4+Math.sin(t*.5)*.65:-.75,n.boat.launched?.045:.06,n.boat.launched?.6+Math.cos(t*.7)*.3:1.05);this.boat.rotation.set(n.boat.launched?Math.sin(t*2)*.06:0,n.boat.launched?t*.1:.2,0);
+  this.jug.visible=work==='night:water';if(this.jug.visible){(r.bones.handR||r.bones.nose||r.headBone)?.getWorldPosition(this.hand);this.jug.position.copy(this.hand);this.jug.rotation.z=s.walking?0:.7;}
+  const cloudX=n.cloud?.x??.8,cloudZ=n.cloud?.z??.55,wind=s.laboratory?.draft;
+  this.cloud.visible=this.rain.visible=n.phase==='rain';this.cloud.position.set(cloudX,2.8+Math.sin(t)*.035,cloudZ);
+  for(let i=0;i<48;i++){const y=2.7-((t*2.1+i*.37)%2.65),x=cloudX+Math.sin(i*42.3)*.75+(wind?.x||0)*(2.7-y)*.2,z=cloudZ+Math.cos(i*31.1)*.6+(wind?.z||0)*(2.7-y)*.2;this.rainBuffer.set([x,y,z,x,y-.13,z],i*6);}this.rain.geometry.attributes.position.needsUpdate=true;
+  const boat=n.boat,channel=boat.launched&&!boat.captured&&n.drain,waterScale=.2+Math.sqrt(n.water)*.8;
+  this.puddle.visible=n.water>.01;this.puddle.position.set(channel?(boat.x-.9)/2:.45,.021,channel?(boat.z+.55)/2:.65);this.puddle.scale.set(channel?Math.max(waterScale,(Math.abs(boat.x+.9)*.5+.22)/1.55):waterScale,channel?Math.max(waterScale,(Math.abs(boat.z-.55)*.5+.22)/1.55):waterScale,1);this.puddle.material.color.setHex(n.variant==='cold'?0x536c70:0x606d4f);
+  const sinking=boat.captured?Math.min(1,Math.max(0,(n.time-boat.capturedAt)/.8)):0;
+  this.boat.visible=boat.made&&sinking<1;this.boat.scale.setScalar(1-sinking);
+  this.boat.position.set(boat.launched?boat.x:-.75,boat.launched?(boat.grounded?.025:.045)-sinking*.12:.06,boat.launched?boat.z:1.05);this.boat.rotation.set(boat.launched&&!boat.grounded?Math.sin(t*2)*.06:0,boat.launched&&(boat.vx||boat.vz)?Math.atan2(boat.vx,boat.vz):.2,0);
   this.mouse.visible=this.mouseShadow.visible=true;this.mouse.position.set(n.toy.x,.02,n.toy.z);this.mouse.rotation.y=n.toy.until>n.time?Math.atan2(Math.cos(n.time*.55)*.55,-Math.sin(n.time*.43)*.43):0;this.windKey.rotation.y=n.toy.until>n.time?t*7:0;this.mouseShadow.position.set(n.toy.x,.023,n.toy.z);
   this.receiver.position.y=.13+(n.phone.answered&&n.phase==='phone'?.1:0)+(n.phase==='phone'&&!n.phone.answered&&!n.phone.ignored?Math.sin(t*22)*.015:0);
   const shown=n.phase==='phone'&&n.phone.answered;this.lamps.forEach((lamp,i)=>lamp.material.color.setHex(shown&&i===n.phone.index?0xdbcf81:shown&&i<n.phone.index?0x91b579:0x5e674c));

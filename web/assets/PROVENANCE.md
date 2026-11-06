@@ -12,3 +12,7 @@ Used with the owner's instruction for Homunculus. These remain the owner's asset
 - `comic/`: eight excerpt scans from the owner's actual Book II PDF, with raw Tesseract OCR. Full source/hash/page mapping: `comic/PROVENANCE.json`. The complete book is not bundled.
 
 Copied from the adjacent asset repository on 2026-10-15. Original files were not modified. This is a 3D simulation, not new comic artwork.
+
+## Creature adaptations
+
+The slug, worm and biological mass in `creatures/` are original Goosnav-style adaptations of the active v12 character face, authored in the owner's `goosnav-3D-assets` repository. They are not claims of canonical comic designs. Editable Blender sources, rig contract, rendered previews, and focused validation are published at commit `21b0ec9`. `creatures/source-manifest.json` contains full source commit and checksums; tests verify the bundled bytes. No external textures or remote runtime asset dependencies are used.

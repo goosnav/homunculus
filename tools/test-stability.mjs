@@ -19,13 +19,39 @@ async function sample(){
 }
 try{
  timer=setInterval(()=>void sample(),500);
- await page.goto(`${site}/?debug`);await page.locator('#spawn-button').click();
+ await page.goto(`${site}/?debug&body=${['human','slug','worm','mass'].includes(process.env.SOAK_SPECIES)?process.env.SOAK_SPECIES:'human'}`);await page.locator('#spawn-button').click();
  await page.waitForFunction(()=>!!window.__habitat?.life,{},{timeout:120000});
  // Keep rendering/physics/audio running, but issue deliberations serially here
  // so results cannot be confused with a concurrent autonomous thought.
  await page.evaluate(()=>window.__habitat.pauseAutonomy=true);
  await page.waitForFunction(()=>!window.__habitat.mind.pending);
  if(process.env.SOAK_AFTER_HOURS==='1'){stage='full-shift';await driveNight(page);}
+ if(process.env.SOAK_BIOLOGY==='1'){
+  stage='biology-thirty-minutes';
+  const stats=await page.evaluate(async()=>{
+   const h=window.__habitat,l=h.life,r=h.room;
+   for(let i=0;i<40;i++)l.tick(.1);
+   const owned=()=>{const geometries=new Set(),materials=new Set();let objects=0;r.scene.traverse(o=>{objects++;if(o.geometry)geometries.add(o.geometry);for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[])materials.add(m);});return {objects,geometries:geometries.size,materials:materials.size};};
+   const before={...r.renderer.info.memory},beforeOwned=owned();
+   for(let chunk=0;chunk<450;chunk++){
+    if(chunk%30===0)h.interaction('mist');
+    if(chunk%40===0)h.interaction('draft-power');
+    if(chunk%50===0)h.interaction('draft-turn',{direction:1});
+    if(chunk%60===0)h.interaction('resonance-power');
+    if(chunk%70===0)h.interaction('resonance-tone',{tone:chunk%3+1});
+    if(!l.chamber.busy&&l.laboratory.nest.scraps.length<3)h.interaction('deliver-scrap',{item:['paper','wire','cloth'].find(k=>!l.laboratory.nest.scraps.includes(k))});
+    for(let tick=0;tick<40;tick++)l.tick(.1);
+    r.update(l.snapshot());await new Promise(requestAnimationFrame);
+   }
+   h.interaction('resonance-tone',{tone:1});for(let i=0;i<60;i++)l.tick(.1);
+   while(l.laboratory.resonance.power)h.interaction('resonance-power');
+   return {age:l.age,before,beforeOwned,afterOwned:owned(),after:{...r.renderer.info.memory},events:l.events.length,archive:JSON.stringify(l.chamber.archive).length,alive:l.alive};
+  });
+  assert.ok(stats.alive&&stats.age>=1800);assert.ok(stats.events<=4&&stats.archive<2000);
+  assert.deepEqual(stats.afterOwned,stats.beforeOwned,'thirty minutes must reuse the fixed scene objects and resources');
+  assert.ok(stats.after.geometries<=stats.afterOwned.geometries+2,'renderer allocations remain bounded by the actual scene');
+  console.log('Biology accelerated soak:',JSON.stringify(stats));
+ }
  const identity=await page.evaluate(()=>window.__habitat.life.name);
  for(let i=0;i<cycles;i++){
   stage=`cycle-${i}`;

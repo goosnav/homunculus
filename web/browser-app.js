@@ -1,9 +1,13 @@
+import {laboratoryAvailability} from './laboratory.js';
+import {createInstrument} from './instrument.js';
+import {SPECIES,randomSpecies,speciesId} from './species.js';
 import { nightClue, nightAvailability } from './night.js';
 import { BrowserRoom } from './browser-room.js';
 import { Life, parseThought } from './life.js';
 import { readArchive, writeArchive } from './chamber.js';
 import { ComicReader } from './comic.js';
 let comicReader;
+const instrument=createInstrument({onAction:interaction});
 import { BrowserMind, mindMessages } from './mind.js';
 import { BrowserVoice } from './browser-voice.js';
 const $=s=>document.querySelector(s);
@@ -39,7 +43,7 @@ function speak(text){
   voice.say(text);
 }
 function closeDrawers(){
- for(const kind of ['service','experiments','night']){$(`#${kind}-drawer`).hidden=true;$(`#${kind}-toggle`).setAttribute('aria-expanded','false');}
+ for(const kind of ['service','experiments','night','laboratory']){$(`#${kind}-drawer`).hidden=true;$(`#${kind}-toggle`).setAttribute('aria-expanded','false');}
 }
 function toggleDrawer(kind){
  const opening=$(`#${kind}-drawer`).hidden;closeDrawers();$(`#${kind}-drawer`).hidden=!opening;$(`#${kind}-toggle`).setAttribute('aria-expanded',String(opening));
@@ -64,6 +68,16 @@ function roomControls(s){
   $('[data-action="shutter"]').textContent=n.shutter?'Open shutter':'Close shutter';$('[data-action="shutter"]').setAttribute('aria-pressed',String(n.shutter));
   $('[data-action="drain"]').textContent=n.drain?'Close drain':'Open drain';$('[data-action="drain"]').setAttribute('aria-pressed',String(n.drain));
  }
+ if(s.laboratory){
+  const l=s.laboratory,available=laboratoryAvailability(s);
+  for(const b of document.querySelectorAll('#laboratory-drawer [data-action]')){const [visible,enabled]=available[b.dataset.action]||[true,false];b.hidden=!visible;b.disabled=!enabled||(b.dataset.action==='deliver-scrap'&&l.nest.scraps.includes(b.dataset.item));
+   if(b.dataset.tone)b.setAttribute('aria-pressed',String(l.resonance.tone===Number(b.dataset.tone)));
+   if(b.dataset.pad)b.setAttribute('aria-pressed',String(l.resonance.pad===Number(b.dataset.pad)));
+  }
+  $('[data-action="draft-power"]').textContent=`Fan ${['off','low','high'][l.draft.power]} · ${['E','S','W','N'][l.draft.direction]}`;
+  $('[data-action="resonance-power"]').textContent=`Power ${['off','low','high'][l.resonance.power]}`;
+  $('[data-action="mist"]').setAttribute('aria-pressed',String(l.mist.on));
+ }
  if(c.feedback.id!==lastRoomFeedback){lastRoomFeedback=c.feedback.id;$('#menu-note').textContent=c.feedback.text;feedbackUntil=s.age+6;voice.effect(c.feedback.sound);}
  else if(feedbackUntil&&s.age>feedbackUntil){$('#menu-note').textContent='';feedbackUntil=0;}
 }
@@ -78,19 +92,21 @@ function showNotes(title,paragraphs){
   $('#notes').showModal();
 }
 async function spawn(){
-  if(spawning)return;spawning=true;closeDrawers();$('#next-occupant').hidden=true;lastRoomFeedback=0;feedbackUntil=0;$('#menu-note').textContent='';const run=++generation;disposed=false;busy=false;life=null;silence();controls(false);notice('');
+  if(spawning)return;spawning=true;instrument.update(null);closeDrawers();$('#next-occupant').hidden=true;lastRoomFeedback=0;feedbackUntil=0;$('#menu-note').textContent='';const run=++generation;disposed=false;busy=false;life=null;silence();controls(false);notice('');
   voice.setEnabled(true);
   mind?.dispose();mind=new BrowserMind({debug});$('#spawn-error').hidden=true;$('#spawn-button').hidden=true;$('#spawn-progress').hidden=false;$('#spawn-panel').hidden=false;
   $('#spawn-meter').value=0;$('#spawn-status').textContent='Preparing a place for a thought…';$('#activity').textContent='The room is empty.';$('#brain-status').textContent='Spawning…';document.body.classList.remove('dead');
+  const requested=debug?(window.__habitat?.nextSpecies||new URLSearchParams(location.search).get('body')):null;
+  const species=requested?speciesId(requested):randomSpecies();
   try{
-    if(!room)room=new BrowserRoom($('#viewport'),settings,interaction);
+    if(!room)room=new BrowserRoom($('#viewport'),{...settings,species,residentFile:SPECIES[species].asset},interaction);
     else if(roomFailed){roomFailed=false;room.ready=room.loadAssets();}
-    const assets=room.ready.catch(error=>{roomFailed=true;throw error;});
+    const assets=room.ready.catch(error=>{roomFailed=true;throw error;}).then(()=>room.selectSpecies(species));
     room.state=null;room.materialize(0);
     const resources=await Promise.all([assets,mind.load(({progress,text})=>{if(run!==generation)return;$('#spawn-meter').value=progress;$('#spawn-status').textContent=text;room.materialize(progress);}),ComicReader.load()]);
     comicReader=resources[2];
     if(run!==generation)return;
-    $('#spawn-meter').value=1;room.materialize(1);life=new Life({archive:readArchive(storage())});persistRoom();nextThought=life.age+1;lastSpeech=0;
+    $('#spawn-meter').value=1;room.materialize(1);life=new Life({archive:readArchive(storage()),species});persistRoom();nextThought=life.age+1;lastSpeech=0;
     room.update(life.snapshot());$('#title-name').textContent=`${life.name}’s room`;
     $('#spawn-panel').hidden=true;$('#brain-status').textContent='';controls(true);$('#message').focus();
     if(debug)Object.assign(window.__habitat,{life,mind});
@@ -98,10 +114,10 @@ async function spawn(){
     if(run!==generation)return;mind.dispose();$('#spawn-error').textContent=`Could not spawn: ${error.message}`;$('#spawn-error').hidden=false;$('#spawn-button').textContent='Try again';$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#brain-status').textContent='';
   }finally{if(run===generation)spawning=false;}
 }
-function cancelSpawn(){generation++;mind?.dispose();spawning=false;$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#brain-status').textContent='';$('#spawn-status').textContent='';}
+function cancelSpawn(){generation++;mind?.dispose();spawning=false;instrument.update(null);$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#brain-status').textContent='';$('#spawn-status').textContent='';}
 function interaction(kind,payload={}){
   if(!life)return false;
-  if(kind==='service'||kind==='experiments'||kind==='night'){if(life.alive||kind==='experiments')toggleDrawer(kind);return true;}
+  if(kind==='service'||kind==='experiments'||kind==='night'||kind==='laboratory'){if(life.alive||kind==='experiments')toggleDrawer(kind);return true;}
   if(kind==='read'){payload.pages=comicReader.select();const images=$('#reading-pages');images.replaceChildren();for(const page of payload.pages){const image=new Image();image.src=page.image;image.alt=`Book 2, page ${page.page}`;images.append(image);}}
   const accepted=life.interact(kind,payload);
   if(accepted&&kind==='tap')voice.effect('tap');
@@ -137,7 +153,7 @@ async function think(){
 function frame(now){
   requestAnimationFrame(frame);const dt=Math.min(.2,(now-lastFrame)/1000);lastFrame=now;
   if(!life)return;life.tick(dt);
-  const snapshot=life.snapshot();voice.update(snapshot);roomControls(snapshot);persistRoom();
+  const snapshot=life.snapshot();instrument.update(snapshot);voice.update(snapshot);roomControls(snapshot);persistRoom();
   if(!life.alive)endMind();room.update(snapshot,{thinking:busy&&life.alive,watching:!document.hidden});
   $('#activity').textContent=life.outcome?'The room is empty.':`${life.name} is ${snapshot.description}.`;
   $('#reading-pages').hidden=life.activity!=='forced_read';
@@ -151,12 +167,12 @@ $('#message-form').addEventListener('submit',e=>{e.preventDefault();const text=$
 for(const button of document.querySelectorAll('[data-delivery]'))button.addEventListener('click',()=>interaction('deliver',{item:button.dataset.delivery}));
 $('#next-occupant').addEventListener('click',spawn);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawers();});
-for(const button of document.querySelectorAll('[data-action]'))button.addEventListener('click',()=>interaction(button.dataset.action));
+for(const button of document.querySelectorAll('[data-action]'))button.addEventListener('click',()=>interaction(button.dataset.action,{...(button.dataset.direction?{direction:Number(button.dataset.direction)}:{}),...(button.dataset.tone?{tone:Number(button.dataset.tone)}:{}),...(button.dataset.pad!==undefined?{pad:Number(button.dataset.pad)}:{}),...(button.dataset.item?{item:button.dataset.item}:{})}));
 function exitProgram(){if(spawning)cancelSpawn();else interaction('close');silence();}
 $('#close-window').addEventListener('click',()=>{exitProgram();location.assign('https://www.goosnav.shop/');});
 $('#restart-program').addEventListener('click',()=>{exitProgram();location.reload();});
 $('#journal-button').addEventListener('click',()=>showNotes(life?`${life.name.toLowerCase()}.txt - Notepad`:'File',life?[...life.journal.map(n=>`${n.title}\n${n.text}`),...life.dialogue.slice(-8).map(m=>`${m.role==='user'?'Outside':life.name}: ${m.content}`)].concat(life.journal.length||life.dialogue.length?[]:['Nothing written.']):['There is nobody in here.']));
-$('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','Send something through Room service. He decides whether to use it.','Things in the room has controls for the plumbing, telephone and small diversions. Keep an eye on what arrives.','The room keeps its marks. Each occupant gets one life.']));
+$('#help-button').addEventListener('click',()=>showNotes('About homunculus.exe',['You are looking through a window. He is trying to get out.','Send something through Room service. He decides whether to use it.','Things in the room has controls for the plumbing, telephone and small diversions. Keep an eye on what arrives.','Apparatus adjusts the air and sound. Try gentle changes while watching the occupant—or the meter.','The room keeps its marks. Each occupant gets one life.']));
 $('#notes .close').addEventListener('click',()=>$('#notes').close());
 $('#new-life').addEventListener('click',()=>{$('#notes').close();$('#spawn-button').textContent='Spawn homunculus';$('#spawn-button').hidden=false;$('#spawn-progress').hidden=true;$('#spawn-panel').hidden=false;});
 $('#reload-mind').addEventListener('click',async()=>{
@@ -166,5 +182,5 @@ $('#reload-mind').addEventListener('click',async()=>{
 window.addEventListener('pagehide',()=>{persistRoom();generation++;life?.interact('close');mind?.dispose();silence();});
 window.addEventListener('pageshow',event=>{if(event.persisted){if(life)endMind();else cancelSpawn();}});
 $('#viewport').addEventListener('render-lost',()=>{generation++;life?.interact('close');mind?.dispose();notice('The view was lost. This existence ended. Reload the page to spawn someone new.');});
-if(debug)window.__habitat={get room(){return room;},get spawning(){return spawning;},voice,interaction,spawn,parseThought,mindMessages};
+if(debug)window.__habitat={get room(){return room;},get spawning(){return spawning;},voice,instrument,interaction,spawn,parseThought,mindMessages};
 requestAnimationFrame(frame);

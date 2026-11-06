@@ -1,3 +1,4 @@
+import { cleanLaboratory } from './laboratory.js';
 import { cleanNight } from './night.js';
 // The room's mechanisms run without inference. Only traces survive an occupant.
 const STORE='homunculus-room-v1';
@@ -5,7 +6,7 @@ export const DELIVERIES=['soup','chalk','coil','mirror'];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function cleanArchive(value){
  const traces={};for(const key of ['chalk','signal','key'])if(value?.traces?.[key]===true)traces[key]=true;
- return {version:1,visits:Number.isFinite(value?.visits)?clamp(Math.floor(value.visits),0,9999):0,traces,...(value?.afterHours&&typeof value.afterHours==='object'?{afterHours:cleanNight(value.afterHours)}:{})};
+ return {version:1,visits:Number.isFinite(value?.visits)?clamp(Math.floor(value.visits),0,9999):0,traces,...(value?.laboratory?{laboratory:cleanLaboratory(value.laboratory)}:{}),...(value?.afterHours&&typeof value.afterHours==='object'?{afterHours:cleanNight(value.afterHours)}:{})};
 }
 export function readArchive(storage){try{return cleanArchive(JSON.parse(storage.getItem(STORE)));}catch{return cleanArchive();}}
 export function writeArchive(storage,value){try{storage.setItem(STORE,JSON.stringify(cleanArchive(value)));}catch{/* The room still works without storage. */}}
@@ -26,7 +27,7 @@ export class Chamber{
   life.beginWork(ACTIVITIES[item]||'collect',PLACES[item]||PLACES.collect);
  }
  cancel(life,{preservePosition=false}={}){
-  this.job=null;this.delivery=null;
+  life.laboratory?.interrupt(life,'cancelled');this.job=null;this.delivery=null;
   if(life.alive&&['collect','draw','wire','mount','depart','tinker'].includes(life.activity)){
    if(preservePosition){life.activity='watch';life.path=[];life.seated=false;life.remaining=3;}else life.choose('watch',true);
   }
@@ -99,7 +100,7 @@ export class Chamber{
    j.work+=dt;if(j.work<1.5)return;
    this.delivery=null;
    if(j.item==='soup'){
-    this.cooperation=clamp(this.cooperation+1.25,-2,3);this.soupUntil=life.age+8;life.energy=clamp(life.energy+18,0,100);
+    this.cooperation=clamp(this.cooperation+1.25,-2,3);this.soupUntil=life.age+8;life.temperament?.pulse('feed');life.energy=clamp(life.energy+18,0,100);
     this.job=null;life.choose('eat',true);this.tell('He keeps the bowl.','hatch');life.event('The watcher sent warm soup. You are less afraid of them.','world');return;
    }
    this.begin(life,j.item);return;
@@ -115,6 +116,7 @@ export class Chamber{
   if(j.item==='door')life.position=[j.origin[0],j.origin[1]-.95*j.progress];
   if(j.item==='chalk')this.chalk=Math.max(this.chalk,j.progress);
   if(j.progress<1)return;
+  if(j.item.startsWith('lab:')){this.job=null;life.laboratory?.complete(life,j.item.slice(4));if(life.alive)life.choose('watch',true);return;}
   if(j.item.startsWith('night:')){this.job=null;life.night?.complete(life,j.item.slice(6));if(life.alive)life.choose('watch',true);return;}
   if(j.item==='door'){life.finish(j.exit);return;}
   if(j.item==='signal'){this.trace('signal');life.finish('signal');return;}

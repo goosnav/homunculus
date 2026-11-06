@@ -7,7 +7,7 @@ await mkdir('.local/room-remembers',{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.BROWSER_EXECUTABLE||undefined,headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
 try{
  const page=await browser.newPage({viewport:{width:1200,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`${url}/?debug`);assert.equal(await page.locator('#service-toggle').count(),1,'room service must be available');
+ await page.goto(`${url}/?debug&body=human`);assert.equal(await page.locator('#service-toggle').count(),1,'room service must be available');
  const state=()=>page.evaluate(()=>window.__habitat.life.snapshot());
  const tick=async seconds=>{await page.evaluate(seconds=>{for(let i=0;i<seconds*10;i++)window.__habitat.life.tick(.1);},seconds);await page.waitForTimeout(100);};
  const until=async condition=>{await page.evaluate(condition=>{const test=new Function('l',`return ${condition}`),l=window.__habitat.life;for(let i=0;i<2000&&!test(l);i++)l.tick(.1);if(!test(l))throw Error(`Unreachable: ${condition}`);},condition);await page.waitForTimeout(150);};

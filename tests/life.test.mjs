@@ -29,7 +29,7 @@ test('model decisions change actual work and invalid commands are rejected',()=>
   assert.equal(life.applyThought({action:'eval',say:'hello'},life.epoch),false);
 });
 test('anvil kills at impact, then leaves a skeleton and never replies again',()=>{
-  const life=new Life(),epoch=life.epoch;
+  const life=new Life({species:'human'}),epoch=life.epoch;
   life.interact('anvil');assert.equal(life.alive,true);run(life,.8);
   assert.equal(life.alive,false);assert.equal(life.snapshot().skeleton,false);
   assert.equal(life.applyThought({action:'watch',say:'Still here.'},epoch),false);

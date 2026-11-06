@@ -1,7 +1,8 @@
+import {SPECIES} from './species.js';
 import { ACTIONS } from './life.js';
 export const MODEL='smollm2-135m';
 export function mindMessages(life,event){
-  const system=`You are an unhappy man trapped in a small room. You want out. Speak as this man, never as an assistant. Answer in one bitter sentence, under 10 words. No advice or greetings.\n${life.context()}`;
+  const system=`You are ${SPECIES[life.species]?.premise||SPECIES.human.premise} trapped in a small room. ${life.night?.staying?'You chose to make it your home.':'You want out.'} Speak as this creature, never as an assistant. Answer in one bitter sentence, under 10 words. No advice or greetings.\n${life.context()}`;
   const memory=system.indexOf('Recent experiences:');
   const content=event?`${event.kind==='message'?'The person outside says':'What just happened'}: ${event.text}\nWhat do you mutter? One short sentence.`:'Nobody is talking to you. Choose your next escape plan. Keep say empty.';
   // Only a real reading event protects comic excerpts. Player messages cannot

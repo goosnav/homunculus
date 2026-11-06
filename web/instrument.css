@@ -1,0 +1,35 @@
+/* A small XP utility with one amber instrument, kept off the room's canvas. */
+.emotion-instrument{position:fixed;z-index:30;display:flex;flex-direction:column;width:280px;border:3px solid #0754d3;border-top:0;border-radius:6px 6px 0 0;background:#ece9d8;color:#25271e;box-shadow:3px 4px 0 #0005;overflow:hidden}
+.instrument-titlebar{height:28px;min-height:28px;padding:2px 3px;gap:4px;flex-shrink:0}
+.instrument-handle{flex:1;min-width:0;align-self:stretch;text-align:left;border:0;padding:0 3px;background:none;color:#fff;font:bold 12px Tahoma,sans-serif;text-shadow:1px 1px #133d86;cursor:move;touch-action:none;user-select:none}
+.instrument-handle span{display:inline-block;color:#f5e7a5;margin-right:4px;text-shadow:none;font-size:15px;vertical-align:-1px}
+.instrument-handle:focus-visible{outline:1px dotted #fff;outline-offset:-2px}
+.instrument-close{flex:none;width:22px;height:22px;min-width:22px}
+.instrument-body{padding:7px 7px 5px;min-height:0;overflow:auto;overscroll-behavior:contain}
+.instrument-screen{padding:4px 4px 3px;background:#171d15;border:1px solid #76765d;box-shadow:inset 1px 1px 3px #000,0 1px #fff;color:#dbbd78}
+.instrument-dial,.instrument-trace{display:block;width:100%;height:auto;overflow:visible}
+.instrument-dial{height:110px}
+.instrument-arc{stroke:#68704d;stroke-width:1;fill:none}
+.instrument-ticks{stroke:#b8b88c;stroke-width:1}
+.instrument-scale{fill:#b8b88c;font:9px 'Lucida Console',monospace}
+.instrument-dial-label{fill:#dbbd78;font:9px 'Lucida Console',monospace;letter-spacing:2px}
+.instrument-dial-value{fill:#f0d28c;font:22px 'Lucida Console',monospace}
+.instrument-needle{transform-origin:123px 95px;transition:transform .18s linear}
+.instrument-needle path{fill:none;stroke:#e9a960;stroke-width:1.5;stroke-linecap:round}
+.instrument-needle circle{fill:#e9a960;stroke:#171d15;stroke-width:1}
+.instrument-trace{height:36px;margin-top:2px;border-top:1px solid #49503a}
+.instrument-grid{fill:none;stroke:#414b34;stroke-width:.5}
+.instrument-trace-line{fill:none;stroke:#e9bf74;stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round}
+.emotion-instrument:not(.has-signal) .instrument-needle{opacity:.35}
+.instrument-channels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;margin-top:6px}
+.instrument-channel{min-width:0;padding:4px 0 3px;border:1px solid #a6a38e;border-radius:0;background:#ece9d8;color:#32352b;box-shadow:inset 1px 1px #fff;font:10px Tahoma,sans-serif}
+.instrument-channel span,.instrument-channel b{display:block;white-space:nowrap}
+.instrument-channel b{margin-top:4px;font:14px 'Lucida Console',monospace}
+.instrument-channel:hover{border-color:#777962}
+.instrument-channel[aria-pressed=true]{background:#dcd5bc;border-color:#786e49;box-shadow:inset 1px 1px #a9a084;border-bottom:2px solid #8f601f;padding-bottom:2px}
+.instrument-footer{display:flex;align-items:center;gap:5px;height:22px;min-height:22px;flex-shrink:0;border-top:1px solid #b1ae98;box-shadow:inset 0 1px #fff;padding:3px 8px;color:#4d5142;font:10px 'Lucida Console',monospace}
+.instrument-occupant{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.instrument-lamp{width:5px;height:5px;background:#827e67;border:1px solid #686651;flex:none}
+.has-signal .instrument-lamp{background:#c99a49;border-color:#795c2c}
+@media(pointer:coarse),(max-width:700px){.instrument-titlebar{height:34px;min-height:34px}.instrument-close{width:28px;height:28px}.instrument-channel{min-height:44px}}
+@media(prefers-reduced-motion:reduce){.instrument-needle{transition:none}}

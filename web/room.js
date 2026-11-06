@@ -151,7 +151,7 @@ export class Room {
     this.assetLoads??=new Map();
     const fetchAsset=async(file)=>{
       const gltf=await loader.loadAsync(`/assets/${file}.glb`);
-      gltf.scene.traverse(o=>{if(o.isMesh){const source=Array.isArray(o.material)?o.material:[o.material];o.material=source.map(m=>{if(m.map){m.map.magFilter=THREE.NearestFilter;m.map.minFilter=THREE.NearestFilter;m.map.generateMipmaps=false;}return new THREE.MeshLambertMaterial({color:m.color,map:m.map,side:m.side,transparent:m.transparent,opacity:m.opacity,flatShading:file!=='resident'});});if(o.material.length===1)o.material=o.material[0];}});
+      gltf.scene.traverse(o=>{if(o.isMesh){const source=Array.isArray(o.material)?o.material:[o.material];o.material=source.map(m=>{if(m.map){m.map.magFilter=THREE.NearestFilter;m.map.minFilter=THREE.NearestFilter;m.map.generateMipmaps=false;}return new THREE.MeshLambertMaterial({color:m.color,map:m.map,side:m.side,transparent:m.transparent,opacity:m.opacity,flatShading:file!==(this.settings.residentFile||'resident')});});if(o.material.length===1)o.material=o.material[0];}});
       return gltf.scene;
     };
     const load=file=>{
@@ -161,9 +161,9 @@ export class Room {
     // Stage all downloads before attaching anything. A failed download can be retried
     // without constructing another renderer or duplicating the successful scene objects.
     const items=[['book',[1.64,1.025,-1.3],2.1,.24],['pack',[2.17,1.03,-1.4],1.65,-.3],['zine',[-2.33,.694,.51],1.8,.2],['card',[1.88,1.035,-1.04],2.1,.45]];
-    const [resident,...props]=await Promise.all(['resident',...items.map(item=>item[0])].map(load));
+    const [resident,...props]=await Promise.all([this.settings.residentFile||'resident',...items.map(item=>item[0])].map(load));
     this.model=resident;this.body.add(resident);
-    resident.traverse(o=>{if(o.isBone){this.bones[o.name.replaceAll('.','')]=o;this.rest[o.name.replaceAll('.','')]={q:o.quaternion.clone(),p:o.position.clone()};}});
+    resident.traverse(o=>{if(o.isBone){this.bones[o.name.replaceAll('.','')]=o;this.rest[o.name.replaceAll('.','')]={q:o.quaternion.clone(),p:o.position.clone(),s:o.scale.clone()};}});
     this.headBone=this.bones.head;
     // A small book that only exists while he reads at the desk.
     if(this.bones.handR){this.book=new THREE.Mesh(new THREE.BoxGeometry(.2,.035,.27),mat(0x8b3b2e));this.book.position.set(.06,.1,.02);this.book.visible=false;this.bones.handR.add(this.book);}

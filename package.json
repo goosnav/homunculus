@@ -13,7 +13,8 @@
     "predev": "node tools/prepare-model.mjs",
     "test:stability": "node tools/test-stability.mjs",
     "test:chamber": "node tools/test-chamber.mjs",
-    "test:night": "node tools/test-night.mjs"
+    "test:night": "node tools/test-night.mjs",
+    "test:biology": "node tools/test-biology.mjs"
   },
   "devDependencies": {
     "@huggingface/transformers": "3.8.1",
